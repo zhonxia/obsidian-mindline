@@ -310,8 +310,8 @@ var require_react_development = __commonJS({
         function typeName(value) {
           {
             var hasToStringTag = typeof Symbol === "function" && Symbol.toStringTag;
-            var type2 = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
-            return type2;
+            var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+            return type;
           }
         }
         function willCoercionThrow(value) {
@@ -343,25 +343,25 @@ var require_react_development = __commonJS({
           var functionName = innerType.displayName || innerType.name || "";
           return functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName;
         }
-        function getContextName(type2) {
-          return type2.displayName || "Context";
+        function getContextName(type) {
+          return type.displayName || "Context";
         }
-        function getComponentNameFromType(type2) {
-          if (type2 == null) {
+        function getComponentNameFromType(type) {
+          if (type == null) {
             return null;
           }
           {
-            if (typeof type2.tag === "number") {
+            if (typeof type.tag === "number") {
               error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.");
             }
           }
-          if (typeof type2 === "function") {
-            return type2.displayName || type2.name || null;
+          if (typeof type === "function") {
+            return type.displayName || type.name || null;
           }
-          if (typeof type2 === "string") {
-            return type2;
+          if (typeof type === "string") {
+            return type;
           }
-          switch (type2) {
+          switch (type) {
             case REACT_FRAGMENT_TYPE:
               return "Fragment";
             case REACT_PORTAL_TYPE:
@@ -375,24 +375,24 @@ var require_react_development = __commonJS({
             case REACT_SUSPENSE_LIST_TYPE:
               return "SuspenseList";
           }
-          if (typeof type2 === "object") {
-            switch (type2.$$typeof) {
+          if (typeof type === "object") {
+            switch (type.$$typeof) {
               case REACT_CONTEXT_TYPE:
-                var context = type2;
+                var context = type;
                 return getContextName(context) + ".Consumer";
               case REACT_PROVIDER_TYPE:
-                var provider = type2;
+                var provider = type;
                 return getContextName(provider._context) + ".Provider";
               case REACT_FORWARD_REF_TYPE:
-                return getWrappedName(type2, type2.render, "ForwardRef");
+                return getWrappedName(type, type.render, "ForwardRef");
               case REACT_MEMO_TYPE:
-                var outerName = type2.displayName || null;
+                var outerName = type.displayName || null;
                 if (outerName !== null) {
                   return outerName;
                 }
-                return getComponentNameFromType(type2.type) || "Memo";
+                return getComponentNameFromType(type.type) || "Memo";
               case REACT_LAZY_TYPE: {
-                var lazyComponent = type2;
+                var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init2 = lazyComponent._init;
                 try {
@@ -479,12 +479,12 @@ var require_react_development = __commonJS({
             }
           }
         }
-        var ReactElement = function(type2, key, ref, self, source, owner, props) {
+        var ReactElement = function(type, key, ref, self, source, owner, props) {
           var element2 = {
             // This tag allows us to uniquely identify this as a React Element
             $$typeof: REACT_ELEMENT_TYPE,
             // Built-in properties that belong on the element
-            type: type2,
+            type,
             key,
             ref,
             props,
@@ -518,7 +518,7 @@ var require_react_development = __commonJS({
           }
           return element2;
         };
-        function createElement(type2, config, children2) {
+        function createElement(type, config, children2) {
           var propName;
           var props = {};
           var key = null;
@@ -561,8 +561,8 @@ var require_react_development = __commonJS({
             }
             props.children = childArray;
           }
-          if (type2 && type2.defaultProps) {
-            var defaultProps = type2.defaultProps;
+          if (type && type.defaultProps) {
+            var defaultProps = type.defaultProps;
             for (propName in defaultProps) {
               if (props[propName] === void 0) {
                 props[propName] = defaultProps[propName];
@@ -571,7 +571,7 @@ var require_react_development = __commonJS({
           }
           {
             if (key || ref) {
-              var displayName = typeof type2 === "function" ? type2.displayName || type2.name || "Unknown" : type2;
+              var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
               if (key) {
                 defineKeyPropWarningGetter(props, displayName);
               }
@@ -580,7 +580,7 @@ var require_react_development = __commonJS({
               }
             }
           }
-          return ReactElement(type2, key, ref, self, source, ReactCurrentOwner.current, props);
+          return ReactElement(type, key, ref, self, source, ReactCurrentOwner.current, props);
         }
         function cloneAndReplaceKey(oldElement, newKey) {
           var newElement = ReactElement(oldElement.type, newKey, oldElement.ref, oldElement._self, oldElement._source, oldElement._owner, oldElement.props);
@@ -665,15 +665,15 @@ var require_react_development = __commonJS({
           return index3.toString(36);
         }
         function mapIntoArray(children2, array2, escapedPrefix, nameSoFar, callback) {
-          var type2 = typeof children2;
-          if (type2 === "undefined" || type2 === "boolean") {
+          var type = typeof children2;
+          if (type === "undefined" || type === "boolean") {
             children2 = null;
           }
           var invokeCallback = false;
           if (children2 === null) {
             invokeCallback = true;
           } else {
-            switch (type2) {
+            switch (type) {
               case "string":
               case "number":
                 invokeCallback = true;
@@ -751,38 +751,38 @@ var require_react_development = __commonJS({
                 nextName = nextNamePrefix + getElementKey(child, ii++);
                 subtreeCount += mapIntoArray(child, array2, escapedPrefix, nextName, callback);
               }
-            } else if (type2 === "object") {
+            } else if (type === "object") {
               var childrenString = String(children2);
               throw new Error("Objects are not valid as a React child (found: " + (childrenString === "[object Object]" ? "object with keys {" + Object.keys(children2).join(", ") + "}" : childrenString) + "). If you meant to render a collection of children, use an array instead.");
             }
           }
           return subtreeCount;
         }
-        function mapChildren2(children2, func, context) {
+        function mapChildren(children2, func, context) {
           if (children2 == null) {
             return children2;
           }
           var result = [];
-          var count2 = 0;
+          var count = 0;
           mapIntoArray(children2, result, "", "", function(child) {
-            return func.call(context, child, count2++);
+            return func.call(context, child, count++);
           });
           return result;
         }
         function countChildren(children2) {
           var n = 0;
-          mapChildren2(children2, function() {
+          mapChildren(children2, function() {
             n++;
           });
           return n;
         }
         function forEachChildren(children2, forEachFunc, forEachContext) {
-          mapChildren2(children2, function() {
+          mapChildren(children2, function() {
             forEachFunc.apply(this, arguments);
           }, forEachContext);
         }
         function toArray(children2) {
-          return mapChildren2(children2, function(child) {
+          return mapChildren(children2, function(child) {
             return child;
           }) || [];
         }
@@ -1022,33 +1022,33 @@ var require_react_development = __commonJS({
         {
           REACT_MODULE_REFERENCE = Symbol.for("react.module.reference");
         }
-        function isValidElementType(type2) {
-          if (typeof type2 === "string" || typeof type2 === "function") {
+        function isValidElementType(type) {
+          if (typeof type === "string" || typeof type === "function") {
             return true;
           }
-          if (type2 === REACT_FRAGMENT_TYPE || type2 === REACT_PROFILER_TYPE || enableDebugTracing || type2 === REACT_STRICT_MODE_TYPE || type2 === REACT_SUSPENSE_TYPE || type2 === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type2 === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
+          if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || enableDebugTracing || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
             return true;
           }
-          if (typeof type2 === "object" && type2 !== null) {
-            if (type2.$$typeof === REACT_LAZY_TYPE || type2.$$typeof === REACT_MEMO_TYPE || type2.$$typeof === REACT_PROVIDER_TYPE || type2.$$typeof === REACT_CONTEXT_TYPE || type2.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
+          if (typeof type === "object" && type !== null) {
+            if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
             // types supported by any Flight configuration anywhere since
             // we don't know which Flight build this will end up being used
             // with.
-            type2.$$typeof === REACT_MODULE_REFERENCE || type2.getModuleId !== void 0) {
+            type.$$typeof === REACT_MODULE_REFERENCE || type.getModuleId !== void 0) {
               return true;
             }
           }
           return false;
         }
-        function memo2(type2, compare) {
+        function memo2(type, compare) {
           {
-            if (!isValidElementType(type2)) {
-              error("memo: The first argument must be a component. Instead received: %s", type2 === null ? "null" : typeof type2);
+            if (!isValidElementType(type)) {
+              error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
             }
           }
           var elementType = {
             $$typeof: REACT_MEMO_TYPE,
-            type: type2,
+            type,
             compare: compare === void 0 ? null : compare
           };
           {
@@ -1061,8 +1061,8 @@ var require_react_development = __commonJS({
               },
               set: function(name) {
                 ownName = name;
-                if (!type2.name && !type2.displayName) {
-                  type2.displayName = name;
+                if (!type.name && !type.displayName) {
+                  type.displayName = name;
                 }
               }
             });
@@ -1092,7 +1092,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState4(initialState) {
+        function useState3(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1100,11 +1100,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init2);
         }
-        function useRef4(initialValue) {
+        function useRef3(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect4(create2, deps) {
+        function useEffect3(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -1116,7 +1116,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create2, deps);
         }
-        function useCallback4(callback, deps) {
+        function useCallback2(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
@@ -1361,32 +1361,32 @@ var require_react_development = __commonJS({
           var prototype = Component2.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function describeUnknownElementTypeFrameInDEV(type2, source, ownerFn) {
-          if (type2 == null) {
+        function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
+          if (type == null) {
             return "";
           }
-          if (typeof type2 === "function") {
+          if (typeof type === "function") {
             {
-              return describeNativeComponentFrame(type2, shouldConstruct(type2));
+              return describeNativeComponentFrame(type, shouldConstruct(type));
             }
           }
-          if (typeof type2 === "string") {
-            return describeBuiltInComponentFrame(type2);
+          if (typeof type === "string") {
+            return describeBuiltInComponentFrame(type);
           }
-          switch (type2) {
+          switch (type) {
             case REACT_SUSPENSE_TYPE:
               return describeBuiltInComponentFrame("Suspense");
             case REACT_SUSPENSE_LIST_TYPE:
               return describeBuiltInComponentFrame("SuspenseList");
           }
-          if (typeof type2 === "object") {
-            switch (type2.$$typeof) {
+          if (typeof type === "object") {
+            switch (type.$$typeof) {
               case REACT_FORWARD_REF_TYPE:
-                return describeFunctionComponentFrame(type2.render);
+                return describeFunctionComponentFrame(type.render);
               case REACT_MEMO_TYPE:
-                return describeUnknownElementTypeFrameInDEV(type2.type, source, ownerFn);
+                return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
               case REACT_LAZY_TYPE: {
-                var lazyComponent = type2;
+                var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init2 = lazyComponent._init;
                 try {
@@ -1543,29 +1543,29 @@ var require_react_development = __commonJS({
         }
         function validatePropTypes(element2) {
           {
-            var type2 = element2.type;
-            if (type2 === null || type2 === void 0 || typeof type2 === "string") {
+            var type = element2.type;
+            if (type === null || type === void 0 || typeof type === "string") {
               return;
             }
             var propTypes;
-            if (typeof type2 === "function") {
-              propTypes = type2.propTypes;
-            } else if (typeof type2 === "object" && (type2.$$typeof === REACT_FORWARD_REF_TYPE || // Note: Memo only checks outer props here.
+            if (typeof type === "function") {
+              propTypes = type.propTypes;
+            } else if (typeof type === "object" && (type.$$typeof === REACT_FORWARD_REF_TYPE || // Note: Memo only checks outer props here.
             // Inner props are checked in the reconciler.
-            type2.$$typeof === REACT_MEMO_TYPE)) {
-              propTypes = type2.propTypes;
+            type.$$typeof === REACT_MEMO_TYPE)) {
+              propTypes = type.propTypes;
             } else {
               return;
             }
             if (propTypes) {
-              var name = getComponentNameFromType(type2);
+              var name = getComponentNameFromType(type);
               checkPropTypes(propTypes, element2.props, "prop", name, element2);
-            } else if (type2.PropTypes !== void 0 && !propTypesMisspellWarningShown) {
+            } else if (type.PropTypes !== void 0 && !propTypesMisspellWarningShown) {
               propTypesMisspellWarningShown = true;
-              var _name = getComponentNameFromType(type2);
+              var _name = getComponentNameFromType(type);
               error("Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?", _name || "Unknown");
             }
-            if (typeof type2.getDefaultProps === "function" && !type2.getDefaultProps.isReactClassApproved) {
+            if (typeof type.getDefaultProps === "function" && !type.getDefaultProps.isReactClassApproved) {
               error("getDefaultProps is only used on classic React.createClass definitions. Use a static property named `defaultProps` instead.");
             }
           }
@@ -1589,11 +1589,11 @@ var require_react_development = __commonJS({
             }
           }
         }
-        function createElementWithValidation(type2, props, children2) {
-          var validType = isValidElementType(type2);
+        function createElementWithValidation(type, props, children2) {
+          var validType = isValidElementType(type);
           if (!validType) {
             var info = "";
-            if (type2 === void 0 || typeof type2 === "object" && type2 !== null && Object.keys(type2).length === 0) {
+            if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
               info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
             }
             var sourceInfo = getSourceInfoErrorAddendumForProps(props);
@@ -1603,15 +1603,15 @@ var require_react_development = __commonJS({
               info += getDeclarationErrorAddendum();
             }
             var typeString;
-            if (type2 === null) {
+            if (type === null) {
               typeString = "null";
-            } else if (isArray(type2)) {
+            } else if (isArray(type)) {
               typeString = "array";
-            } else if (type2 !== void 0 && type2.$$typeof === REACT_ELEMENT_TYPE) {
-              typeString = "<" + (getComponentNameFromType(type2.type) || "Unknown") + " />";
+            } else if (type !== void 0 && type.$$typeof === REACT_ELEMENT_TYPE) {
+              typeString = "<" + (getComponentNameFromType(type.type) || "Unknown") + " />";
               info = " Did you accidentally export a JSX literal instead of a component?";
             } else {
-              typeString = typeof type2;
+              typeString = typeof type;
             }
             {
               error("React.createElement: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
@@ -1623,10 +1623,10 @@ var require_react_development = __commonJS({
           }
           if (validType) {
             for (var i = 2; i < arguments.length; i++) {
-              validateChildKeys(arguments[i], type2);
+              validateChildKeys(arguments[i], type);
             }
           }
-          if (type2 === REACT_FRAGMENT_TYPE) {
+          if (type === REACT_FRAGMENT_TYPE) {
             validateFragmentProps(element2);
           } else {
             validatePropTypes(element2);
@@ -1634,9 +1634,9 @@ var require_react_development = __commonJS({
           return element2;
         }
         var didWarnAboutDeprecatedCreateFactory = false;
-        function createFactoryWithValidation(type2) {
-          var validatedFactory = createElementWithValidation.bind(null, type2);
-          validatedFactory.type = type2;
+        function createFactoryWithValidation(type) {
+          var validatedFactory = createElementWithValidation.bind(null, type);
+          validatedFactory.type = type;
           {
             if (!didWarnAboutDeprecatedCreateFactory) {
               didWarnAboutDeprecatedCreateFactory = true;
@@ -1647,9 +1647,9 @@ var require_react_development = __commonJS({
               get: function() {
                 warn("Factory.type is deprecated. Access the class directly before passing it to createFactory.");
                 Object.defineProperty(this, "type", {
-                  value: type2
+                  value: type
                 });
-                return type2;
+                return type;
               }
             });
           }
@@ -1857,7 +1857,7 @@ var require_react_development = __commonJS({
         var cloneElement$1 = cloneElementWithValidation;
         var createFactory = createFactoryWithValidation;
         var Children = {
-          map: mapChildren2,
+          map: mapChildren,
           forEach: forEachChildren,
           count: countChildren,
           toArray,
@@ -1883,19 +1883,19 @@ var require_react_development = __commonJS({
         exports.memo = memo2;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback4;
+        exports.useCallback = useCallback2;
         exports.useContext = useContext2;
         exports.useDebugValue = useDebugValue2;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect4;
+        exports.useEffect = useEffect3;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect2;
         exports.useMemo = useMemo2;
         exports.useReducer = useReducer;
-        exports.useRef = useRef4;
-        exports.useState = useState4;
+        exports.useRef = useRef3;
+        exports.useState = useState3;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2501,8 +2501,8 @@ var require_react_dom_development = __commonJS({
         function typeName(value) {
           {
             var hasToStringTag = typeof Symbol === "function" && Symbol.toStringTag;
-            var type2 = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
-            return type2;
+            var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+            return type;
           }
         }
         function willCoercionThrow(value) {
@@ -2657,13 +2657,13 @@ var require_react_dom_development = __commonJS({
         function getPropertyInfo(name) {
           return properties.hasOwnProperty(name) ? properties[name] : null;
         }
-        function PropertyInfoRecord(name, type2, mustUseProperty, attributeName, attributeNamespace, sanitizeURL2, removeEmptyString) {
-          this.acceptsBooleans = type2 === BOOLEANISH_STRING || type2 === BOOLEAN || type2 === OVERLOADED_BOOLEAN;
+        function PropertyInfoRecord(name, type, mustUseProperty, attributeName, attributeNamespace, sanitizeURL2, removeEmptyString) {
+          this.acceptsBooleans = type === BOOLEANISH_STRING || type === BOOLEAN || type === OVERLOADED_BOOLEAN;
           this.attributeName = attributeName;
           this.attributeNamespace = attributeNamespace;
           this.mustUseProperty = mustUseProperty;
           this.propertyName = name;
-          this.type = type2;
+          this.type = type;
           this.sanitizeURL = sanitizeURL2;
           this.removeEmptyString = removeEmptyString;
         }
@@ -3152,8 +3152,8 @@ var require_react_dom_development = __commonJS({
           if (mustUseProperty) {
             var propertyName = propertyInfo.propertyName;
             if (value === null) {
-              var type2 = propertyInfo.type;
-              node2[propertyName] = type2 === BOOLEAN ? false : "";
+              var type = propertyInfo.type;
+              node2[propertyName] = type === BOOLEAN ? false : "";
             } else {
               node2[propertyName] = value;
             }
@@ -3432,32 +3432,32 @@ var require_react_dom_development = __commonJS({
           var prototype = Component.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function describeUnknownElementTypeFrameInDEV(type2, source, ownerFn) {
-          if (type2 == null) {
+        function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
+          if (type == null) {
             return "";
           }
-          if (typeof type2 === "function") {
+          if (typeof type === "function") {
             {
-              return describeNativeComponentFrame(type2, shouldConstruct(type2));
+              return describeNativeComponentFrame(type, shouldConstruct(type));
             }
           }
-          if (typeof type2 === "string") {
-            return describeBuiltInComponentFrame(type2);
+          if (typeof type === "string") {
+            return describeBuiltInComponentFrame(type);
           }
-          switch (type2) {
+          switch (type) {
             case REACT_SUSPENSE_TYPE:
               return describeBuiltInComponentFrame("Suspense");
             case REACT_SUSPENSE_LIST_TYPE:
               return describeBuiltInComponentFrame("SuspenseList");
           }
-          if (typeof type2 === "object") {
-            switch (type2.$$typeof) {
+          if (typeof type === "object") {
+            switch (type.$$typeof) {
               case REACT_FORWARD_REF_TYPE:
-                return describeFunctionComponentFrame(type2.render);
+                return describeFunctionComponentFrame(type.render);
               case REACT_MEMO_TYPE:
-                return describeUnknownElementTypeFrameInDEV(type2.type, source, ownerFn);
+                return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
               case REACT_LAZY_TYPE: {
-                var lazyComponent = type2;
+                var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init2 = lazyComponent._init;
                 try {
@@ -3514,25 +3514,25 @@ var require_react_dom_development = __commonJS({
           var functionName = innerType.displayName || innerType.name || "";
           return functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName;
         }
-        function getContextName(type2) {
-          return type2.displayName || "Context";
+        function getContextName(type) {
+          return type.displayName || "Context";
         }
-        function getComponentNameFromType(type2) {
-          if (type2 == null) {
+        function getComponentNameFromType(type) {
+          if (type == null) {
             return null;
           }
           {
-            if (typeof type2.tag === "number") {
+            if (typeof type.tag === "number") {
               error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.");
             }
           }
-          if (typeof type2 === "function") {
-            return type2.displayName || type2.name || null;
+          if (typeof type === "function") {
+            return type.displayName || type.name || null;
           }
-          if (typeof type2 === "string") {
-            return type2;
+          if (typeof type === "string") {
+            return type;
           }
-          switch (type2) {
+          switch (type) {
             case REACT_FRAGMENT_TYPE:
               return "Fragment";
             case REACT_PORTAL_TYPE:
@@ -3546,24 +3546,24 @@ var require_react_dom_development = __commonJS({
             case REACT_SUSPENSE_LIST_TYPE:
               return "SuspenseList";
           }
-          if (typeof type2 === "object") {
-            switch (type2.$$typeof) {
+          if (typeof type === "object") {
+            switch (type.$$typeof) {
               case REACT_CONTEXT_TYPE:
-                var context = type2;
+                var context = type;
                 return getContextName(context) + ".Consumer";
               case REACT_PROVIDER_TYPE:
-                var provider = type2;
+                var provider = type;
                 return getContextName(provider._context) + ".Provider";
               case REACT_FORWARD_REF_TYPE:
-                return getWrappedName(type2, type2.render, "ForwardRef");
+                return getWrappedName(type, type.render, "ForwardRef");
               case REACT_MEMO_TYPE:
-                var outerName = type2.displayName || null;
+                var outerName = type.displayName || null;
                 if (outerName !== null) {
                   return outerName;
                 }
-                return getComponentNameFromType(type2.type) || "Memo";
+                return getComponentNameFromType(type.type) || "Memo";
               case REACT_LAZY_TYPE: {
-                var lazyComponent = type2;
+                var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init2 = lazyComponent._init;
                 try {
@@ -3580,28 +3580,28 @@ var require_react_dom_development = __commonJS({
           var functionName = innerType.displayName || innerType.name || "";
           return outerType.displayName || (functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName);
         }
-        function getContextName$1(type2) {
-          return type2.displayName || "Context";
+        function getContextName$1(type) {
+          return type.displayName || "Context";
         }
         function getComponentNameFromFiber(fiber) {
-          var tag = fiber.tag, type2 = fiber.type;
+          var tag = fiber.tag, type = fiber.type;
           switch (tag) {
             case CacheComponent:
               return "Cache";
             case ContextConsumer:
-              var context = type2;
+              var context = type;
               return getContextName$1(context) + ".Consumer";
             case ContextProvider:
-              var provider = type2;
+              var provider = type;
               return getContextName$1(provider._context) + ".Provider";
             case DehydratedFragment:
               return "DehydratedFragment";
             case ForwardRef:
-              return getWrappedName$1(type2, type2.render, "ForwardRef");
+              return getWrappedName$1(type, type.render, "ForwardRef");
             case Fragment2:
               return "Fragment";
             case HostComponent:
-              return type2;
+              return type;
             case HostPortal:
               return "Portal";
             case HostRoot:
@@ -3609,9 +3609,9 @@ var require_react_dom_development = __commonJS({
             case HostText:
               return "Text";
             case LazyComponent:
-              return getComponentNameFromType(type2);
+              return getComponentNameFromType(type);
             case Mode:
-              if (type2 === REACT_STRICT_MODE_TYPE) {
+              if (type === REACT_STRICT_MODE_TYPE) {
                 return "StrictMode";
               }
               return "Mode";
@@ -3633,11 +3633,11 @@ var require_react_dom_development = __commonJS({
             case IndeterminateComponent:
             case MemoComponent:
             case SimpleMemoComponent:
-              if (typeof type2 === "function") {
-                return type2.displayName || type2.name || null;
+              if (typeof type === "function") {
+                return type.displayName || type.name || null;
               }
-              if (typeof type2 === "string") {
-                return type2;
+              if (typeof type === "string") {
+                return type;
               }
               break;
           }
@@ -3729,9 +3729,9 @@ var require_react_dom_development = __commonJS({
           }
         }
         function isCheckable(elem) {
-          var type2 = elem.type;
+          var type = elem.type;
           var nodeName = elem.nodeName;
-          return nodeName && nodeName.toLowerCase() === "input" && (type2 === "checkbox" || type2 === "radio");
+          return nodeName && nodeName.toLowerCase() === "input" && (type === "checkbox" || type === "radio");
         }
         function getTracker(node2) {
           return node2._valueTracker;
@@ -3889,9 +3889,9 @@ var require_react_dom_development = __commonJS({
           }
           updateChecked(element2, props);
           var value = getToStringValue(props.value);
-          var type2 = props.type;
+          var type = props.type;
           if (value != null) {
-            if (type2 === "number") {
+            if (type === "number") {
               if (value === 0 && node2.value === "" || // We explicitly want to coerce to number here if possible.
               // eslint-disable-next-line
               node2.value != value) {
@@ -3900,7 +3900,7 @@ var require_react_dom_development = __commonJS({
             } else if (node2.value !== toString2(value)) {
               node2.value = toString2(value);
             }
-          } else if (type2 === "submit" || type2 === "reset") {
+          } else if (type === "submit" || type === "reset") {
             node2.removeAttribute("value");
             return;
           }
@@ -3920,8 +3920,8 @@ var require_react_dom_development = __commonJS({
         function postMountWrapper(element2, props, isHydrating2) {
           var node2 = element2;
           if (props.hasOwnProperty("value") || props.hasOwnProperty("defaultValue")) {
-            var type2 = props.type;
-            var isButton = type2 === "submit" || type2 === "reset";
+            var type = props.type;
+            var isButton = type === "submit" || type === "reset";
             if (isButton && (props.value === void 0 || props.value === null)) {
               return;
             }
@@ -3979,10 +3979,10 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function setDefaultValue(node2, type2, value) {
+        function setDefaultValue(node2, type, value) {
           if (
             // Focused number inputs synchronize on blur. See ChangeEventPlugin.js
-            type2 !== "number" || getActiveElement(node2.ownerDocument) !== node2
+            type !== "number" || getActiveElement(node2.ownerDocument) !== node2
           ) {
             if (value == null) {
               node2.defaultValue = toString2(node2._wrapperState.initialValue);
@@ -4233,8 +4233,8 @@ var require_react_dom_development = __commonJS({
         var HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
         var MATH_NAMESPACE = "http://www.w3.org/1998/Math/MathML";
         var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-        function getIntrinsicNamespace(type2) {
-          switch (type2) {
+        function getIntrinsicNamespace(type) {
+          switch (type) {
             case "svg":
               return SVG_NAMESPACE;
             case "math":
@@ -4243,11 +4243,11 @@ var require_react_dom_development = __commonJS({
               return HTML_NAMESPACE;
           }
         }
-        function getChildNamespace(parentNamespace, type2) {
+        function getChildNamespace(parentNamespace, type) {
           if (parentNamespace == null || parentNamespace === HTML_NAMESPACE) {
-            return getIntrinsicNamespace(type2);
+            return getIntrinsicNamespace(type);
           }
-          if (parentNamespace === SVG_NAMESPACE && type2 === "foreignObject") {
+          if (parentNamespace === SVG_NAMESPACE && type === "foreignObject") {
             return HTML_NAMESPACE;
           }
           return parentNamespace;
@@ -5223,11 +5223,11 @@ var require_react_dom_development = __commonJS({
           }
           return true;
         }
-        function warnInvalidARIAProps(type2, props) {
+        function warnInvalidARIAProps(type, props) {
           {
             var invalidProps = [];
             for (var key in props) {
-              var isValid = validateProperty(type2, key);
+              var isValid = validateProperty(type, key);
               if (!isValid) {
                 invalidProps.push(key);
               }
@@ -5236,30 +5236,30 @@ var require_react_dom_development = __commonJS({
               return "`" + prop + "`";
             }).join(", ");
             if (invalidProps.length === 1) {
-              error("Invalid aria prop %s on <%s> tag. For details, see https://reactjs.org/link/invalid-aria-props", unknownPropString, type2);
+              error("Invalid aria prop %s on <%s> tag. For details, see https://reactjs.org/link/invalid-aria-props", unknownPropString, type);
             } else if (invalidProps.length > 1) {
-              error("Invalid aria props %s on <%s> tag. For details, see https://reactjs.org/link/invalid-aria-props", unknownPropString, type2);
+              error("Invalid aria props %s on <%s> tag. For details, see https://reactjs.org/link/invalid-aria-props", unknownPropString, type);
             }
           }
         }
-        function validateProperties(type2, props) {
-          if (isCustomComponent(type2, props)) {
+        function validateProperties(type, props) {
+          if (isCustomComponent(type, props)) {
             return;
           }
-          warnInvalidARIAProps(type2, props);
+          warnInvalidARIAProps(type, props);
         }
         var didWarnValueNull = false;
-        function validateProperties$1(type2, props) {
+        function validateProperties$1(type, props) {
           {
-            if (type2 !== "input" && type2 !== "textarea" && type2 !== "select") {
+            if (type !== "input" && type !== "textarea" && type !== "select") {
               return;
             }
             if (props != null && props.value === null && !didWarnValueNull) {
               didWarnValueNull = true;
-              if (type2 === "select" && props.multiple) {
-                error("`value` prop on `%s` should not be null. Consider using an empty array when `multiple` is set to `true` to clear the component or `undefined` for uncontrolled components.", type2);
+              if (type === "select" && props.multiple) {
+                error("`value` prop on `%s` should not be null. Consider using an empty array when `multiple` is set to `true` to clear the component or `undefined` for uncontrolled components.", type);
               } else {
-                error("`value` prop on `%s` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components.", type2);
+                error("`value` prop on `%s` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components.", type);
               }
             }
           }
@@ -5366,11 +5366,11 @@ var require_react_dom_development = __commonJS({
             return true;
           };
         }
-        var warnUnknownProperties = function(type2, props, eventRegistry) {
+        var warnUnknownProperties = function(type, props, eventRegistry) {
           {
             var unknownProps = [];
             for (var key in props) {
-              var isValid = validateProperty$1(type2, key, props[key], eventRegistry);
+              var isValid = validateProperty$1(type, key, props[key], eventRegistry);
               if (!isValid) {
                 unknownProps.push(key);
               }
@@ -5379,17 +5379,17 @@ var require_react_dom_development = __commonJS({
               return "`" + prop + "`";
             }).join(", ");
             if (unknownProps.length === 1) {
-              error("Invalid value for prop %s on <%s> tag. Either remove it from the element, or pass a string or number value to keep it in the DOM. For details, see https://reactjs.org/link/attribute-behavior ", unknownPropString, type2);
+              error("Invalid value for prop %s on <%s> tag. Either remove it from the element, or pass a string or number value to keep it in the DOM. For details, see https://reactjs.org/link/attribute-behavior ", unknownPropString, type);
             } else if (unknownProps.length > 1) {
-              error("Invalid values for props %s on <%s> tag. Either remove them from the element, or pass a string or number value to keep them in the DOM. For details, see https://reactjs.org/link/attribute-behavior ", unknownPropString, type2);
+              error("Invalid values for props %s on <%s> tag. Either remove them from the element, or pass a string or number value to keep them in the DOM. For details, see https://reactjs.org/link/attribute-behavior ", unknownPropString, type);
             }
           }
         };
-        function validateProperties$2(type2, props, eventRegistry) {
-          if (isCustomComponent(type2, props)) {
+        function validateProperties$2(type, props, eventRegistry) {
+          if (isCustomComponent(type, props)) {
             return;
           }
-          warnUnknownProperties(type2, props, eventRegistry);
+          warnUnknownProperties(type, props, eventRegistry);
         }
         var IS_EVENT_HANDLE_NON_MANAGED_NODE = 1;
         var IS_NON_DELEGATED = 1 << 1;
@@ -5503,7 +5503,7 @@ var require_react_dom_development = __commonJS({
         function isInteractive(tag) {
           return tag === "button" || tag === "input" || tag === "select" || tag === "textarea";
         }
-        function shouldPreventMouseEvent(name, type2, props) {
+        function shouldPreventMouseEvent(name, type, props) {
           switch (name) {
             case "onClick":
             case "onClickCapture":
@@ -5516,7 +5516,7 @@ var require_react_dom_development = __commonJS({
             case "onMouseUp":
             case "onMouseUpCapture":
             case "onMouseEnter":
-              return !!(props.disabled && isInteractive(type2));
+              return !!(props.disabled && isInteractive(type));
             default:
               return false;
           }
@@ -8925,9 +8925,9 @@ var require_react_dom_development = __commonJS({
         var mediaEventTypes = ["abort", "canplay", "canplaythrough", "durationchange", "emptied", "encrypted", "ended", "error", "loadeddata", "loadedmetadata", "loadstart", "pause", "play", "playing", "progress", "ratechange", "resize", "seeked", "seeking", "stalled", "suspend", "timeupdate", "volumechange", "waiting"];
         var nonDelegatedEvents = new Set(["cancel", "close", "invalid", "load", "scroll", "toggle"].concat(mediaEventTypes));
         function executeDispatch(event, listener, currentTarget) {
-          var type2 = event.type || "unknown-event";
+          var type = event.type || "unknown-event";
           event.currentTarget = currentTarget;
-          invokeGuardedCallbackAndCatchFirstError(type2, listener, void 0, event);
+          invokeGuardedCallbackAndCatchFirstError(type, listener, void 0, event);
           event.currentTarget = null;
         }
         function processDispatchQueueItemsInOrder(event, dispatchListeners, inCapturePhase) {
@@ -9257,10 +9257,10 @@ var require_react_dom_development = __commonJS({
             // @see https://electronjs.org/docs/api/webview-tag
             webview: true
           };
-          validatePropertiesInDevelopment = function(type2, props) {
-            validateProperties(type2, props);
-            validateProperties$1(type2, props);
-            validateProperties$2(type2, props, {
+          validatePropertiesInDevelopment = function(type, props) {
+            validateProperties(type, props);
+            validateProperties$1(type, props);
+            validateProperties$2(type, props, {
               registrationNameDependencies,
               possibleRegistrationNames
             });
@@ -9397,33 +9397,33 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function createElement(type2, props, rootContainerElement, parentNamespace) {
+        function createElement(type, props, rootContainerElement, parentNamespace) {
           var isCustomComponentTag;
           var ownerDocument = getOwnerDocumentFromRootContainer(rootContainerElement);
           var domElement;
           var namespaceURI = parentNamespace;
           if (namespaceURI === HTML_NAMESPACE) {
-            namespaceURI = getIntrinsicNamespace(type2);
+            namespaceURI = getIntrinsicNamespace(type);
           }
           if (namespaceURI === HTML_NAMESPACE) {
             {
-              isCustomComponentTag = isCustomComponent(type2, props);
-              if (!isCustomComponentTag && type2 !== type2.toLowerCase()) {
-                error("<%s /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.", type2);
+              isCustomComponentTag = isCustomComponent(type, props);
+              if (!isCustomComponentTag && type !== type.toLowerCase()) {
+                error("<%s /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.", type);
               }
             }
-            if (type2 === "script") {
+            if (type === "script") {
               var div = ownerDocument.createElement("div");
               div.innerHTML = "<script><\/script>";
               var firstChild = div.firstChild;
               domElement = div.removeChild(firstChild);
             } else if (typeof props.is === "string") {
-              domElement = ownerDocument.createElement(type2, {
+              domElement = ownerDocument.createElement(type, {
                 is: props.is
               });
             } else {
-              domElement = ownerDocument.createElement(type2);
-              if (type2 === "select") {
+              domElement = ownerDocument.createElement(type);
+              if (type === "select") {
                 var node2 = domElement;
                 if (props.multiple) {
                   node2.multiple = true;
@@ -9433,13 +9433,13 @@ var require_react_dom_development = __commonJS({
               }
             }
           } else {
-            domElement = ownerDocument.createElementNS(namespaceURI, type2);
+            domElement = ownerDocument.createElementNS(namespaceURI, type);
           }
           {
             if (namespaceURI === HTML_NAMESPACE) {
-              if (!isCustomComponentTag && Object.prototype.toString.call(domElement) === "[object HTMLUnknownElement]" && !hasOwnProperty2.call(warnedUnknownTags, type2)) {
-                warnedUnknownTags[type2] = true;
-                error("The tag <%s> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.", type2);
+              if (!isCustomComponentTag && Object.prototype.toString.call(domElement) === "[object HTMLUnknownElement]" && !hasOwnProperty2.call(warnedUnknownTags, type)) {
+                warnedUnknownTags[type] = true;
+                error("The tag <%s> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.", type);
               }
             }
           }
@@ -10191,13 +10191,13 @@ var require_react_dom_development = __commonJS({
         var eventsEnabled = null;
         var selectionInformation = null;
         function getRootHostContext(rootContainerInstance) {
-          var type2;
+          var type;
           var namespace;
           var nodeType = rootContainerInstance.nodeType;
           switch (nodeType) {
             case DOCUMENT_NODE:
             case DOCUMENT_FRAGMENT_NODE: {
-              type2 = nodeType === DOCUMENT_NODE ? "#document" : "#fragment";
+              type = nodeType === DOCUMENT_NODE ? "#document" : "#fragment";
               var root3 = rootContainerInstance.documentElement;
               namespace = root3 ? root3.namespaceURI : getChildNamespace(null, "");
               break;
@@ -10205,13 +10205,13 @@ var require_react_dom_development = __commonJS({
             default: {
               var container = nodeType === COMMENT_NODE ? rootContainerInstance.parentNode : rootContainerInstance;
               var ownNamespace = container.namespaceURI || null;
-              type2 = container.tagName;
-              namespace = getChildNamespace(ownNamespace, type2);
+              type = container.tagName;
+              namespace = getChildNamespace(ownNamespace, type);
               break;
             }
           }
           {
-            var validatedTag = type2.toLowerCase();
+            var validatedTag = type.toLowerCase();
             var ancestorInfo = updatedAncestorInfo(null, validatedTag);
             return {
               namespace,
@@ -10219,11 +10219,11 @@ var require_react_dom_development = __commonJS({
             };
           }
         }
-        function getChildHostContext(parentHostContext, type2, rootContainerInstance) {
+        function getChildHostContext(parentHostContext, type, rootContainerInstance) {
           {
             var parentHostContextDev = parentHostContext;
-            var namespace = getChildNamespace(parentHostContextDev.namespace, type2);
-            var ancestorInfo = updatedAncestorInfo(parentHostContextDev.ancestorInfo, type2);
+            var namespace = getChildNamespace(parentHostContextDev.namespace, type);
+            var ancestorInfo = updatedAncestorInfo(parentHostContextDev.ancestorInfo, type);
             return {
               namespace,
               ancestorInfo
@@ -10246,19 +10246,19 @@ var require_react_dom_development = __commonJS({
           eventsEnabled = null;
           selectionInformation = null;
         }
-        function createInstance(type2, props, rootContainerInstance, hostContext, internalInstanceHandle) {
+        function createInstance(type, props, rootContainerInstance, hostContext, internalInstanceHandle) {
           var parentNamespace;
           {
             var hostContextDev = hostContext;
-            validateDOMNesting(type2, null, hostContextDev.ancestorInfo);
+            validateDOMNesting(type, null, hostContextDev.ancestorInfo);
             if (typeof props.children === "string" || typeof props.children === "number") {
               var string3 = "" + props.children;
-              var ownAncestorInfo = updatedAncestorInfo(hostContextDev.ancestorInfo, type2);
+              var ownAncestorInfo = updatedAncestorInfo(hostContextDev.ancestorInfo, type);
               validateDOMNesting(null, string3, ownAncestorInfo);
             }
             parentNamespace = hostContextDev.namespace;
           }
-          var domElement = createElement(type2, props, rootContainerInstance, parentNamespace);
+          var domElement = createElement(type, props, rootContainerInstance, parentNamespace);
           precacheFiberNode(internalInstanceHandle, domElement);
           updateFiberProps(domElement, props);
           return domElement;
@@ -10266,9 +10266,9 @@ var require_react_dom_development = __commonJS({
         function appendInitialChild(parentInstance, child) {
           parentInstance.appendChild(child);
         }
-        function finalizeInitialChildren(domElement, type2, props, rootContainerInstance, hostContext) {
-          setInitialProperties(domElement, type2, props, rootContainerInstance);
-          switch (type2) {
+        function finalizeInitialChildren(domElement, type, props, rootContainerInstance, hostContext) {
+          setInitialProperties(domElement, type, props, rootContainerInstance);
+          switch (type) {
             case "button":
             case "input":
             case "select":
@@ -10280,19 +10280,19 @@ var require_react_dom_development = __commonJS({
               return false;
           }
         }
-        function prepareUpdate(domElement, type2, oldProps, newProps, rootContainerInstance, hostContext) {
+        function prepareUpdate(domElement, type, oldProps, newProps, rootContainerInstance, hostContext) {
           {
             var hostContextDev = hostContext;
             if (typeof newProps.children !== typeof oldProps.children && (typeof newProps.children === "string" || typeof newProps.children === "number")) {
               var string3 = "" + newProps.children;
-              var ownAncestorInfo = updatedAncestorInfo(hostContextDev.ancestorInfo, type2);
+              var ownAncestorInfo = updatedAncestorInfo(hostContextDev.ancestorInfo, type);
               validateDOMNesting(null, string3, ownAncestorInfo);
             }
           }
-          return diffProperties(domElement, type2, oldProps, newProps);
+          return diffProperties(domElement, type, oldProps, newProps);
         }
-        function shouldSetTextContent(type2, props) {
-          return type2 === "textarea" || type2 === "noscript" || typeof props.children === "string" || typeof props.children === "number" || typeof props.dangerouslySetInnerHTML === "object" && props.dangerouslySetInnerHTML !== null && props.dangerouslySetInnerHTML.__html != null;
+        function shouldSetTextContent(type, props) {
+          return type === "textarea" || type === "noscript" || typeof props.children === "string" || typeof props.children === "number" || typeof props.dangerouslySetInnerHTML === "object" && props.dangerouslySetInnerHTML !== null && props.dangerouslySetInnerHTML.__html != null;
         }
         function createTextInstance(text3, rootContainerInstance, hostContext, internalInstanceHandle) {
           {
@@ -10322,8 +10322,8 @@ var require_react_dom_development = __commonJS({
             throw error2;
           });
         }
-        function commitMount(domElement, type2, newProps, internalInstanceHandle) {
-          switch (type2) {
+        function commitMount(domElement, type, newProps, internalInstanceHandle) {
+          switch (type) {
             case "button":
             case "input":
             case "select":
@@ -10340,8 +10340,8 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function commitUpdate(domElement, updatePayload, type2, oldProps, newProps, internalInstanceHandle) {
-          updateProperties(domElement, updatePayload, type2, oldProps, newProps);
+        function commitUpdate(domElement, updatePayload, type, oldProps, newProps, internalInstanceHandle) {
+          updateProperties(domElement, updatePayload, type, oldProps, newProps);
           updateFiberProps(domElement, newProps);
         }
         function resetTextContent(domElement) {
@@ -10449,8 +10449,8 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function canHydrateInstance(instance, type2, props) {
-          if (instance.nodeType !== ELEMENT_NODE || type2.toLowerCase() !== instance.nodeName.toLowerCase()) {
+        function canHydrateInstance(instance, type, props) {
+          if (instance.nodeType !== ELEMENT_NODE || type.toLowerCase() !== instance.nodeName.toLowerCase()) {
             return null;
           }
           return instance;
@@ -10524,7 +10524,7 @@ var require_react_dom_development = __commonJS({
         function getFirstHydratableChildWithinSuspenseInstance(parentInstance) {
           return getNextHydratable(parentInstance.nextSibling);
         }
-        function hydrateInstance(instance, type2, props, rootContainerInstance, hostContext, internalInstanceHandle, shouldWarnDev) {
+        function hydrateInstance(instance, type, props, rootContainerInstance, hostContext, internalInstanceHandle, shouldWarnDev) {
           precacheFiberNode(internalInstanceHandle, instance);
           updateFiberProps(instance, props);
           var parentNamespace;
@@ -10533,7 +10533,7 @@ var require_react_dom_development = __commonJS({
             parentNamespace = hostContextDev.namespace;
           }
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
-          return diffHydratedProperties(instance, type2, props, parentNamespace, rootContainerInstance, isConcurrentMode, shouldWarnDev);
+          return diffHydratedProperties(instance, type, props, parentNamespace, rootContainerInstance, isConcurrentMode, shouldWarnDev);
         }
         function hydrateTextInstance(textInstance, text3, internalInstanceHandle, shouldWarnDev) {
           precacheFiberNode(internalInstanceHandle, textInstance);
@@ -10640,9 +10640,9 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function didNotFindHydratableInstanceWithinContainer(parentContainer, type2, props) {
+        function didNotFindHydratableInstanceWithinContainer(parentContainer, type, props) {
           {
-            warnForInsertedHydratedElement(parentContainer, type2);
+            warnForInsertedHydratedElement(parentContainer, type);
           }
         }
         function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text3) {
@@ -10650,11 +10650,11 @@ var require_react_dom_development = __commonJS({
             warnForInsertedHydratedText(parentContainer, text3);
           }
         }
-        function didNotFindHydratableInstanceWithinSuspenseInstance(parentInstance, type2, props) {
+        function didNotFindHydratableInstanceWithinSuspenseInstance(parentInstance, type, props) {
           {
             var parentNode = parentInstance.parentNode;
             if (parentNode !== null)
-              warnForInsertedHydratedElement(parentNode, type2);
+              warnForInsertedHydratedElement(parentNode, type);
           }
         }
         function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text3) {
@@ -10664,10 +10664,10 @@ var require_react_dom_development = __commonJS({
               warnForInsertedHydratedText(parentNode, text3);
           }
         }
-        function didNotFindHydratableInstance(parentType, parentProps, parentInstance, type2, props, isConcurrentMode) {
+        function didNotFindHydratableInstance(parentType, parentProps, parentInstance, type, props, isConcurrentMode) {
           {
             if (isConcurrentMode || parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
-              warnForInsertedHydratedElement(parentInstance, type2);
+              warnForInsertedHydratedElement(parentInstance, type);
             }
           }
         }
@@ -10879,8 +10879,8 @@ var require_react_dom_development = __commonJS({
         }
         function getMaskedContext(workInProgress2, unmaskedContext) {
           {
-            var type2 = workInProgress2.type;
-            var contextTypes = type2.contextTypes;
+            var type = workInProgress2.type;
+            var contextTypes = type.contextTypes;
             if (!contextTypes) {
               return emptyContextObject;
             }
@@ -10907,9 +10907,9 @@ var require_react_dom_development = __commonJS({
             return didPerformWorkStackCursor.current;
           }
         }
-        function isContextProvider(type2) {
+        function isContextProvider(type) {
           {
-            var childContextTypes = type2.childContextTypes;
+            var childContextTypes = type.childContextTypes;
             return childContextTypes !== null && childContextTypes !== void 0;
           }
         }
@@ -10934,10 +10934,10 @@ var require_react_dom_development = __commonJS({
             push2(didPerformWorkStackCursor, didChange, fiber);
           }
         }
-        function processChildContext(fiber, type2, parentContext) {
+        function processChildContext(fiber, type, parentContext) {
           {
             var instance = fiber.stateNode;
-            var childContextTypes = type2.childContextTypes;
+            var childContextTypes = type.childContextTypes;
             if (typeof instance.getChildContext !== "function") {
               {
                 var componentName = getComponentNameFromFiber(fiber) || "Unknown";
@@ -10971,14 +10971,14 @@ var require_react_dom_development = __commonJS({
             return true;
           }
         }
-        function invalidateContextProvider(workInProgress2, type2, didChange) {
+        function invalidateContextProvider(workInProgress2, type, didChange) {
           {
             var instance = workInProgress2.stateNode;
             if (!instance) {
               throw new Error("Expected to have an instance by this point. This error is likely caused by a bug in React. Please file an issue.");
             }
             if (didChange) {
-              var mergedContext = processChildContext(workInProgress2, type2, previousContext);
+              var mergedContext = processChildContext(workInProgress2, type, previousContext);
               instance.__reactInternalMemoizedMergedChildContext = mergedContext;
               pop(didPerformWorkStackCursor, workInProgress2);
               pop(contextStackCursor, workInProgress2);
@@ -11278,9 +11278,9 @@ var require_react_dom_development = __commonJS({
                 var parentContainer = returnFiber.stateNode.containerInfo;
                 switch (fiber.tag) {
                   case HostComponent:
-                    var type2 = fiber.type;
+                    var type = fiber.type;
                     var props = fiber.pendingProps;
-                    didNotFindHydratableInstanceWithinContainer(parentContainer, type2);
+                    didNotFindHydratableInstanceWithinContainer(parentContainer, type);
                     break;
                   case HostText:
                     var text3 = fiber.pendingProps;
@@ -11354,9 +11354,9 @@ var require_react_dom_development = __commonJS({
         function tryHydrate(fiber, nextInstance) {
           switch (fiber.tag) {
             case HostComponent: {
-              var type2 = fiber.type;
+              var type = fiber.type;
               var props = fiber.pendingProps;
-              var instance = canHydrateInstance(nextInstance, type2);
+              var instance = canHydrateInstance(nextInstance, type);
               if (instance !== null) {
                 fiber.stateNode = instance;
                 hydrationParentFiber = fiber;
@@ -11796,8 +11796,8 @@ var require_react_dom_development = __commonJS({
             error('Each child in a list should have a unique "key" prop. See https://reactjs.org/link/warning-keys for more information.');
           };
         }
-        function isReactClass(type2) {
-          return type2.prototype && type2.prototype.isReactComponent;
+        function isReactClass(type) {
+          return type.prototype && type.prototype.isReactComponent;
         }
         function coerceRef(returnFiber, current2, element2) {
           var mixedRef = element2.ref;
@@ -15344,9 +15344,9 @@ var require_react_dom_development = __commonJS({
               error("%s(...): Expected the last optional `callback` argument to be a function. Instead received: %s.", callerName, callback);
             }
           };
-          warnOnUndefinedDerivedState = function(type2, partialState) {
+          warnOnUndefinedDerivedState = function(type, partialState) {
             if (partialState === void 0) {
-              var componentName = getComponentNameFromType(type2) || "Component";
+              var componentName = getComponentNameFromType(type) || "Component";
               if (!didWarnAboutUndefinedDerivedState.has(componentName)) {
                 didWarnAboutUndefinedDerivedState.add(componentName);
                 error("%s.getDerivedStateFromProps(): A valid state object (or null) must be returned. You have returned undefined.", componentName);
@@ -16285,33 +16285,33 @@ var require_react_dom_development = __commonJS({
         }
         function updateMemoComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
           if (current2 === null) {
-            var type2 = Component.type;
-            if (isSimpleFunctionComponent(type2) && Component.compare === null && // SimpleMemoComponent codepath doesn't resolve outer props either.
+            var type = Component.type;
+            if (isSimpleFunctionComponent(type) && Component.compare === null && // SimpleMemoComponent codepath doesn't resolve outer props either.
             Component.defaultProps === void 0) {
-              var resolvedType = type2;
+              var resolvedType = type;
               {
-                resolvedType = resolveFunctionForHotReloading(type2);
+                resolvedType = resolveFunctionForHotReloading(type);
               }
               workInProgress2.tag = SimpleMemoComponent;
               workInProgress2.type = resolvedType;
               {
-                validateFunctionComponentInDev(workInProgress2, type2);
+                validateFunctionComponentInDev(workInProgress2, type);
               }
               return updateSimpleMemoComponent(current2, workInProgress2, resolvedType, nextProps, renderLanes2);
             }
             {
-              var innerPropTypes = type2.propTypes;
+              var innerPropTypes = type.propTypes;
               if (innerPropTypes) {
                 checkPropTypes(
                   innerPropTypes,
                   nextProps,
                   // Resolved props
                   "prop",
-                  getComponentNameFromType(type2)
+                  getComponentNameFromType(type)
                 );
               }
               if (Component.defaultProps !== void 0) {
-                var componentName = getComponentNameFromType(type2) || "Unknown";
+                var componentName = getComponentNameFromType(type) || "Unknown";
                 if (!didWarnAboutDefaultPropsOnFunctionComponent[componentName]) {
                   error("%s: Support for defaultProps will be removed from memo components in a future major release. Use JavaScript default parameters instead.", componentName);
                   didWarnAboutDefaultPropsOnFunctionComponent[componentName] = true;
@@ -16727,14 +16727,14 @@ var require_react_dom_development = __commonJS({
           if (current2 === null) {
             tryToClaimNextHydratableInstance(workInProgress2);
           }
-          var type2 = workInProgress2.type;
+          var type = workInProgress2.type;
           var nextProps = workInProgress2.pendingProps;
           var prevProps = current2 !== null ? current2.memoizedProps : null;
           var nextChildren = nextProps.children;
-          var isDirectTextChild = shouldSetTextContent(type2, nextProps);
+          var isDirectTextChild = shouldSetTextContent(type, nextProps);
           if (isDirectTextChild) {
             nextChildren = null;
-          } else if (prevProps !== null && shouldSetTextContent(type2, prevProps)) {
+          } else if (prevProps !== null && shouldSetTextContent(type, prevProps)) {
             workInProgress2.flags |= ContentReset;
           }
           markRef(current2, workInProgress2);
@@ -17404,8 +17404,8 @@ var require_react_dom_development = __commonJS({
             var isAnArray = isArray(childSlot);
             var isIterable = !isAnArray && typeof getIteratorFn(childSlot) === "function";
             if (isAnArray || isIterable) {
-              var type2 = isAnArray ? "array" : "iterable";
-              error("A nested %s was passed to row #%s in <SuspenseList />. Wrap it in an additional SuspenseList to configure its revealOrder: <SuspenseList revealOrder=...> ... <SuspenseList revealOrder=...>{%s}</SuspenseList> ... </SuspenseList>", type2, index4, type2);
+              var type = isAnArray ? "array" : "iterable";
+              error("A nested %s was passed to row #%s in <SuspenseList />. Wrap it in an additional SuspenseList to configure its revealOrder: <SuspenseList revealOrder=...> ... <SuspenseList revealOrder=...>{%s}</SuspenseList> ... </SuspenseList>", type, index4, type);
               return false;
             }
           }
@@ -17874,10 +17874,10 @@ var require_react_dom_development = __commonJS({
             case HostPortal:
               return updatePortalComponent(current2, workInProgress2, renderLanes2);
             case ForwardRef: {
-              var type2 = workInProgress2.type;
+              var type = workInProgress2.type;
               var _unresolvedProps2 = workInProgress2.pendingProps;
-              var _resolvedProps2 = workInProgress2.elementType === type2 ? _unresolvedProps2 : resolveDefaultProps(type2, _unresolvedProps2);
-              return updateForwardRef(current2, workInProgress2, type2, _resolvedProps2, renderLanes2);
+              var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
+              return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
             case Fragment2:
               return updateFragment(current2, workInProgress2, renderLanes2);
@@ -17972,14 +17972,14 @@ var require_react_dom_development = __commonJS({
           };
           updateHostContainer = function(current2, workInProgress2) {
           };
-          updateHostComponent$1 = function(current2, workInProgress2, type2, newProps, rootContainerInstance) {
+          updateHostComponent$1 = function(current2, workInProgress2, type, newProps, rootContainerInstance) {
             var oldProps = current2.memoizedProps;
             if (oldProps === newProps) {
               return;
             }
             var instance = workInProgress2.stateNode;
             var currentHostContext = getHostContext();
-            var updatePayload = prepareUpdate(instance, type2, oldProps, newProps, rootContainerInstance, currentHostContext);
+            var updatePayload = prepareUpdate(instance, type, oldProps, newProps, rootContainerInstance, currentHostContext);
             workInProgress2.updateQueue = updatePayload;
             if (updatePayload) {
               markUpdate(workInProgress2);
@@ -18201,9 +18201,9 @@ var require_react_dom_development = __commonJS({
             case HostComponent: {
               popHostContext(workInProgress2);
               var rootContainerInstance = getRootHostContainer();
-              var type2 = workInProgress2.type;
+              var type = workInProgress2.type;
               if (current2 !== null && workInProgress2.stateNode != null) {
-                updateHostComponent$1(current2, workInProgress2, type2, newProps, rootContainerInstance);
+                updateHostComponent$1(current2, workInProgress2, type, newProps, rootContainerInstance);
                 if (current2.ref !== workInProgress2.ref) {
                   markRef$1(workInProgress2);
                 }
@@ -18222,10 +18222,10 @@ var require_react_dom_development = __commonJS({
                     markUpdate(workInProgress2);
                   }
                 } else {
-                  var instance = createInstance(type2, newProps, rootContainerInstance, currentHostContext, workInProgress2);
+                  var instance = createInstance(type, newProps, rootContainerInstance, currentHostContext, workInProgress2);
                   appendAllChildren(instance, workInProgress2, false, false);
                   workInProgress2.stateNode = instance;
-                  if (finalizeInitialChildren(instance, type2, newProps, rootContainerInstance)) {
+                  if (finalizeInitialChildren(instance, type, newProps, rootContainerInstance)) {
                     markUpdate(workInProgress2);
                   }
                 }
@@ -19033,9 +19033,9 @@ var require_react_dom_development = __commonJS({
               case HostComponent: {
                 var _instance2 = finishedWork.stateNode;
                 if (current2 === null && finishedWork.flags & Update) {
-                  var type2 = finishedWork.type;
+                  var type = finishedWork.type;
                   var props = finishedWork.memoizedProps;
-                  commitMount(_instance2, type2, props);
+                  commitMount(_instance2, type, props);
                 }
                 break;
               }
@@ -19697,12 +19697,12 @@ var require_react_dom_development = __commonJS({
                   if (_instance4 != null) {
                     var newProps = finishedWork.memoizedProps;
                     var oldProps = current2 !== null ? current2.memoizedProps : newProps;
-                    var type2 = finishedWork.type;
+                    var type = finishedWork.type;
                     var updatePayload = finishedWork.updateQueue;
                     finishedWork.updateQueue = null;
                     if (updatePayload !== null) {
                       try {
-                        commitUpdate(_instance4, updatePayload, type2, oldProps, newProps, finishedWork);
+                        commitUpdate(_instance4, updatePayload, type, oldProps, newProps, finishedWork);
                       } catch (error2) {
                         captureCommitPhaseError(finishedWork, finishedWork.return, error2);
                       }
@@ -21829,42 +21829,42 @@ var require_react_dom_development = __commonJS({
             resolveFamily = handler;
           }
         };
-        function resolveFunctionForHotReloading(type2) {
+        function resolveFunctionForHotReloading(type) {
           {
             if (resolveFamily === null) {
-              return type2;
+              return type;
             }
-            var family = resolveFamily(type2);
+            var family = resolveFamily(type);
             if (family === void 0) {
-              return type2;
+              return type;
             }
             return family.current;
           }
         }
-        function resolveClassForHotReloading(type2) {
-          return resolveFunctionForHotReloading(type2);
+        function resolveClassForHotReloading(type) {
+          return resolveFunctionForHotReloading(type);
         }
-        function resolveForwardRefForHotReloading(type2) {
+        function resolveForwardRefForHotReloading(type) {
           {
             if (resolveFamily === null) {
-              return type2;
+              return type;
             }
-            var family = resolveFamily(type2);
+            var family = resolveFamily(type);
             if (family === void 0) {
-              if (type2 !== null && type2 !== void 0 && typeof type2.render === "function") {
-                var currentRender = resolveFunctionForHotReloading(type2.render);
-                if (type2.render !== currentRender) {
+              if (type !== null && type !== void 0 && typeof type.render === "function") {
+                var currentRender = resolveFunctionForHotReloading(type.render);
+                if (type.render !== currentRender) {
                   var syntheticType = {
                     $$typeof: REACT_FORWARD_REF_TYPE,
                     render: currentRender
                   };
-                  if (type2.displayName !== void 0) {
-                    syntheticType.displayName = type2.displayName;
+                  if (type.displayName !== void 0) {
+                    syntheticType.displayName = type.displayName;
                   }
                   return syntheticType;
                 }
               }
-              return type2;
+              return type;
             }
             return family.current;
           }
@@ -21961,16 +21961,16 @@ var require_react_dom_development = __commonJS({
         };
         function scheduleFibersWithFamiliesRecursively(fiber, updatedFamilies, staleFamilies) {
           {
-            var alternate = fiber.alternate, child = fiber.child, sibling = fiber.sibling, tag = fiber.tag, type2 = fiber.type;
+            var alternate = fiber.alternate, child = fiber.child, sibling = fiber.sibling, tag = fiber.tag, type = fiber.type;
             var candidateType = null;
             switch (tag) {
               case FunctionComponent:
               case SimpleMemoComponent:
               case ClassComponent:
-                candidateType = type2;
+                candidateType = type;
                 break;
               case ForwardRef:
-                candidateType = type2.render;
+                candidateType = type.render;
                 break;
             }
             if (resolveFamily === null) {
@@ -22026,16 +22026,16 @@ var require_react_dom_development = __commonJS({
         };
         function findHostInstancesForMatchingFibersRecursively(fiber, types, hostInstances) {
           {
-            var child = fiber.child, sibling = fiber.sibling, tag = fiber.tag, type2 = fiber.type;
+            var child = fiber.child, sibling = fiber.sibling, tag = fiber.tag, type = fiber.type;
             var candidateType = null;
             switch (tag) {
               case FunctionComponent:
               case SimpleMemoComponent:
               case ClassComponent:
-                candidateType = type2;
+                candidateType = type;
                 break;
               case ForwardRef:
-                candidateType = type2.render;
+                candidateType = type.render;
                 break;
             }
             var didMatch = false;
@@ -22171,8 +22171,8 @@ var require_react_dom_development = __commonJS({
           var prototype = Component.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function isSimpleFunctionComponent(type2) {
-          return typeof type2 === "function" && !shouldConstruct$1(type2) && type2.defaultProps === void 0;
+        function isSimpleFunctionComponent(type) {
+          return typeof type === "function" && !shouldConstruct$1(type) && type.defaultProps === void 0;
         }
         function resolveLazyComponentTag(Component) {
           if (typeof Component === "function") {
@@ -22307,11 +22307,11 @@ var require_react_dom_development = __commonJS({
           }
           return createFiber(HostRoot, null, null, mode);
         }
-        function createFiberFromTypeAndProps(type2, key, pendingProps, owner, mode, lanes) {
+        function createFiberFromTypeAndProps(type, key, pendingProps, owner, mode, lanes) {
           var fiberTag = IndeterminateComponent;
-          var resolvedType = type2;
-          if (typeof type2 === "function") {
-            if (shouldConstruct$1(type2)) {
+          var resolvedType = type;
+          if (typeof type === "function") {
+            if (shouldConstruct$1(type)) {
               fiberTag = ClassComponent;
               {
                 resolvedType = resolveClassForHotReloading(resolvedType);
@@ -22321,11 +22321,11 @@ var require_react_dom_development = __commonJS({
                 resolvedType = resolveFunctionForHotReloading(resolvedType);
               }
             }
-          } else if (typeof type2 === "string") {
+          } else if (typeof type === "string") {
             fiberTag = HostComponent;
           } else {
             getTag:
-              switch (type2) {
+              switch (type) {
                 case REACT_FRAGMENT_TYPE:
                   return createFiberFromFragment(pendingProps.children, mode, lanes, key);
                 case REACT_STRICT_MODE_TYPE:
@@ -22349,8 +22349,8 @@ var require_react_dom_development = __commonJS({
                 case REACT_TRACING_MARKER_TYPE:
                 case REACT_DEBUG_TRACING_MODE_TYPE:
                 default: {
-                  if (typeof type2 === "object" && type2 !== null) {
-                    switch (type2.$$typeof) {
+                  if (typeof type === "object" && type !== null) {
+                    switch (type.$$typeof) {
                       case REACT_PROVIDER_TYPE:
                         fiberTag = ContextProvider;
                         break getTag;
@@ -22374,7 +22374,7 @@ var require_react_dom_development = __commonJS({
                   }
                   var info = "";
                   {
-                    if (type2 === void 0 || typeof type2 === "object" && type2 !== null && Object.keys(type2).length === 0) {
+                    if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
                       info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
                     }
                     var ownerName = owner ? getComponentNameFromFiber(owner) : null;
@@ -22382,12 +22382,12 @@ var require_react_dom_development = __commonJS({
                       info += "\n\nCheck the render method of `" + ownerName + "`.";
                     }
                   }
-                  throw new Error("Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) " + ("but got: " + (type2 == null ? type2 : typeof type2) + "." + info));
+                  throw new Error("Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) " + ("but got: " + (type == null ? type : typeof type) + "." + info));
                 }
               }
           }
           var fiber = createFiber(fiberTag, pendingProps, key, mode);
-          fiber.elementType = type2;
+          fiber.elementType = type;
           fiber.type = resolvedType;
           fiber.lanes = lanes;
           {
@@ -22400,10 +22400,10 @@ var require_react_dom_development = __commonJS({
           {
             owner = element2._owner;
           }
-          var type2 = element2.type;
+          var type = element2.type;
           var key = element2.key;
           var pendingProps = element2.props;
-          var fiber = createFiberFromTypeAndProps(type2, key, pendingProps, owner, mode, lanes);
+          var fiber = createFiberFromTypeAndProps(type, key, pendingProps, owner, mode, lanes);
           {
             fiber._debugSource = element2._source;
             fiber._debugOwner = element2._owner;
@@ -23628,19 +23628,19 @@ var require_react_jsx_runtime_development = __commonJS({
         {
           REACT_MODULE_REFERENCE = Symbol.for("react.module.reference");
         }
-        function isValidElementType(type2) {
-          if (typeof type2 === "string" || typeof type2 === "function") {
+        function isValidElementType(type) {
+          if (typeof type === "string" || typeof type === "function") {
             return true;
           }
-          if (type2 === REACT_FRAGMENT_TYPE || type2 === REACT_PROFILER_TYPE || enableDebugTracing || type2 === REACT_STRICT_MODE_TYPE || type2 === REACT_SUSPENSE_TYPE || type2 === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type2 === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
+          if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || enableDebugTracing || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
             return true;
           }
-          if (typeof type2 === "object" && type2 !== null) {
-            if (type2.$$typeof === REACT_LAZY_TYPE || type2.$$typeof === REACT_MEMO_TYPE || type2.$$typeof === REACT_PROVIDER_TYPE || type2.$$typeof === REACT_CONTEXT_TYPE || type2.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
+          if (typeof type === "object" && type !== null) {
+            if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
             // types supported by any Flight configuration anywhere since
             // we don't know which Flight build this will end up being used
             // with.
-            type2.$$typeof === REACT_MODULE_REFERENCE || type2.getModuleId !== void 0) {
+            type.$$typeof === REACT_MODULE_REFERENCE || type.getModuleId !== void 0) {
               return true;
             }
           }
@@ -23654,25 +23654,25 @@ var require_react_jsx_runtime_development = __commonJS({
           var functionName = innerType.displayName || innerType.name || "";
           return functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName;
         }
-        function getContextName(type2) {
-          return type2.displayName || "Context";
+        function getContextName(type) {
+          return type.displayName || "Context";
         }
-        function getComponentNameFromType(type2) {
-          if (type2 == null) {
+        function getComponentNameFromType(type) {
+          if (type == null) {
             return null;
           }
           {
-            if (typeof type2.tag === "number") {
+            if (typeof type.tag === "number") {
               error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.");
             }
           }
-          if (typeof type2 === "function") {
-            return type2.displayName || type2.name || null;
+          if (typeof type === "function") {
+            return type.displayName || type.name || null;
           }
-          if (typeof type2 === "string") {
-            return type2;
+          if (typeof type === "string") {
+            return type;
           }
-          switch (type2) {
+          switch (type) {
             case REACT_FRAGMENT_TYPE:
               return "Fragment";
             case REACT_PORTAL_TYPE:
@@ -23686,24 +23686,24 @@ var require_react_jsx_runtime_development = __commonJS({
             case REACT_SUSPENSE_LIST_TYPE:
               return "SuspenseList";
           }
-          if (typeof type2 === "object") {
-            switch (type2.$$typeof) {
+          if (typeof type === "object") {
+            switch (type.$$typeof) {
               case REACT_CONTEXT_TYPE:
-                var context = type2;
+                var context = type;
                 return getContextName(context) + ".Consumer";
               case REACT_PROVIDER_TYPE:
-                var provider = type2;
+                var provider = type;
                 return getContextName(provider._context) + ".Provider";
               case REACT_FORWARD_REF_TYPE:
-                return getWrappedName(type2, type2.render, "ForwardRef");
+                return getWrappedName(type, type.render, "ForwardRef");
               case REACT_MEMO_TYPE:
-                var outerName = type2.displayName || null;
+                var outerName = type.displayName || null;
                 if (outerName !== null) {
                   return outerName;
                 }
-                return getComponentNameFromType(type2.type) || "Memo";
+                return getComponentNameFromType(type.type) || "Memo";
               case REACT_LAZY_TYPE: {
-                var lazyComponent = type2;
+                var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init2 = lazyComponent._init;
                 try {
@@ -23928,32 +23928,32 @@ var require_react_jsx_runtime_development = __commonJS({
           var prototype = Component.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function describeUnknownElementTypeFrameInDEV(type2, source, ownerFn) {
-          if (type2 == null) {
+        function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
+          if (type == null) {
             return "";
           }
-          if (typeof type2 === "function") {
+          if (typeof type === "function") {
             {
-              return describeNativeComponentFrame(type2, shouldConstruct(type2));
+              return describeNativeComponentFrame(type, shouldConstruct(type));
             }
           }
-          if (typeof type2 === "string") {
-            return describeBuiltInComponentFrame(type2);
+          if (typeof type === "string") {
+            return describeBuiltInComponentFrame(type);
           }
-          switch (type2) {
+          switch (type) {
             case REACT_SUSPENSE_TYPE:
               return describeBuiltInComponentFrame("Suspense");
             case REACT_SUSPENSE_LIST_TYPE:
               return describeBuiltInComponentFrame("SuspenseList");
           }
-          if (typeof type2 === "object") {
-            switch (type2.$$typeof) {
+          if (typeof type === "object") {
+            switch (type.$$typeof) {
               case REACT_FORWARD_REF_TYPE:
-                return describeFunctionComponentFrame(type2.render);
+                return describeFunctionComponentFrame(type.render);
               case REACT_MEMO_TYPE:
-                return describeUnknownElementTypeFrameInDEV(type2.type, source, ownerFn);
+                return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
               case REACT_LAZY_TYPE: {
-                var lazyComponent = type2;
+                var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init2 = lazyComponent._init;
                 try {
@@ -24017,8 +24017,8 @@ var require_react_jsx_runtime_development = __commonJS({
         function typeName(value) {
           {
             var hasToStringTag = typeof Symbol === "function" && Symbol.toStringTag;
-            var type2 = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
-            return type2;
+            var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+            return type;
           }
         }
         function willCoercionThrow(value) {
@@ -24118,12 +24118,12 @@ var require_react_jsx_runtime_development = __commonJS({
             });
           }
         }
-        var ReactElement = function(type2, key, ref, self, source, owner, props) {
+        var ReactElement = function(type, key, ref, self, source, owner, props) {
           var element2 = {
             // This tag allows us to uniquely identify this as a React Element
             $$typeof: REACT_ELEMENT_TYPE,
             // Built-in properties that belong on the element
-            type: type2,
+            type,
             key,
             ref,
             props,
@@ -24157,7 +24157,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return element2;
         };
-        function jsxDEV(type2, config, maybeKey, source, self) {
+        function jsxDEV(type, config, maybeKey, source, self) {
           {
             var propName;
             var props = {};
@@ -24184,8 +24184,8 @@ var require_react_jsx_runtime_development = __commonJS({
                 props[propName] = config[propName];
               }
             }
-            if (type2 && type2.defaultProps) {
-              var defaultProps = type2.defaultProps;
+            if (type && type.defaultProps) {
+              var defaultProps = type.defaultProps;
               for (propName in defaultProps) {
                 if (props[propName] === void 0) {
                   props[propName] = defaultProps[propName];
@@ -24193,7 +24193,7 @@ var require_react_jsx_runtime_development = __commonJS({
               }
             }
             if (key || ref) {
-              var displayName = typeof type2 === "function" ? type2.displayName || type2.name || "Unknown" : type2;
+              var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
               if (key) {
                 defineKeyPropWarningGetter(props, displayName);
               }
@@ -24201,7 +24201,7 @@ var require_react_jsx_runtime_development = __commonJS({
                 defineRefPropWarningGetter(props, displayName);
               }
             }
-            return ReactElement(type2, key, ref, self, source, ReactCurrentOwner.current, props);
+            return ReactElement(type, key, ref, self, source, ReactCurrentOwner.current, props);
           }
         }
         var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
@@ -24314,29 +24314,29 @@ var require_react_jsx_runtime_development = __commonJS({
         }
         function validatePropTypes(element2) {
           {
-            var type2 = element2.type;
-            if (type2 === null || type2 === void 0 || typeof type2 === "string") {
+            var type = element2.type;
+            if (type === null || type === void 0 || typeof type === "string") {
               return;
             }
             var propTypes;
-            if (typeof type2 === "function") {
-              propTypes = type2.propTypes;
-            } else if (typeof type2 === "object" && (type2.$$typeof === REACT_FORWARD_REF_TYPE || // Note: Memo only checks outer props here.
+            if (typeof type === "function") {
+              propTypes = type.propTypes;
+            } else if (typeof type === "object" && (type.$$typeof === REACT_FORWARD_REF_TYPE || // Note: Memo only checks outer props here.
             // Inner props are checked in the reconciler.
-            type2.$$typeof === REACT_MEMO_TYPE)) {
-              propTypes = type2.propTypes;
+            type.$$typeof === REACT_MEMO_TYPE)) {
+              propTypes = type.propTypes;
             } else {
               return;
             }
             if (propTypes) {
-              var name = getComponentNameFromType(type2);
+              var name = getComponentNameFromType(type);
               checkPropTypes(propTypes, element2.props, "prop", name, element2);
-            } else if (type2.PropTypes !== void 0 && !propTypesMisspellWarningShown) {
+            } else if (type.PropTypes !== void 0 && !propTypesMisspellWarningShown) {
               propTypesMisspellWarningShown = true;
-              var _name = getComponentNameFromType(type2);
+              var _name = getComponentNameFromType(type);
               error("Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?", _name || "Unknown");
             }
-            if (typeof type2.getDefaultProps === "function" && !type2.getDefaultProps.isReactClassApproved) {
+            if (typeof type.getDefaultProps === "function" && !type.getDefaultProps.isReactClassApproved) {
               error("getDefaultProps is only used on classic React.createClass definitions. Use a static property named `defaultProps` instead.");
             }
           }
@@ -24361,12 +24361,12 @@ var require_react_jsx_runtime_development = __commonJS({
           }
         }
         var didWarnAboutKeySpread = {};
-        function jsxWithValidation(type2, props, key, isStaticChildren, source, self) {
+        function jsxWithValidation(type, props, key, isStaticChildren, source, self) {
           {
-            var validType = isValidElementType(type2);
+            var validType = isValidElementType(type);
             if (!validType) {
               var info = "";
-              if (type2 === void 0 || typeof type2 === "object" && type2 !== null && Object.keys(type2).length === 0) {
+              if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
                 info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
               }
               var sourceInfo = getSourceInfoErrorAddendum(source);
@@ -24376,19 +24376,19 @@ var require_react_jsx_runtime_development = __commonJS({
                 info += getDeclarationErrorAddendum();
               }
               var typeString;
-              if (type2 === null) {
+              if (type === null) {
                 typeString = "null";
-              } else if (isArray(type2)) {
+              } else if (isArray(type)) {
                 typeString = "array";
-              } else if (type2 !== void 0 && type2.$$typeof === REACT_ELEMENT_TYPE) {
-                typeString = "<" + (getComponentNameFromType(type2.type) || "Unknown") + " />";
+              } else if (type !== void 0 && type.$$typeof === REACT_ELEMENT_TYPE) {
+                typeString = "<" + (getComponentNameFromType(type.type) || "Unknown") + " />";
                 info = " Did you accidentally export a JSX literal instead of a component?";
               } else {
-                typeString = typeof type2;
+                typeString = typeof type;
               }
               error("React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
             }
-            var element2 = jsxDEV(type2, props, key, source, self);
+            var element2 = jsxDEV(type, props, key, source, self);
             if (element2 == null) {
               return element2;
             }
@@ -24398,7 +24398,7 @@ var require_react_jsx_runtime_development = __commonJS({
                 if (isStaticChildren) {
                   if (isArray(children2)) {
                     for (var i = 0; i < children2.length; i++) {
-                      validateChildKeys(children2[i], type2);
+                      validateChildKeys(children2[i], type);
                     }
                     if (Object.freeze) {
                       Object.freeze(children2);
@@ -24407,13 +24407,13 @@ var require_react_jsx_runtime_development = __commonJS({
                     error("React.jsx: Static children should always be an array. You are likely explicitly calling React.jsxs or React.jsxDEV. Use the Babel transform instead.");
                   }
                 } else {
-                  validateChildKeys(children2, type2);
+                  validateChildKeys(children2, type);
                 }
               }
             }
             {
               if (hasOwnProperty2.call(props, "key")) {
-                var componentName = getComponentNameFromType(type2);
+                var componentName = getComponentNameFromType(type);
                 var keys = Object.keys(props).filter(function(k) {
                   return k !== "key";
                 });
@@ -24425,7 +24425,7 @@ var require_react_jsx_runtime_development = __commonJS({
                 }
               }
             }
-            if (type2 === REACT_FRAGMENT_TYPE) {
+            if (type === REACT_FRAGMENT_TYPE) {
               validateFragmentProps(element2);
             } else {
               validatePropTypes(element2);
@@ -24433,21 +24433,21 @@ var require_react_jsx_runtime_development = __commonJS({
             return element2;
           }
         }
-        function jsxWithValidationStatic(type2, props, key) {
+        function jsxWithValidationStatic(type, props, key) {
           {
-            return jsxWithValidation(type2, props, key, true);
+            return jsxWithValidation(type, props, key, true);
           }
         }
-        function jsxWithValidationDynamic(type2, props, key) {
+        function jsxWithValidationDynamic(type, props, key) {
           {
-            return jsxWithValidation(type2, props, key, false);
+            return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx6 = jsxWithValidationDynamic;
-        var jsxs4 = jsxWithValidationStatic;
+        var jsx4 = jsxWithValidationDynamic;
+        var jsxs3 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx6;
-        exports.jsxs = jsxs4;
+        exports.jsx = jsx4;
+        exports.jsxs = jsxs3;
       })();
     }
   }
@@ -24484,7 +24484,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
             "The result of getSnapshot should be cached to avoid an infinite loop"
           ), didWarnUncachedGetSnapshot = true);
         }
-        cachedValue = useState4({
+        cachedValue = useState3({
           inst: { value, getSnapshot }
         });
         var inst = cachedValue[0].inst, forceUpdate = cachedValue[1];
@@ -24496,7 +24496,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
           },
           [subscribe, value, getSnapshot]
         );
-        useEffect4(
+        useEffect3(
           function() {
             checkIfSnapshotChanged(inst) && forceUpdate({ inst });
             return subscribe(function() {
@@ -24522,7 +24522,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React = require_react(), objectIs = "function" === typeof Object.is ? Object.is : is, useState4 = React.useState, useEffect4 = React.useEffect, useLayoutEffect2 = React.useLayoutEffect, useDebugValue2 = React.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      var React = require_react(), objectIs = "function" === typeof Object.is ? Object.is : is, useState3 = React.useState, useEffect3 = React.useEffect, useLayoutEffect2 = React.useLayoutEffect, useDebugValue2 = React.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
       exports.useSyncExternalStore = void 0 !== React.useSyncExternalStore ? React.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
@@ -24550,9 +24550,9 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React = require_react(), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef4 = React.useRef, useEffect4 = React.useEffect, useMemo2 = React.useMemo, useDebugValue2 = React.useDebugValue;
+      var React = require_react(), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef3 = React.useRef, useEffect3 = React.useEffect, useMemo2 = React.useMemo, useDebugValue2 = React.useDebugValue;
       exports.useSyncExternalStoreWithSelector = function(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {
-        var instRef = useRef4(null);
+        var instRef = useRef3(null);
         if (null === instRef.current) {
           var inst = { hasValue: false, value: null };
           instRef.current = inst;
@@ -24594,7 +24594,7 @@ var require_with_selector_development = __commonJS({
           [getSnapshot, getServerSnapshot, selector, isEqual]
         );
         var value = useSyncExternalStore(subscribe, instRef[0], instRef[1]);
-        useEffect4(
+        useEffect3(
           function() {
             inst.hasValue = true;
             inst.value = value;
@@ -24632,10 +24632,10 @@ var import_obsidian2 = require("obsidian");
 // src/view/MindmapView.tsx
 var import_obsidian = require("obsidian");
 var import_client = __toESM(require_client());
-var import_react8 = __toESM(require_react());
+var import_react5 = __toESM(require_react());
 
 // src/view/MindmapReactView.tsx
-var import_react6 = __toESM(require_react());
+var import_react3 = __toESM(require_react());
 
 // node_modules/@xyflow/react/dist/esm/index.js
 var import_jsx_runtime = __toESM(require_jsx_runtime());
@@ -24712,39 +24712,39 @@ Dispatch.prototype = dispatch.prototype = {
       copy[t] = _[t].slice();
     return new Dispatch(copy);
   },
-  call: function(type2, that) {
+  call: function(type, that) {
     if ((n = arguments.length - 2) > 0)
       for (var args = new Array(n), i = 0, n, t; i < n; ++i)
         args[i] = arguments[i + 2];
-    if (!this._.hasOwnProperty(type2))
-      throw new Error("unknown type: " + type2);
-    for (t = this._[type2], i = 0, n = t.length; i < n; ++i)
+    if (!this._.hasOwnProperty(type))
+      throw new Error("unknown type: " + type);
+    for (t = this._[type], i = 0, n = t.length; i < n; ++i)
       t[i].value.apply(that, args);
   },
-  apply: function(type2, that, args) {
-    if (!this._.hasOwnProperty(type2))
-      throw new Error("unknown type: " + type2);
-    for (var t = this._[type2], i = 0, n = t.length; i < n; ++i)
+  apply: function(type, that, args) {
+    if (!this._.hasOwnProperty(type))
+      throw new Error("unknown type: " + type);
+    for (var t = this._[type], i = 0, n = t.length; i < n; ++i)
       t[i].value.apply(that, args);
   }
 };
-function get(type2, name) {
-  for (var i = 0, n = type2.length, c; i < n; ++i) {
-    if ((c = type2[i]).name === name) {
+function get(type, name) {
+  for (var i = 0, n = type.length, c; i < n; ++i) {
+    if ((c = type[i]).name === name) {
       return c.value;
     }
   }
 }
-function set(type2, name, callback) {
-  for (var i = 0, n = type2.length; i < n; ++i) {
-    if (type2[i].name === name) {
-      type2[i] = noop, type2 = type2.slice(0, i).concat(type2.slice(i + 1));
+function set(type, name, callback) {
+  for (var i = 0, n = type.length; i < n; ++i) {
+    if (type[i].name === name) {
+      type[i] = noop, type = type.slice(0, i).concat(type.slice(i + 1));
       break;
     }
   }
   if (callback != null)
-    type2.push({ name, value: callback });
-  return type2;
+    type.push({ name, value: callback });
+  return type;
 }
 var dispatch_default = dispatch;
 
@@ -25488,31 +25488,31 @@ function on_default(typename, value, options) {
 }
 
 // node_modules/d3-selection/src/selection/dispatch.js
-function dispatchEvent(node2, type2, params) {
+function dispatchEvent(node2, type, params) {
   var window2 = window_default(node2), event = window2.CustomEvent;
   if (typeof event === "function") {
-    event = new event(type2, params);
+    event = new event(type, params);
   } else {
     event = window2.document.createEvent("Event");
     if (params)
-      event.initEvent(type2, params.bubbles, params.cancelable), event.detail = params.detail;
+      event.initEvent(type, params.bubbles, params.cancelable), event.detail = params.detail;
     else
-      event.initEvent(type2, false, false);
+      event.initEvent(type, false, false);
   }
   node2.dispatchEvent(event);
 }
-function dispatchConstant(type2, params) {
+function dispatchConstant(type, params) {
   return function() {
-    return dispatchEvent(this, type2, params);
+    return dispatchEvent(this, type, params);
   };
 }
-function dispatchFunction(type2, params) {
+function dispatchFunction(type, params) {
   return function() {
-    return dispatchEvent(this, type2, params.apply(this, arguments));
+    return dispatchEvent(this, type, params.apply(this, arguments));
   };
 }
-function dispatch_default2(type2, params) {
-  return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type2, params));
+function dispatch_default2(type, params) {
+  return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type, params));
 }
 
 // node_modules/d3-selection/src/selection/iterator.js
@@ -25652,7 +25652,7 @@ function yesdrag(view, noclick) {
 var constant_default2 = (x) => () => x;
 
 // node_modules/d3-drag/src/event.js
-function DragEvent(type2, {
+function DragEvent(type, {
   sourceEvent,
   subject,
   target,
@@ -25665,7 +25665,7 @@ function DragEvent(type2, {
   dispatch: dispatch2
 }) {
   Object.defineProperties(this, {
-    type: { value: type2, enumerable: true, configurable: true },
+    type: { value: type, enumerable: true, configurable: true },
     sourceEvent: { value: sourceEvent, enumerable: true, configurable: true },
     subject: { value: subject, enumerable: true, configurable: true },
     target: { value: target, enumerable: true, configurable: true },
@@ -25779,9 +25779,9 @@ function drag_default() {
       return;
     dx = s.x - p[0] || 0;
     dy = s.y - p[1] || 0;
-    return function gesture(type2, event2, touch2) {
+    return function gesture(type, event2, touch2) {
       var p0 = p, n;
-      switch (type2) {
+      switch (type) {
         case "start":
           gestures[identifier] = gesture, n = active++;
           break;
@@ -25792,9 +25792,9 @@ function drag_default() {
           break;
       }
       dispatch2.call(
-        type2,
+        type,
         that,
-        new DragEvent(type2, {
+        new DragEvent(type, {
           sourceEvent: event2,
           subject: s,
           target: drag,
@@ -26130,15 +26130,15 @@ function hslConvert(o) {
   if (o instanceof Hsl)
     return o;
   o = o.rgb();
-  var r = o.r / 255, g = o.g / 255, b = o.b / 255, min2 = Math.min(r, g, b), max2 = Math.max(r, g, b), h = NaN, s = max2 - min2, l = (max2 + min2) / 2;
+  var r = o.r / 255, g = o.g / 255, b = o.b / 255, min = Math.min(r, g, b), max = Math.max(r, g, b), h = NaN, s = max - min, l = (max + min) / 2;
   if (s) {
-    if (r === max2)
+    if (r === max)
       h = (g - b) / s + (g < b) * 6;
-    else if (g === max2)
+    else if (g === max)
       h = (b - r) / s + 2;
     else
       h = (r - g) / s + 4;
-    s /= l < 0.5 ? max2 + min2 : 2 - max2 - min2;
+    s /= l < 0.5 ? max + min : 2 - max - min;
     h *= 60;
   } else {
     s = l > 0 && l < 1 ? 0 : h;
@@ -27417,14 +27417,14 @@ selection_default.prototype.transition = transition_default2;
 var constant_default4 = (x) => () => x;
 
 // node_modules/d3-zoom/src/event.js
-function ZoomEvent(type2, {
+function ZoomEvent(type, {
   sourceEvent,
   target,
   transform: transform2,
   dispatch: dispatch2
 }) {
   Object.defineProperties(this, {
-    type: { value: type2, enumerable: true, configurable: true },
+    type: { value: type, enumerable: true, configurable: true },
     sourceEvent: { value: sourceEvent, enumerable: true, configurable: true },
     target: { value: target, enumerable: true, configurable: true },
     transform: { value: transform2, enumerable: true, configurable: true },
@@ -27640,15 +27640,15 @@ function zoom_default2() {
       }
       return this;
     },
-    emit: function(type2) {
+    emit: function(type) {
       var d = select_default2(this.that).datum();
       listeners.call(
-        type2,
+        type,
         this.that,
-        new ZoomEvent(type2, {
+        new ZoomEvent(type, {
           sourceEvent: this.sourceEvent,
           target: zoom,
-          type: type2,
+          type,
           transform: this.that.__zoom,
           dispatch: listeners
         }),
@@ -27844,7 +27844,7 @@ var errorMessages = {
   error005: () => "Only child nodes can use a parent extent.",
   error006: () => "Can't create edge. An edge needs a source and a target.",
   error007: (id2) => `The old edge with id=${id2} does not exist.`,
-  error009: (type2) => `Marker type "${type2}" doesn't exist.`,
+  error009: (type) => `Marker type "${type}" doesn't exist.`,
   error008: (handleType, { id: id2, sourceHandle, targetHandle }) => `Couldn't create edge for ${handleType} handle id: "${handleType === "source" ? sourceHandle : targetHandle}", edge id: ${id2}.`,
   error010: () => "Handle: No node id found. Make sure to only use a Handle inside a custom Node.",
   error011: (edgeType) => `Edge type "${edgeType}" not found. Using fallback type "default".`,
@@ -28107,7 +28107,7 @@ async function getElementsToRemove({ nodesToRemove = [], edgesToRemove = [], nod
   }
   return onBeforeDeleteResult;
 }
-var clamp = (val, min2 = 0, max2 = 1) => Math.min(Math.max(val, min2), max2);
+var clamp = (val, min = 0, max = 1) => Math.min(Math.max(val, min), max);
 var clampPosition = (position2 = { x: 0, y: 0 }, extent, dimensions) => ({
   x: clamp(position2.x, extent[0][0], extent[1][0] - (dimensions?.width ?? 0)),
   y: clamp(position2.y, extent[0][1], extent[1][1] - (dimensions?.height ?? 0))
@@ -28120,11 +28120,11 @@ function clampPositionToParent(childPosition, childDimensions, parent) {
     [parentX + parentWidth, parentY + parentHeight]
   ], childDimensions);
 }
-var calcAutoPanVelocity = (value, min2, max2) => {
-  if (value < min2) {
-    return clamp(Math.abs(value - min2), 1, min2) / min2;
-  } else if (value > max2) {
-    return -clamp(Math.abs(value - max2), 1, min2) / min2;
+var calcAutoPanVelocity = (value, min, max) => {
+  if (value < min) {
+    return clamp(Math.abs(value - min), 1, min) / min;
+  } else if (value > max) {
+    return -clamp(Math.abs(value - max), 1, min) / min;
   }
   return 0;
 };
@@ -28356,8 +28356,8 @@ var getEventPosition = (event, bounds) => {
     y: evtY - (bounds?.top ?? 0)
   };
 };
-var getHandleBounds = (type2, nodeElement, nodeBounds, zoom, nodeId) => {
-  const handles = nodeElement.querySelectorAll(`.${type2}`);
+var getHandleBounds = (type, nodeElement, nodeBounds, zoom, nodeId) => {
+  const handles = nodeElement.querySelectorAll(`.${type}`);
   if (!handles || !handles.length) {
     return null;
   }
@@ -28365,7 +28365,7 @@ var getHandleBounds = (type2, nodeElement, nodeBounds, zoom, nodeId) => {
     const handleBounds = handle.getBoundingClientRect();
     return {
       id: handle.getAttribute("data-handleid"),
-      type: type2,
+      type,
       nodeId,
       position: handle.getAttribute("data-handlepos"),
       x: (handleBounds.left - nodeBounds.left) / zoom,
@@ -29080,15 +29080,15 @@ async function panBy({ delta, panZoom, transform: transform2, translateExtent, w
   const transformChanged = !!nextViewport && (nextViewport.x !== transform2[0] || nextViewport.y !== transform2[1] || nextViewport.k !== transform2[2]);
   return transformChanged;
 }
-function addConnectionToLookup(type2, connection, connectionKey, connectionLookup, nodeId, handleId) {
+function addConnectionToLookup(type, connection, connectionKey, connectionLookup, nodeId, handleId) {
   let key = nodeId;
   const nodeMap = connectionLookup.get(key) || /* @__PURE__ */ new Map();
   connectionLookup.set(key, nodeMap.set(connectionKey, connection));
-  key = `${nodeId}-${type2}`;
+  key = `${nodeId}-${type}`;
   const typeMap = connectionLookup.get(key) || /* @__PURE__ */ new Map();
   connectionLookup.set(key, typeMap.set(connectionKey, connection));
   if (handleId) {
-    key = `${nodeId}-${type2}-${handleId}`;
+    key = `${nodeId}-${type}-${handleId}`;
     const handleMap = connectionLookup.get(key) || /* @__PURE__ */ new Map();
     connectionLookup.set(key, handleMap.set(connectionKey, connection));
   }
@@ -31327,8 +31327,8 @@ function useReactFlow() {
         const { nodeLookup, nodeOrigin } = store.getState();
         return getNodesBounds(nodes, { nodeLookup, nodeOrigin });
       },
-      getHandleConnections: ({ type: type2, id: id2, nodeId }) => Array.from(store.getState().connectionLookup.get(`${nodeId}-${type2}${id2 ? `-${id2}` : ""}`)?.values() ?? []),
-      getNodeConnections: ({ type: type2, handleId, nodeId }) => Array.from(store.getState().connectionLookup.get(`${nodeId}${type2 ? handleId ? `-${type2}-${handleId}` : `-${type2}` : ""}`)?.values() ?? []),
+      getHandleConnections: ({ type, id: id2, nodeId }) => Array.from(store.getState().connectionLookup.get(`${nodeId}-${type}${id2 ? `-${id2}` : ""}`)?.values() ?? []),
+      getNodeConnections: ({ type, handleId, nodeId }) => Array.from(store.getState().connectionLookup.get(`${nodeId}${type ? handleId ? `-${type}-${handleId}` : `-${type}` : ""}`)?.values() ?? []),
       fitView: async (options) => {
         const fitViewResolver = store.getState().fitViewResolver ?? withResolvers();
         store.setState({ fitViewQueued: true, fitViewOptions: options, fitViewResolver });
@@ -31816,27 +31816,27 @@ var selector$g = (s) => ({
   noPanClassName: s.noPanClassName,
   rfId: s.rfId
 });
-var connectingSelector = (nodeId, handleId, type2) => (state) => {
+var connectingSelector = (nodeId, handleId, type) => (state) => {
   const { connectionClickStartHandle: clickHandle, connectionMode, connection } = state;
   const { fromHandle, toHandle, isValid } = connection;
-  const connectingTo = toHandle?.nodeId === nodeId && toHandle?.id === handleId && toHandle?.type === type2;
+  const connectingTo = toHandle?.nodeId === nodeId && toHandle?.id === handleId && toHandle?.type === type;
   return {
-    connectingFrom: fromHandle?.nodeId === nodeId && fromHandle?.id === handleId && fromHandle?.type === type2,
+    connectingFrom: fromHandle?.nodeId === nodeId && fromHandle?.id === handleId && fromHandle?.type === type,
     connectingTo,
-    clickConnecting: clickHandle?.nodeId === nodeId && clickHandle?.id === handleId && clickHandle?.type === type2,
-    isPossibleEndHandle: connectionMode === ConnectionMode.Strict ? fromHandle?.type !== type2 : nodeId !== fromHandle?.nodeId || handleId !== fromHandle?.id,
+    clickConnecting: clickHandle?.nodeId === nodeId && clickHandle?.id === handleId && clickHandle?.type === type,
+    isPossibleEndHandle: connectionMode === ConnectionMode.Strict ? fromHandle?.type !== type : nodeId !== fromHandle?.nodeId || handleId !== fromHandle?.id,
     connectionInProcess: !!fromHandle,
     clickConnectionInProcess: !!clickHandle,
     valid: connectingTo && isValid
   };
 };
-function HandleComponent({ type: type2 = "source", position: position2 = Position.Top, isValidConnection, isConnectable = true, isConnectableStart = true, isConnectableEnd = true, id: id2, onConnect, children: children2, className, onMouseDown, onTouchStart, ...rest }, ref) {
+function HandleComponent({ type = "source", position: position2 = Position.Top, isValidConnection, isConnectable = true, isConnectableStart = true, isConnectableEnd = true, id: id2, onConnect, children: children2, className, onMouseDown, onTouchStart, ...rest }, ref) {
   const handleId = id2 || null;
-  const isTarget = type2 === "target";
+  const isTarget = type === "target";
   const store = useStoreApi();
   const nodeId = useNodeId();
   const { connectOnClick, noPanClassName, rfId } = useStore(selector$g, shallow$1);
-  const { connectingFrom, connectingTo, clickConnecting, isPossibleEndHandle, connectionInProcess, clickConnectionInProcess, valid } = useStore(connectingSelector(nodeId, handleId, type2), shallow$1);
+  const { connectingFrom, connectingTo, clickConnecting, isPossibleEndHandle, connectionInProcess, clickConnectionInProcess, valid } = useStore(connectingSelector(nodeId, handleId, type), shallow$1);
   if (!nodeId) {
     store.getState().onError?.("010", errorMessages["error010"]());
   }
@@ -31897,8 +31897,8 @@ function HandleComponent({ type: type2 = "source", position: position2 = Positio
       return;
     }
     if (!connectionClickStartHandle) {
-      onClickConnectStart?.(event.nativeEvent, { nodeId, handleId, handleType: type2 });
-      store.setState({ connectionClickStartHandle: { nodeId, type: type2, id: handleId } });
+      onClickConnectStart?.(event.nativeEvent, { nodeId, handleId, handleType: type });
+      store.setState({ connectionClickStartHandle: { nodeId, type, id: handleId } });
       return;
     }
     const doc = getHostForElement(event.target);
@@ -31907,7 +31907,7 @@ function HandleComponent({ type: type2 = "source", position: position2 = Positio
       handle: {
         nodeId,
         id: handleId,
-        type: type2
+        type
       },
       connectionMode,
       fromNodeId: connectionClickStartHandle.nodeId,
@@ -31928,7 +31928,7 @@ function HandleComponent({ type: type2 = "source", position: position2 = Positio
     onClickConnectEnd?.(event, connectionClone);
     store.setState({ connectionClickStartHandle: null });
   };
-  return (0, import_jsx_runtime.jsx)("div", { "data-handleid": handleId, "data-nodeid": nodeId, "data-handlepos": position2, "data-id": `${rfId}-${nodeId}-${handleId}-${type2}`, className: cc([
+  return (0, import_jsx_runtime.jsx)("div", { "data-handleid": handleId, "data-nodeid": nodeId, "data-handlepos": position2, "data-id": `${rfId}-${nodeId}-${handleId}-${type}`, className: cc([
     "react-flow__handle",
     `react-flow__handle-${position2}`,
     "nodrag",
@@ -32344,20 +32344,20 @@ var MarkerSymbols = {
   [MarkerType.Arrow]: ArrowSymbol,
   [MarkerType.ArrowClosed]: ArrowClosedSymbol
 };
-function useMarkerSymbol(type2) {
+function useMarkerSymbol(type) {
   const store = useStoreApi();
   const symbol = (0, import_react2.useMemo)(() => {
-    const symbolExists = Object.prototype.hasOwnProperty.call(MarkerSymbols, type2);
+    const symbolExists = Object.prototype.hasOwnProperty.call(MarkerSymbols, type);
     if (!symbolExists) {
-      store.getState().onError?.("009", errorMessages["error009"](type2));
+      store.getState().onError?.("009", errorMessages["error009"](type));
       return null;
     }
-    return MarkerSymbols[type2];
-  }, [type2]);
+    return MarkerSymbols[type];
+  }, [type]);
   return symbol;
 }
-var Marker = ({ id: id2, type: type2, color: color2, width = 12.5, height = 12.5, markerUnits = "strokeWidth", strokeWidth, orient = "auto-start-reverse" }) => {
-  const Symbol2 = useMarkerSymbol(type2);
+var Marker = ({ id: id2, type, color: color2, width = 12.5, height = 12.5, markerUnits = "strokeWidth", strokeWidth, orient = "auto-start-reverse" }) => {
+  const Symbol2 = useMarkerSymbol(type);
   if (!Symbol2) {
     return null;
   }
@@ -32555,8 +32555,8 @@ var shiftY = (y, shift, position2) => {
   return y;
 };
 var EdgeUpdaterClassName = "react-flow__edgeupdater";
-function EdgeAnchor({ position: position2, centerX, centerY, radius = 10, onMouseDown, onMouseEnter, onMouseOut, type: type2 }) {
-  return (0, import_jsx_runtime.jsx)("circle", { onMouseDown, onMouseEnter, onMouseOut, className: cc([EdgeUpdaterClassName, `${EdgeUpdaterClassName}-${type2}`]), cx: shiftX(centerX, radius, position2), cy: shiftY(centerY, radius, position2), r: radius, stroke: "transparent", fill: "transparent" });
+function EdgeAnchor({ position: position2, centerX, centerY, radius = 10, onMouseDown, onMouseEnter, onMouseOut, type }) {
+  return (0, import_jsx_runtime.jsx)("circle", { onMouseDown, onMouseEnter, onMouseOut, className: cc([EdgeUpdaterClassName, `${EdgeUpdaterClassName}-${type}`]), cx: shiftX(centerX, radius, position2), cy: shiftY(centerY, radius, position2), r: radius, stroke: "transparent", fill: "transparent" });
 }
 function EdgeUpdateAnchors({ isReconnectable, reconnectRadius, edge, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, onReconnect, onReconnectStart, onReconnectEnd, setReconnecting, setUpdateHover }) {
   const store = useStoreApi();
@@ -32608,16 +32608,16 @@ function EdgeUpdateAnchors({ isReconnectable, reconnectRadius, edge, sourceX, so
   const onReconnectMouseOut = () => setUpdateHover(false);
   return (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [(isReconnectable === true || isReconnectable === "source") && (0, import_jsx_runtime.jsx)(EdgeAnchor, { position: sourcePosition, centerX: sourceX, centerY: sourceY, radius: reconnectRadius, onMouseDown: onReconnectSourceMouseDown, onMouseEnter: onReconnectMouseEnter, onMouseOut: onReconnectMouseOut, type: "source" }), (isReconnectable === true || isReconnectable === "target") && (0, import_jsx_runtime.jsx)(EdgeAnchor, { position: targetPosition, centerX: targetX, centerY: targetY, radius: reconnectRadius, onMouseDown: onReconnectTargetMouseDown, onMouseEnter: onReconnectMouseEnter, onMouseOut: onReconnectMouseOut, type: "target" })] });
 }
-function EdgeWrapper({ id: id2, edgesFocusable, edgesReconnectable, elementsSelectable, onClick, onDoubleClick, onContextMenu, onMouseEnter, onMouseMove, onMouseLeave, reconnectRadius, onReconnect, onReconnectStart, onReconnectEnd, rfId, edgeTypes: edgeTypes2, noPanClassName, onError, disableKeyboardA11y }) {
+function EdgeWrapper({ id: id2, edgesFocusable, edgesReconnectable, elementsSelectable, onClick, onDoubleClick, onContextMenu, onMouseEnter, onMouseMove, onMouseLeave, reconnectRadius, onReconnect, onReconnectStart, onReconnectEnd, rfId, edgeTypes, noPanClassName, onError, disableKeyboardA11y }) {
   let edge = useStore((s) => s.edgeLookup.get(id2));
   const defaultEdgeOptions = useStore((s) => s.defaultEdgeOptions);
   edge = defaultEdgeOptions ? { ...defaultEdgeOptions, ...edge } : edge;
   let edgeType = edge.type || "default";
-  let EdgeComponent = edgeTypes2?.[edgeType] || builtinEdgeTypes[edgeType];
+  let EdgeComponent = edgeTypes?.[edgeType] || builtinEdgeTypes[edgeType];
   if (EdgeComponent === void 0) {
     onError?.("011", errorMessages["error011"](edgeType));
     edgeType = "default";
-    EdgeComponent = edgeTypes2?.["default"] || builtinEdgeTypes.default;
+    EdgeComponent = edgeTypes?.["default"] || builtinEdgeTypes.default;
   }
   const isFocusable = !!(edge.focusable || edgesFocusable && typeof edge.focusable === "undefined");
   const isReconnectable = typeof onReconnect !== "undefined" && (edge.reconnectable || edgesReconnectable && typeof edge.reconnectable === "undefined");
@@ -32726,11 +32726,11 @@ var selector$a = (s) => ({
   connectionMode: s.connectionMode,
   onError: s.onError
 });
-function EdgeRendererComponent({ defaultMarkerColor, onlyRenderVisibleElements, rfId, edgeTypes: edgeTypes2, noPanClassName, onReconnect, onEdgeContextMenu, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, onEdgeClick, reconnectRadius, onEdgeDoubleClick, onReconnectStart, onReconnectEnd, disableKeyboardA11y }) {
+function EdgeRendererComponent({ defaultMarkerColor, onlyRenderVisibleElements, rfId, edgeTypes, noPanClassName, onReconnect, onEdgeContextMenu, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, onEdgeClick, reconnectRadius, onEdgeDoubleClick, onReconnectStart, onReconnectEnd, disableKeyboardA11y }) {
   const { edgesFocusable, edgesReconnectable, elementsSelectable, onError } = useStore(selector$a, shallow$1);
   const edgeIds = useVisibleEdgeIds(onlyRenderVisibleElements);
   return (0, import_jsx_runtime.jsxs)("div", { className: "react-flow__edges", children: [(0, import_jsx_runtime.jsx)(MarkerDefinitions$1, { defaultColor: defaultMarkerColor, rfId }), edgeIds.map((id2) => {
-    return (0, import_jsx_runtime.jsx)(EdgeWrapper$1, { id: id2, edgesFocusable, edgesReconnectable, elementsSelectable, noPanClassName, onReconnect, onContextMenu: onEdgeContextMenu, onMouseEnter: onEdgeMouseEnter, onMouseMove: onEdgeMouseMove, onMouseLeave: onEdgeMouseLeave, onClick: onEdgeClick, reconnectRadius, onDoubleClick: onEdgeDoubleClick, onReconnectStart, onReconnectEnd, rfId, onError, edgeTypes: edgeTypes2, disableKeyboardA11y }, id2);
+    return (0, import_jsx_runtime.jsx)(EdgeWrapper$1, { id: id2, edgesFocusable, edgesReconnectable, elementsSelectable, noPanClassName, onReconnect, onContextMenu: onEdgeContextMenu, onMouseEnter: onEdgeMouseEnter, onMouseMove: onEdgeMouseMove, onMouseLeave: onEdgeMouseLeave, onClick: onEdgeClick, reconnectRadius, onDoubleClick: onEdgeDoubleClick, onReconnectStart, onReconnectEnd, rfId, onError, edgeTypes, disableKeyboardA11y }, id2);
   })] });
 }
 EdgeRendererComponent.displayName = "EdgeRenderer";
@@ -32786,21 +32786,21 @@ var selector$7 = (s) => ({
   width: s.width,
   height: s.height
 });
-function ConnectionLineWrapper({ containerStyle: containerStyle2, style: style2, type: type2, component }) {
+function ConnectionLineWrapper({ containerStyle: containerStyle2, style: style2, type, component }) {
   const { nodesConnectable, width, height, isValid, inProgress } = useStore(selector$7, shallow$1);
   const renderConnection = !!(width && nodesConnectable && inProgress);
   if (!renderConnection) {
     return null;
   }
-  return (0, import_jsx_runtime.jsx)("svg", { style: containerStyle2, width, height, className: "react-flow__connectionline react-flow__container", children: (0, import_jsx_runtime.jsx)("g", { className: cc(["react-flow__connection", getConnectionStatus(isValid)]), children: (0, import_jsx_runtime.jsx)(ConnectionLine, { style: style2, type: type2, CustomComponent: component, isValid }) }) });
+  return (0, import_jsx_runtime.jsx)("svg", { style: containerStyle2, width, height, className: "react-flow__connectionline react-flow__container", children: (0, import_jsx_runtime.jsx)("g", { className: cc(["react-flow__connection", getConnectionStatus(isValid)]), children: (0, import_jsx_runtime.jsx)(ConnectionLine, { style: style2, type, CustomComponent: component, isValid }) }) });
 }
-var ConnectionLine = ({ style: style2, type: type2 = ConnectionLineType.Bezier, CustomComponent, isValid }) => {
+var ConnectionLine = ({ style: style2, type = ConnectionLineType.Bezier, CustomComponent, isValid }) => {
   const { inProgress, from, fromNode, fromHandle, fromPosition, to, toNode, toHandle, toPosition, pointer } = useConnection();
   if (!inProgress) {
     return;
   }
   if (CustomComponent) {
-    return (0, import_jsx_runtime.jsx)(CustomComponent, { connectionLineType: type2, connectionLineStyle: style2, fromNode, fromHandle, fromX: from.x, fromY: from.y, toX: to.x, toY: to.y, fromPosition, toPosition, connectionStatus: getConnectionStatus(isValid), toNode, toHandle, pointer });
+    return (0, import_jsx_runtime.jsx)(CustomComponent, { connectionLineType: type, connectionLineStyle: style2, fromNode, fromHandle, fromX: from.x, fromY: from.y, toX: to.x, toY: to.y, fromPosition, toPosition, connectionStatus: getConnectionStatus(isValid), toNode, toHandle, pointer });
   }
   let path = "";
   const pathParams = {
@@ -32811,7 +32811,7 @@ var ConnectionLine = ({ style: style2, type: type2 = ConnectionLineType.Bezier, 
     targetY: to.y,
     targetPosition: toPosition
   };
-  switch (type2) {
+  switch (type) {
     case ConnectionLineType.Bezier:
       [path] = getBezierPath(pathParams);
       break;
@@ -32865,13 +32865,13 @@ function useStylesLoadedWarning() {
     }
   }, []);
 }
-function GraphViewComponent({ nodeTypes: nodeTypes2, edgeTypes: edgeTypes2, onInit, onNodeClick, onEdgeClick, onNodeDoubleClick, onEdgeDoubleClick, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, onSelectionContextMenu, onSelectionStart, onSelectionEnd, connectionLineType, connectionLineStyle, connectionLineComponent, connectionLineContainerStyle, selectionKeyCode, selectionOnDrag, selectionMode, multiSelectionKeyCode, panActivationKeyCode, zoomActivationKeyCode, deleteKeyCode, onlyRenderVisibleElements, elementsSelectable, defaultViewport: defaultViewport2, translateExtent, minZoom, maxZoom, preventScrolling, defaultMarkerColor, zoomOnScroll, zoomOnPinch, panOnScroll, panOnScrollSpeed, panOnScrollMode, zoomOnDoubleClick, panOnDrag, autoPanOnSelection, onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneScroll, onPaneContextMenu, paneClickDistance, nodeClickDistance, onEdgeContextMenu, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius, onReconnect, onReconnectStart, onReconnectEnd, noDragClassName, noWheelClassName, noPanClassName, disableKeyboardA11y, nodeExtent, rfId, viewport, onViewportChange }) {
+function GraphViewComponent({ nodeTypes: nodeTypes2, edgeTypes, onInit, onNodeClick, onEdgeClick, onNodeDoubleClick, onEdgeDoubleClick, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, onSelectionContextMenu, onSelectionStart, onSelectionEnd, connectionLineType, connectionLineStyle, connectionLineComponent, connectionLineContainerStyle, selectionKeyCode, selectionOnDrag, selectionMode, multiSelectionKeyCode, panActivationKeyCode, zoomActivationKeyCode, deleteKeyCode, onlyRenderVisibleElements, elementsSelectable, defaultViewport: defaultViewport2, translateExtent, minZoom, maxZoom, preventScrolling, defaultMarkerColor, zoomOnScroll, zoomOnPinch, panOnScroll, panOnScrollSpeed, panOnScrollMode, zoomOnDoubleClick, panOnDrag, autoPanOnSelection, onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneScroll, onPaneContextMenu, paneClickDistance, nodeClickDistance, onEdgeContextMenu, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius, onReconnect, onReconnectStart, onReconnectEnd, noDragClassName, noWheelClassName, noPanClassName, disableKeyboardA11y, nodeExtent, rfId, viewport, onViewportChange }) {
   useNodeOrEdgeTypesWarning(nodeTypes2);
-  useNodeOrEdgeTypesWarning(edgeTypes2);
+  useNodeOrEdgeTypesWarning(edgeTypes);
   useStylesLoadedWarning();
   useOnInitHandler(onInit);
   useViewportSync(viewport);
-  return (0, import_jsx_runtime.jsx)(FlowRenderer, { onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneContextMenu, onPaneScroll, paneClickDistance, deleteKeyCode, selectionKeyCode, selectionOnDrag, selectionMode, onSelectionStart, onSelectionEnd, multiSelectionKeyCode, panActivationKeyCode, zoomActivationKeyCode, elementsSelectable, zoomOnScroll, zoomOnPinch, zoomOnDoubleClick, panOnScroll, panOnScrollSpeed, panOnScrollMode, panOnDrag, autoPanOnSelection, defaultViewport: defaultViewport2, translateExtent, minZoom, maxZoom, onSelectionContextMenu, preventScrolling, noDragClassName, noWheelClassName, noPanClassName, disableKeyboardA11y, onViewportChange, isControlledViewport: !!viewport, children: (0, import_jsx_runtime.jsxs)(Viewport, { children: [(0, import_jsx_runtime.jsx)(EdgeRenderer, { edgeTypes: edgeTypes2, onEdgeClick, onEdgeDoubleClick, onReconnect, onReconnectStart, onReconnectEnd, onlyRenderVisibleElements, onEdgeContextMenu, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius, defaultMarkerColor, noPanClassName, disableKeyboardA11y, rfId }), (0, import_jsx_runtime.jsx)(ConnectionLineWrapper, { style: connectionLineStyle, type: connectionLineType, component: connectionLineComponent, containerStyle: connectionLineContainerStyle }), (0, import_jsx_runtime.jsx)("div", { className: "react-flow__edgelabel-renderer" }), (0, import_jsx_runtime.jsx)(NodeRenderer, { nodeTypes: nodeTypes2, onNodeClick, onNodeDoubleClick, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, nodeClickDistance, onlyRenderVisibleElements, noPanClassName, noDragClassName, disableKeyboardA11y, nodeExtent, rfId }), (0, import_jsx_runtime.jsx)("div", { className: "react-flow__viewport-portal" })] }) });
+  return (0, import_jsx_runtime.jsx)(FlowRenderer, { onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneContextMenu, onPaneScroll, paneClickDistance, deleteKeyCode, selectionKeyCode, selectionOnDrag, selectionMode, onSelectionStart, onSelectionEnd, multiSelectionKeyCode, panActivationKeyCode, zoomActivationKeyCode, elementsSelectable, zoomOnScroll, zoomOnPinch, zoomOnDoubleClick, panOnScroll, panOnScrollSpeed, panOnScrollMode, panOnDrag, autoPanOnSelection, defaultViewport: defaultViewport2, translateExtent, minZoom, maxZoom, onSelectionContextMenu, preventScrolling, noDragClassName, noWheelClassName, noPanClassName, disableKeyboardA11y, onViewportChange, isControlledViewport: !!viewport, children: (0, import_jsx_runtime.jsxs)(Viewport, { children: [(0, import_jsx_runtime.jsx)(EdgeRenderer, { edgeTypes, onEdgeClick, onEdgeDoubleClick, onReconnect, onReconnectStart, onReconnectEnd, onlyRenderVisibleElements, onEdgeContextMenu, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius, defaultMarkerColor, noPanClassName, disableKeyboardA11y, rfId }), (0, import_jsx_runtime.jsx)(ConnectionLineWrapper, { style: connectionLineStyle, type: connectionLineType, component: connectionLineComponent, containerStyle: connectionLineContainerStyle }), (0, import_jsx_runtime.jsx)("div", { className: "react-flow__edgelabel-renderer" }), (0, import_jsx_runtime.jsx)(NodeRenderer, { nodeTypes: nodeTypes2, onNodeClick, onNodeDoubleClick, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, nodeClickDistance, onlyRenderVisibleElements, noPanClassName, noDragClassName, disableKeyboardA11y, nodeExtent, rfId }), (0, import_jsx_runtime.jsx)("div", { className: "react-flow__viewport-portal" })] }) });
 }
 GraphViewComponent.displayName = "GraphView";
 var GraphView = (0, import_react2.memo)(GraphViewComponent);
@@ -33275,14 +33275,14 @@ var wrapperStyle = {
   position: "relative",
   zIndex: 0
 };
-function ReactFlow({ nodes, edges, defaultNodes, defaultEdges, className, nodeTypes: nodeTypes2, edgeTypes: edgeTypes2, onNodeClick, onEdgeClick, onInit, onMove, onMoveStart, onMoveEnd, onConnect, onConnectStart, onConnectEnd, onClickConnectStart, onClickConnectEnd, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, onNodeDoubleClick, onNodeDragStart, onNodeDrag, onNodeDragStop, onNodesDelete, onEdgesDelete, onDelete, onSelectionChange, onSelectionDragStart, onSelectionDrag, onSelectionDragStop, onSelectionContextMenu, onSelectionStart, onSelectionEnd, onBeforeDelete, connectionMode, connectionLineType = ConnectionLineType.Bezier, connectionLineStyle, connectionLineComponent, connectionLineContainerStyle, deleteKeyCode = "Backspace", selectionKeyCode = "Shift", selectionOnDrag = false, selectionMode = SelectionMode.Full, panActivationKeyCode = "Space", multiSelectionKeyCode = isMacOs() ? "Meta" : "Control", zoomActivationKeyCode = isMacOs() ? "Meta" : "Control", snapToGrid, snapGrid, onlyRenderVisibleElements = false, selectNodesOnDrag, nodesDraggable, autoPanOnNodeFocus, nodesConnectable, nodesFocusable, nodeOrigin = defaultNodeOrigin, edgesFocusable, edgesReconnectable, elementsSelectable = true, defaultViewport: defaultViewport$1 = defaultViewport, minZoom = 0.5, maxZoom = 2, translateExtent = infiniteExtent, preventScrolling = true, nodeExtent, defaultMarkerColor = "#b1b1b7", zoomOnScroll = true, zoomOnPinch = true, panOnScroll = false, panOnScrollSpeed = 0.5, panOnScrollMode = PanOnScrollMode.Free, zoomOnDoubleClick = true, panOnDrag = true, onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneScroll, onPaneContextMenu, paneClickDistance = 1, nodeClickDistance = 0, children: children2, onReconnect, onReconnectStart, onReconnectEnd, onEdgeContextMenu, onEdgeDoubleClick, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius = 10, onNodesChange, onEdgesChange, noDragClassName = "nodrag", noWheelClassName = "nowheel", noPanClassName = "nopan", fitView, fitViewOptions, connectOnClick, attributionPosition, proOptions, defaultEdgeOptions, elevateNodesOnSelect = true, elevateEdgesOnSelect = false, disableKeyboardA11y = false, autoPanOnConnect, autoPanOnNodeDrag, autoPanOnSelection = true, autoPanSpeed, connectionRadius, isValidConnection, onError, style: style2, id: id2, nodeDragThreshold, connectionDragThreshold, viewport, onViewportChange, width, height, colorMode = "light", debug, onScroll, ariaLabelConfig, zIndexMode = "basic", ...rest }, ref) {
+function ReactFlow({ nodes, edges, defaultNodes, defaultEdges, className, nodeTypes: nodeTypes2, edgeTypes, onNodeClick, onEdgeClick, onInit, onMove, onMoveStart, onMoveEnd, onConnect, onConnectStart, onConnectEnd, onClickConnectStart, onClickConnectEnd, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, onNodeDoubleClick, onNodeDragStart, onNodeDrag, onNodeDragStop, onNodesDelete, onEdgesDelete, onDelete, onSelectionChange, onSelectionDragStart, onSelectionDrag, onSelectionDragStop, onSelectionContextMenu, onSelectionStart, onSelectionEnd, onBeforeDelete, connectionMode, connectionLineType = ConnectionLineType.Bezier, connectionLineStyle, connectionLineComponent, connectionLineContainerStyle, deleteKeyCode = "Backspace", selectionKeyCode = "Shift", selectionOnDrag = false, selectionMode = SelectionMode.Full, panActivationKeyCode = "Space", multiSelectionKeyCode = isMacOs() ? "Meta" : "Control", zoomActivationKeyCode = isMacOs() ? "Meta" : "Control", snapToGrid, snapGrid, onlyRenderVisibleElements = false, selectNodesOnDrag, nodesDraggable, autoPanOnNodeFocus, nodesConnectable, nodesFocusable, nodeOrigin = defaultNodeOrigin, edgesFocusable, edgesReconnectable, elementsSelectable = true, defaultViewport: defaultViewport$1 = defaultViewport, minZoom = 0.5, maxZoom = 2, translateExtent = infiniteExtent, preventScrolling = true, nodeExtent, defaultMarkerColor = "#b1b1b7", zoomOnScroll = true, zoomOnPinch = true, panOnScroll = false, panOnScrollSpeed = 0.5, panOnScrollMode = PanOnScrollMode.Free, zoomOnDoubleClick = true, panOnDrag = true, onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneScroll, onPaneContextMenu, paneClickDistance = 1, nodeClickDistance = 0, children: children2, onReconnect, onReconnectStart, onReconnectEnd, onEdgeContextMenu, onEdgeDoubleClick, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius = 10, onNodesChange, onEdgesChange, noDragClassName = "nodrag", noWheelClassName = "nowheel", noPanClassName = "nopan", fitView, fitViewOptions, connectOnClick, attributionPosition, proOptions, defaultEdgeOptions, elevateNodesOnSelect = true, elevateEdgesOnSelect = false, disableKeyboardA11y = false, autoPanOnConnect, autoPanOnNodeDrag, autoPanOnSelection = true, autoPanSpeed, connectionRadius, isValidConnection, onError, style: style2, id: id2, nodeDragThreshold, connectionDragThreshold, viewport, onViewportChange, width, height, colorMode = "light", debug, onScroll, ariaLabelConfig, zIndexMode = "basic", ...rest }, ref) {
   const rfId = id2 || "1";
   const colorModeClassName = useColorModeClass(colorMode);
   const wrapperOnScroll = (0, import_react2.useCallback)((e) => {
     e.currentTarget.scrollTo({ top: 0, left: 0, behavior: "instant" });
     onScroll?.(e);
   }, [onScroll]);
-  return (0, import_jsx_runtime.jsx)("div", { "data-testid": "rf__wrapper", ...rest, onScroll: wrapperOnScroll, style: { ...style2, ...wrapperStyle }, ref, className: cc(["react-flow", className, colorModeClassName]), id: id2, role: "application", children: (0, import_jsx_runtime.jsxs)(Wrapper, { nodes, edges, width, height, fitView, fitViewOptions, minZoom, maxZoom, nodeOrigin, nodeExtent, zIndexMode, children: [(0, import_jsx_runtime.jsx)(StoreUpdater, { nodes, edges, defaultNodes, defaultEdges, onConnect, onConnectStart, onConnectEnd, onClickConnectStart, onClickConnectEnd, nodesDraggable, autoPanOnNodeFocus, nodesConnectable, nodesFocusable, edgesFocusable, edgesReconnectable, elementsSelectable, elevateNodesOnSelect, elevateEdgesOnSelect, minZoom, maxZoom, nodeExtent, onNodesChange, onEdgesChange, snapToGrid, snapGrid, connectionMode, translateExtent, connectOnClick, defaultEdgeOptions, fitView, fitViewOptions, onNodesDelete, onEdgesDelete, onDelete, onNodeDragStart, onNodeDrag, onNodeDragStop, onSelectionDrag, onSelectionDragStart, onSelectionDragStop, onMove, onMoveStart, onMoveEnd, noPanClassName, nodeOrigin, rfId, autoPanOnConnect, autoPanOnNodeDrag, autoPanSpeed, onError, connectionRadius, isValidConnection, selectNodesOnDrag, nodeDragThreshold, connectionDragThreshold, onBeforeDelete, debug, ariaLabelConfig, zIndexMode }), (0, import_jsx_runtime.jsx)(GraphView, { onInit, onNodeClick, onEdgeClick, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, onNodeDoubleClick, nodeTypes: nodeTypes2, edgeTypes: edgeTypes2, connectionLineType, connectionLineStyle, connectionLineComponent, connectionLineContainerStyle, selectionKeyCode, selectionOnDrag, selectionMode, deleteKeyCode, multiSelectionKeyCode, panActivationKeyCode, zoomActivationKeyCode, onlyRenderVisibleElements, defaultViewport: defaultViewport$1, translateExtent, minZoom, maxZoom, preventScrolling, zoomOnScroll, zoomOnPinch, zoomOnDoubleClick, panOnScroll, panOnScrollSpeed, panOnScrollMode, panOnDrag, autoPanOnSelection, onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneScroll, onPaneContextMenu, paneClickDistance, nodeClickDistance, onSelectionContextMenu, onSelectionStart, onSelectionEnd, onReconnect, onReconnectStart, onReconnectEnd, onEdgeContextMenu, onEdgeDoubleClick, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius, defaultMarkerColor, noDragClassName, noWheelClassName, noPanClassName, rfId, disableKeyboardA11y, nodeExtent, viewport, onViewportChange }), (0, import_jsx_runtime.jsx)(SelectionListener, { onSelectionChange }), children2, (0, import_jsx_runtime.jsx)(Attribution, { proOptions, position: attributionPosition }), (0, import_jsx_runtime.jsx)(A11yDescriptions, { rfId, disableKeyboardA11y })] }) });
+  return (0, import_jsx_runtime.jsx)("div", { "data-testid": "rf__wrapper", ...rest, onScroll: wrapperOnScroll, style: { ...style2, ...wrapperStyle }, ref, className: cc(["react-flow", className, colorModeClassName]), id: id2, role: "application", children: (0, import_jsx_runtime.jsxs)(Wrapper, { nodes, edges, width, height, fitView, fitViewOptions, minZoom, maxZoom, nodeOrigin, nodeExtent, zIndexMode, children: [(0, import_jsx_runtime.jsx)(StoreUpdater, { nodes, edges, defaultNodes, defaultEdges, onConnect, onConnectStart, onConnectEnd, onClickConnectStart, onClickConnectEnd, nodesDraggable, autoPanOnNodeFocus, nodesConnectable, nodesFocusable, edgesFocusable, edgesReconnectable, elementsSelectable, elevateNodesOnSelect, elevateEdgesOnSelect, minZoom, maxZoom, nodeExtent, onNodesChange, onEdgesChange, snapToGrid, snapGrid, connectionMode, translateExtent, connectOnClick, defaultEdgeOptions, fitView, fitViewOptions, onNodesDelete, onEdgesDelete, onDelete, onNodeDragStart, onNodeDrag, onNodeDragStop, onSelectionDrag, onSelectionDragStart, onSelectionDragStop, onMove, onMoveStart, onMoveEnd, noPanClassName, nodeOrigin, rfId, autoPanOnConnect, autoPanOnNodeDrag, autoPanSpeed, onError, connectionRadius, isValidConnection, selectNodesOnDrag, nodeDragThreshold, connectionDragThreshold, onBeforeDelete, debug, ariaLabelConfig, zIndexMode }), (0, import_jsx_runtime.jsx)(GraphView, { onInit, onNodeClick, onEdgeClick, onNodeMouseEnter, onNodeMouseMove, onNodeMouseLeave, onNodeContextMenu, onNodeDoubleClick, nodeTypes: nodeTypes2, edgeTypes, connectionLineType, connectionLineStyle, connectionLineComponent, connectionLineContainerStyle, selectionKeyCode, selectionOnDrag, selectionMode, deleteKeyCode, multiSelectionKeyCode, panActivationKeyCode, zoomActivationKeyCode, onlyRenderVisibleElements, defaultViewport: defaultViewport$1, translateExtent, minZoom, maxZoom, preventScrolling, zoomOnScroll, zoomOnPinch, zoomOnDoubleClick, panOnScroll, panOnScrollSpeed, panOnScrollMode, panOnDrag, autoPanOnSelection, onPaneClick, onPaneMouseEnter, onPaneMouseMove, onPaneMouseLeave, onPaneScroll, onPaneContextMenu, paneClickDistance, nodeClickDistance, onSelectionContextMenu, onSelectionStart, onSelectionEnd, onReconnect, onReconnectStart, onReconnectEnd, onEdgeContextMenu, onEdgeDoubleClick, onEdgeMouseEnter, onEdgeMouseMove, onEdgeMouseLeave, reconnectRadius, defaultMarkerColor, noDragClassName, noWheelClassName, noPanClassName, rfId, disableKeyboardA11y, nodeExtent, viewport, onViewportChange }), (0, import_jsx_runtime.jsx)(SelectionListener, { onSelectionChange }), children2, (0, import_jsx_runtime.jsx)(Attribution, { proOptions, position: attributionPosition }), (0, import_jsx_runtime.jsx)(A11yDescriptions, { rfId, disableKeyboardA11y })] }) });
 }
 var index = fixedForwardRef(ReactFlow);
 var error014 = errorMessages["error014"]();
@@ -33719,428 +33719,6 @@ function ResizeControl({ nodeId, position: position2, variant = ResizeControlVar
 }
 var NodeResizeControl = (0, import_react2.memo)(ResizeControl);
 
-// node_modules/d3-brush/src/brush.js
-var { abs, max, min } = Math;
-function number1(e) {
-  return [+e[0], +e[1]];
-}
-function number2(e) {
-  return [number1(e[0]), number1(e[1])];
-}
-var X = {
-  name: "x",
-  handles: ["w", "e"].map(type),
-  input: function(x, e) {
-    return x == null ? null : [[+x[0], e[0][1]], [+x[1], e[1][1]]];
-  },
-  output: function(xy) {
-    return xy && [xy[0][0], xy[1][0]];
-  }
-};
-var Y = {
-  name: "y",
-  handles: ["n", "s"].map(type),
-  input: function(y, e) {
-    return y == null ? null : [[e[0][0], +y[0]], [e[1][0], +y[1]]];
-  },
-  output: function(xy) {
-    return xy && [xy[0][1], xy[1][1]];
-  }
-};
-var XY = {
-  name: "xy",
-  handles: ["n", "w", "e", "s", "nw", "ne", "sw", "se"].map(type),
-  input: function(xy) {
-    return xy == null ? null : number2(xy);
-  },
-  output: function(xy) {
-    return xy;
-  }
-};
-function type(t) {
-  return { type: t };
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/count.js
-function count(node2) {
-  var sum = 0, children2 = node2.children, i = children2 && children2.length;
-  if (!i)
-    sum = 1;
-  else
-    while (--i >= 0)
-      sum += children2[i].value;
-  node2.value = sum;
-}
-function count_default() {
-  return this.eachAfter(count);
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/each.js
-function each_default2(callback, that) {
-  let index3 = -1;
-  for (const node2 of this) {
-    callback.call(that, node2, ++index3, this);
-  }
-  return this;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/eachBefore.js
-function eachBefore_default(callback, that) {
-  var node2 = this, nodes = [node2], children2, i, index3 = -1;
-  while (node2 = nodes.pop()) {
-    callback.call(that, node2, ++index3, this);
-    if (children2 = node2.children) {
-      for (i = children2.length - 1; i >= 0; --i) {
-        nodes.push(children2[i]);
-      }
-    }
-  }
-  return this;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/eachAfter.js
-function eachAfter_default(callback, that) {
-  var node2 = this, nodes = [node2], next = [], children2, i, n, index3 = -1;
-  while (node2 = nodes.pop()) {
-    next.push(node2);
-    if (children2 = node2.children) {
-      for (i = 0, n = children2.length; i < n; ++i) {
-        nodes.push(children2[i]);
-      }
-    }
-  }
-  while (node2 = next.pop()) {
-    callback.call(that, node2, ++index3, this);
-  }
-  return this;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/find.js
-function find_default(callback, that) {
-  let index3 = -1;
-  for (const node2 of this) {
-    if (callback.call(that, node2, ++index3, this)) {
-      return node2;
-    }
-  }
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/sum.js
-function sum_default(value) {
-  return this.eachAfter(function(node2) {
-    var sum = +value(node2.data) || 0, children2 = node2.children, i = children2 && children2.length;
-    while (--i >= 0)
-      sum += children2[i].value;
-    node2.value = sum;
-  });
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/sort.js
-function sort_default2(compare) {
-  return this.eachBefore(function(node2) {
-    if (node2.children) {
-      node2.children.sort(compare);
-    }
-  });
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/path.js
-function path_default(end) {
-  var start2 = this, ancestor = leastCommonAncestor(start2, end), nodes = [start2];
-  while (start2 !== ancestor) {
-    start2 = start2.parent;
-    nodes.push(start2);
-  }
-  var k = nodes.length;
-  while (end !== ancestor) {
-    nodes.splice(k, 0, end);
-    end = end.parent;
-  }
-  return nodes;
-}
-function leastCommonAncestor(a, b) {
-  if (a === b)
-    return a;
-  var aNodes = a.ancestors(), bNodes = b.ancestors(), c = null;
-  a = aNodes.pop();
-  b = bNodes.pop();
-  while (a === b) {
-    c = a;
-    a = aNodes.pop();
-    b = bNodes.pop();
-  }
-  return c;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/ancestors.js
-function ancestors_default() {
-  var node2 = this, nodes = [node2];
-  while (node2 = node2.parent) {
-    nodes.push(node2);
-  }
-  return nodes;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/descendants.js
-function descendants_default() {
-  return Array.from(this);
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/leaves.js
-function leaves_default() {
-  var leaves = [];
-  this.eachBefore(function(node2) {
-    if (!node2.children) {
-      leaves.push(node2);
-    }
-  });
-  return leaves;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/links.js
-function links_default() {
-  var root2 = this, links = [];
-  root2.each(function(node2) {
-    if (node2 !== root2) {
-      links.push({ source: node2.parent, target: node2 });
-    }
-  });
-  return links;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/iterator.js
-function* iterator_default2() {
-  var node2 = this, current, next = [node2], children2, i, n;
-  do {
-    current = next.reverse(), next = [];
-    while (node2 = current.pop()) {
-      yield node2;
-      if (children2 = node2.children) {
-        for (i = 0, n = children2.length; i < n; ++i) {
-          next.push(children2[i]);
-        }
-      }
-    }
-  } while (next.length);
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/index.js
-function hierarchy(data, children2) {
-  if (data instanceof Map) {
-    data = [void 0, data];
-    if (children2 === void 0)
-      children2 = mapChildren;
-  } else if (children2 === void 0) {
-    children2 = objectChildren;
-  }
-  var root2 = new Node(data), node2, nodes = [root2], child, childs, i, n;
-  while (node2 = nodes.pop()) {
-    if ((childs = children2(node2.data)) && (n = (childs = Array.from(childs)).length)) {
-      node2.children = childs;
-      for (i = n - 1; i >= 0; --i) {
-        nodes.push(child = childs[i] = new Node(childs[i]));
-        child.parent = node2;
-        child.depth = node2.depth + 1;
-      }
-    }
-  }
-  return root2.eachBefore(computeHeight);
-}
-function node_copy() {
-  return hierarchy(this).eachBefore(copyData);
-}
-function objectChildren(d) {
-  return d.children;
-}
-function mapChildren(d) {
-  return Array.isArray(d) ? d[1] : null;
-}
-function copyData(node2) {
-  if (node2.data.value !== void 0)
-    node2.value = node2.data.value;
-  node2.data = node2.data.data;
-}
-function computeHeight(node2) {
-  var height = 0;
-  do
-    node2.height = height;
-  while ((node2 = node2.parent) && node2.height < ++height);
-}
-function Node(data) {
-  this.data = data;
-  this.depth = this.height = 0;
-  this.parent = null;
-}
-Node.prototype = hierarchy.prototype = {
-  constructor: Node,
-  count: count_default,
-  each: each_default2,
-  eachAfter: eachAfter_default,
-  eachBefore: eachBefore_default,
-  find: find_default,
-  sum: sum_default,
-  sort: sort_default2,
-  path: path_default,
-  ancestors: ancestors_default,
-  descendants: descendants_default,
-  leaves: leaves_default,
-  links: links_default,
-  copy: node_copy,
-  [Symbol.iterator]: iterator_default2
-};
-
-// node_modules/d3-hierarchy/src/tree.js
-function defaultSeparation(a, b) {
-  return a.parent === b.parent ? 1 : 2;
-}
-function nextLeft(v) {
-  var children2 = v.children;
-  return children2 ? children2[0] : v.t;
-}
-function nextRight(v) {
-  var children2 = v.children;
-  return children2 ? children2[children2.length - 1] : v.t;
-}
-function moveSubtree(wm, wp, shift) {
-  var change = shift / (wp.i - wm.i);
-  wp.c -= change;
-  wp.s += shift;
-  wm.c += change;
-  wp.z += shift;
-  wp.m += shift;
-}
-function executeShifts(v) {
-  var shift = 0, change = 0, children2 = v.children, i = children2.length, w;
-  while (--i >= 0) {
-    w = children2[i];
-    w.z += shift;
-    w.m += shift;
-    shift += w.s + (change += w.c);
-  }
-}
-function nextAncestor(vim, v, ancestor) {
-  return vim.a.parent === v.parent ? vim.a : ancestor;
-}
-function TreeNode(node2, i) {
-  this._ = node2;
-  this.parent = null;
-  this.children = null;
-  this.A = null;
-  this.a = this;
-  this.z = 0;
-  this.m = 0;
-  this.c = 0;
-  this.s = 0;
-  this.t = null;
-  this.i = i;
-}
-TreeNode.prototype = Object.create(Node.prototype);
-function treeRoot(root2) {
-  var tree = new TreeNode(root2, 0), node2, nodes = [tree], child, children2, i, n;
-  while (node2 = nodes.pop()) {
-    if (children2 = node2._.children) {
-      node2.children = new Array(n = children2.length);
-      for (i = n - 1; i >= 0; --i) {
-        nodes.push(child = node2.children[i] = new TreeNode(children2[i], i));
-        child.parent = node2;
-      }
-    }
-  }
-  (tree.parent = new TreeNode(null, 0)).children = [tree];
-  return tree;
-}
-function tree_default() {
-  var separation = defaultSeparation, dx = 1, dy = 1, nodeSize = null;
-  function tree(root2) {
-    var t = treeRoot(root2);
-    t.eachAfter(firstWalk), t.parent.m = -t.z;
-    t.eachBefore(secondWalk);
-    if (nodeSize)
-      root2.eachBefore(sizeNode);
-    else {
-      var left = root2, right = root2, bottom = root2;
-      root2.eachBefore(function(node2) {
-        if (node2.x < left.x)
-          left = node2;
-        if (node2.x > right.x)
-          right = node2;
-        if (node2.depth > bottom.depth)
-          bottom = node2;
-      });
-      var s = left === right ? 1 : separation(left, right) / 2, tx = s - left.x, kx = dx / (right.x + s + tx), ky = dy / (bottom.depth || 1);
-      root2.eachBefore(function(node2) {
-        node2.x = (node2.x + tx) * kx;
-        node2.y = node2.depth * ky;
-      });
-    }
-    return root2;
-  }
-  function firstWalk(v) {
-    var children2 = v.children, siblings = v.parent.children, w = v.i ? siblings[v.i - 1] : null;
-    if (children2) {
-      executeShifts(v);
-      var midpoint = (children2[0].z + children2[children2.length - 1].z) / 2;
-      if (w) {
-        v.z = w.z + separation(v._, w._);
-        v.m = v.z - midpoint;
-      } else {
-        v.z = midpoint;
-      }
-    } else if (w) {
-      v.z = w.z + separation(v._, w._);
-    }
-    v.parent.A = apportion(v, w, v.parent.A || siblings[0]);
-  }
-  function secondWalk(v) {
-    v._.x = v.z + v.parent.m;
-    v.m += v.parent.m;
-  }
-  function apportion(v, w, ancestor) {
-    if (w) {
-      var vip = v, vop = v, vim = w, vom = vip.parent.children[0], sip = vip.m, sop = vop.m, sim = vim.m, som = vom.m, shift;
-      while (vim = nextRight(vim), vip = nextLeft(vip), vim && vip) {
-        vom = nextLeft(vom);
-        vop = nextRight(vop);
-        vop.a = v;
-        shift = vim.z + sim - vip.z - sip + separation(vim._, vip._);
-        if (shift > 0) {
-          moveSubtree(nextAncestor(vim, v, ancestor), v, shift);
-          sip += shift;
-          sop += shift;
-        }
-        sim += vim.m;
-        sip += vip.m;
-        som += vom.m;
-        sop += vop.m;
-      }
-      if (vim && !nextRight(vop)) {
-        vop.t = vim;
-        vop.m += sim - sop;
-      }
-      if (vip && !nextLeft(vom)) {
-        vom.t = vip;
-        vom.m += sip - som;
-        ancestor = v;
-      }
-    }
-    return ancestor;
-  }
-  function sizeNode(node2) {
-    node2.x *= dx;
-    node2.y = node2.depth * dy;
-  }
-  tree.separation = function(x) {
-    return arguments.length ? (separation = x, tree) : separation;
-  };
-  tree.size = function(x) {
-    return arguments.length ? (nodeSize = false, dx = +x[0], dy = +x[1], tree) : nodeSize ? null : [dx, dy];
-  };
-  tree.nodeSize = function(x) {
-    return arguments.length ? (nodeSize = true, dx = +x[0], dy = +x[1], tree) : nodeSize ? [dx, dy] : null;
-  };
-  return tree;
-}
-
 // node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
 function toString(value, options) {
@@ -34322,13 +33900,13 @@ function regexCheck(regex) {
 }
 
 // node_modules/micromark-factory-space/index.js
-function factorySpace(effects, ok, type2, max2) {
-  const limit = max2 ? max2 - 1 : Number.POSITIVE_INFINITY;
+function factorySpace(effects, ok, type, max) {
+  const limit = max ? max - 1 : Number.POSITIVE_INFINITY;
   let size = 0;
   return start2;
   function start2(code) {
     if (markdownSpace(code)) {
-      effects.enter(type2);
+      effects.enter(type);
       return prefix(code);
     }
     return ok(code);
@@ -34338,7 +33916,7 @@ function factorySpace(effects, ok, type2, max2) {
       effects.consume(code);
       return prefix;
     }
-    effects.exit(type2);
+    effects.exit(type);
     return ok(code);
   }
 }
@@ -34942,7 +34520,7 @@ var characterReference = {
 function tokenizeCharacterReference(effects, ok, nok) {
   const self = this;
   let size = 0;
-  let max2;
+  let max;
   let test;
   return start2;
   function start2(code) {
@@ -34960,7 +34538,7 @@ function tokenizeCharacterReference(effects, ok, nok) {
       return numeric;
     }
     effects.enter("characterReferenceValue");
-    max2 = 31;
+    max = 31;
     test = asciiAlphanumeric;
     return value(code);
   }
@@ -34970,12 +34548,12 @@ function tokenizeCharacterReference(effects, ok, nok) {
       effects.consume(code);
       effects.exit("characterReferenceMarkerHexadecimal");
       effects.enter("characterReferenceValue");
-      max2 = 6;
+      max = 6;
       test = asciiHexDigit;
       return value;
     }
     effects.enter("characterReferenceValue");
-    max2 = 7;
+    max = 7;
     test = asciiDigit;
     return value(code);
   }
@@ -34991,7 +34569,7 @@ function tokenizeCharacterReference(effects, ok, nok) {
       effects.exit("characterReference");
       return ok;
     }
-    if (test(code) && size++ < max2) {
+    if (test(code) && size++ < max) {
       effects.consume(code);
       return value;
     }
@@ -35450,9 +35028,9 @@ var SpliceBuffer = class {
    *   Any removed items.
    */
   splice(start2, deleteCount, items) {
-    const count2 = deleteCount || 0;
+    const count = deleteCount || 0;
     this.setCursor(Math.trunc(start2));
-    const removed = this.right.splice(this.right.length - count2, Number.POSITIVE_INFINITY);
+    const removed = this.right.splice(this.right.length - count, Number.POSITIVE_INFINITY);
     if (items)
       chunkedPush(this.left, items);
     return removed.reverse();
@@ -35782,13 +35360,13 @@ function tokenizeContinuation(effects, ok, nok) {
 }
 
 // node_modules/micromark-factory-destination/index.js
-function factoryDestination(effects, ok, nok, type2, literalType, literalMarkerType, rawType, stringType, max2) {
-  const limit = max2 || Number.POSITIVE_INFINITY;
+function factoryDestination(effects, ok, nok, type, literalType, literalMarkerType, rawType, stringType, max) {
+  const limit = max || Number.POSITIVE_INFINITY;
   let balance = 0;
   return start2;
   function start2(code) {
     if (code === 60) {
-      effects.enter(type2);
+      effects.enter(type);
       effects.enter(literalType);
       effects.enter(literalMarkerType);
       effects.consume(code);
@@ -35798,7 +35376,7 @@ function factoryDestination(effects, ok, nok, type2, literalType, literalMarkerT
     if (code === null || code === 32 || code === 41 || asciiControl(code)) {
       return nok(code);
     }
-    effects.enter(type2);
+    effects.enter(type);
     effects.enter(rawType);
     effects.enter(stringType);
     effects.enter("chunkString", {
@@ -35812,7 +35390,7 @@ function factoryDestination(effects, ok, nok, type2, literalType, literalMarkerT
       effects.consume(code);
       effects.exit(literalMarkerType);
       effects.exit(literalType);
-      effects.exit(type2);
+      effects.exit(type);
       return ok;
     }
     effects.enter(stringType);
@@ -35845,7 +35423,7 @@ function factoryDestination(effects, ok, nok, type2, literalType, literalMarkerT
       effects.exit("chunkString");
       effects.exit(stringType);
       effects.exit(rawType);
-      effects.exit(type2);
+      effects.exit(type);
       return ok(code);
     }
     if (balance < limit && code === 40) {
@@ -35874,13 +35452,13 @@ function factoryDestination(effects, ok, nok, type2, literalType, literalMarkerT
 }
 
 // node_modules/micromark-factory-label/index.js
-function factoryLabel(effects, ok, nok, type2, markerType, stringType) {
+function factoryLabel(effects, ok, nok, type, markerType, stringType) {
   const self = this;
   let size = 0;
   let seen;
   return start2;
   function start2(code) {
-    effects.enter(type2);
+    effects.enter(type);
     effects.enter(markerType);
     effects.consume(code);
     effects.exit(markerType);
@@ -35901,7 +35479,7 @@ function factoryLabel(effects, ok, nok, type2, markerType, stringType) {
       effects.enter(markerType);
       effects.consume(code);
       effects.exit(markerType);
-      effects.exit(type2);
+      effects.exit(type);
       return ok;
     }
     if (markdownLineEnding(code)) {
@@ -35936,12 +35514,12 @@ function factoryLabel(effects, ok, nok, type2, markerType, stringType) {
 }
 
 // node_modules/micromark-factory-title/index.js
-function factoryTitle(effects, ok, nok, type2, markerType, stringType) {
+function factoryTitle(effects, ok, nok, type, markerType, stringType) {
   let marker;
   return start2;
   function start2(code) {
     if (code === 34 || code === 39 || code === 40) {
-      effects.enter(type2);
+      effects.enter(type);
       effects.enter(markerType);
       effects.consume(code);
       effects.exit(markerType);
@@ -35955,7 +35533,7 @@ function factoryTitle(effects, ok, nok, type2, markerType, stringType) {
       effects.enter(markerType);
       effects.consume(code);
       effects.exit(markerType);
-      effects.exit(type2);
+      effects.exit(type);
       return ok;
     }
     effects.enter(stringType);
@@ -37899,15 +37477,15 @@ function createTokenizer(parser, initialize, from) {
     context.previous = code;
     consumed = true;
   }
-  function enter(type2, fields) {
+  function enter(type, fields) {
     const token = fields || {};
-    token.type = type2;
+    token.type = type;
     token.start = now2();
     context.events.push(["enter", token, context]);
     stack.push(token);
     return token;
   }
-  function exit2(type2) {
+  function exit2(type) {
     const token = stack.pop();
     token.end = now2();
     context.events.push(["exit", token, context]);
@@ -38768,10 +38346,10 @@ function compiler(options) {
   }
   function onexitcharacterreferencevalue(token) {
     const data2 = this.sliceSerialize(token);
-    const type2 = this.data.characterReferenceType;
+    const type = this.data.characterReferenceType;
     let value;
-    if (type2) {
-      value = decodeNumericCharacterReference(data2, type2 === "characterReferenceMarkerNumeric" ? 10 : 16);
+    if (type) {
+      value = decodeNumericCharacterReference(data2, type === "characterReferenceMarkerNumeric" ? 10 : 16);
       this.data.characterReferenceType = void 0;
     } else {
       const result = decodeNamedCharacterReference(data2);
@@ -39002,16 +38580,6 @@ function addChild(parent, child) {
   child.parentId = parent.id;
   parent.children.push(child);
 }
-function findById(root2, id2) {
-  if (root2.id === id2)
-    return root2;
-  for (const child of root2.children) {
-    const found = findById(child, id2);
-    if (found)
-      return found;
-  }
-  return null;
-}
 
 // src/core/markdown.ts
 function parseMarkdown(md) {
@@ -39134,282 +38702,169 @@ function serializeInline(children2) {
   }).join("");
 }
 
-// src/components/MindmapNode.tsx
-var import_react4 = __toESM(require_react());
+// src/view/MindmapReactView.tsx
 var import_jsx_runtime2 = __toESM(require_jsx_runtime());
 function MindmapNode({ data }) {
-  const nodeData = data;
-  const [editing, setEditing] = (0, import_react4.useState)(false);
-  const [editTitle, setEditTitle] = (0, import_react4.useState)("");
-  const inputRef = (0, import_react4.useRef)(null);
-  const hasChildren = nodeData.childCount > 0;
-  (0, import_react4.useEffect)(() => {
-    if (nodeData.shouldEdit) {
-      setEditTitle(nodeData.label);
-      setEditing(true);
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 60);
-    }
-  }, [nodeData.shouldEdit]);
-  const startEdit = (0, import_react4.useCallback)(() => {
-    setEditTitle(nodeData.label);
-    setEditing(true);
-    setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }, 50);
-  }, [nodeData.label]);
-  const commitEdit = (0, import_react4.useCallback)(() => {
-    const t = editTitle.trim();
-    if (t && t !== nodeData.label) {
-      nodeData.onUpdateTitle(nodeData.id, t);
-    }
-    setEditing(false);
-  }, [editTitle, nodeData.id, nodeData.label, nodeData.onUpdateTitle]);
-  const cancelEdit = (0, import_react4.useCallback)(() => setEditing(false), []);
-  const handleToggle = (0, import_react4.useCallback)((e) => {
-    e.stopPropagation();
-    nodeData.onToggleCollapse(nodeData.id);
-  }, [nodeData.id, nodeData.onToggleCollapse]);
-  const [hover, setHover] = (0, import_react4.useState)(false);
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-    "div",
-    {
-      className: `mm-node${nodeData.isActive ? " active" : ""}`,
-      onMouseEnter: () => setHover(true),
-      onMouseLeave: () => setHover(false),
-      onDoubleClick: startEdit,
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Handle, { type: "target", position: Position.Left, style: { visibility: "hidden" } }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Handle, { type: "source", position: Position.Right, style: { visibility: "hidden" } }),
-        editing ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "input",
-          {
-            ref: inputRef,
-            className: "mm-edit-input",
-            value: editTitle,
-            onChange: (e) => setEditTitle(e.target.value),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                commitEdit();
-              }
-              if (e.key === "Escape") {
-                e.preventDefault();
-                cancelEdit();
-              }
-              e.stopPropagation();
-            },
-            onBlur: commitEdit
-          }
-        ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "mm-content", children: [
-          hover && hasChildren && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "span",
-            {
-              className: "mm-toggle-btn",
-              onClick: handleToggle,
-              title: nodeData.collapsed ? "\u5C55\u5F00" : "\u6298\u53E0",
-              children: nodeData.collapsed ? "+" : "\u2212"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "span",
-            {
-              className: `mm-dot ${hasChildren ? nodeData.collapsed ? "collapsed" : "expanded" : "leaf"}`,
-              onClick: () => nodeData.onSetFocused(nodeData.id),
-              children: hasChildren ? nodeData.collapsed ? "\u25B8" : "\u25BE" : ""
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "mm-title", children: nodeData.label || "untitled" }),
-          nodeData.collapsed && hasChildren && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "mm-badge", children: nodeData.childCount })
-        ] })
-      ]
-    }
-  );
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+    padding: "8px 16px",
+    background: "#fff",
+    border: data.depth === 0 ? "2px solid #3b82f6" : "1.5px solid #94a3b8",
+    borderRadius: 8,
+    fontSize: data.depth === 0 ? 15 : 13,
+    fontWeight: data.depth === 0 ? 700 : 500,
+    color: "#1e293b",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+    whiteSpace: "nowrap"
+  }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Handle, { type: "target", position: Position.Top }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Handle, { type: "source", position: Position.Bottom }),
+    data.label || "(empty)"
+  ] });
 }
-
-// src/components/MindmapEdge.tsx
-var import_jsx_runtime3 = __toESM(require_jsx_runtime());
-function MindmapEdge({ id: id2, sourceX, sourceY, targetX, targetY }) {
-  const [edgePath] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition: "right",
-    targetPosition: "left",
-    curvature: 0.15
-  });
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-    BaseEdge,
-    {
-      id: id2,
-      path: edgePath,
-      style: { stroke: "var(--background-modifier-border, #c9d1d9)", strokeWidth: 1 }
-    }
-  );
-}
-
-// src/view/MindmapReactView.tsx
-var import_jsx_runtime4 = __toESM(require_jsx_runtime());
-var NODE_W = 48;
-var DEPTH_W = 220;
-var TREE_GAP = 24;
-var MARGIN = { top: 16, left: 30 };
 var nodeTypes = { mindmapNode: MindmapNode };
-var edgeTypes = { mindmapEdge: MindmapEdge };
-function MindmapReactView({ fileContent, fileName, onSave, onTreeChange }) {
-  const [tree, setTree] = (0, import_react6.useState)(null);
-  const [activeId, setActiveId] = (0, import_react6.useState)(null);
-  const [focusedId, setFocusedId] = (0, import_react6.useState)(null);
-  const [nodes, setNodes] = (0, import_react6.useState)([]);
-  const [edges, setEdges] = (0, import_react6.useState)([]);
-  const [fitKey, setFitKey] = (0, import_react6.useState)(0);
-  const rfInstance = (0, import_react6.useRef)(null);
-  const initKey = (0, import_react6.useRef)(0);
-  const saveTimerRef = (0, import_react6.useRef)(null);
-  (0, import_react6.useEffect)(() => {
-    if (fileContent) {
-      const root2 = parseMarkdown(fileContent);
-      setTree(root2);
+function MindmapReactView({ fileContent, fileName, onSave }) {
+  const [tree, setTree] = (0, import_react3.useState)(null);
+  const [nodes, setNodes] = (0, import_react3.useState)([]);
+  const [size, setSize] = (0, import_react3.useState)({ w: 800, h: 600 });
+  const containerRef = (0, import_react3.useRef)(null);
+  const rfWrapperRef = (0, import_react3.useRef)(null);
+  (0, import_react3.useEffect)(() => {
+    let attempts = 0;
+    const maxAttempts = 20;
+    const measure = () => {
+      if (rfWrapperRef.current) {
+        const rect = rfWrapperRef.current.getBoundingClientRect();
+        if (rect.width > 10 && rect.height > 10) {
+          setSize({ w: Math.round(rect.width), h: Math.round(rect.height) });
+          return true;
+        }
+      }
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width > 10 && rect.height > 10) {
+          setSize({ w: Math.round(rect.width), h: Math.round(rect.height) });
+          return true;
+        }
+      }
+      setSize({
+        w: Math.max(window.innerWidth - 300, 600),
+        h: Math.max(window.innerHeight - 200, 400)
+      });
+      return false;
+    };
+    measure();
+    const interval2 = setInterval(() => {
+      attempts++;
+      const ok = measure();
+      if (ok || attempts >= maxAttempts)
+        clearInterval(interval2);
+    }, 200);
+    const ro = new ResizeObserver(() => measure());
+    if (rfWrapperRef.current)
+      ro.observe(rfWrapperRef.current);
+    if (containerRef.current)
+      ro.observe(containerRef.current);
+    ro.observe(document.body);
+    window.addEventListener("resize", measure);
+    return () => {
+      clearInterval(interval2);
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  (0, import_react3.useEffect)(() => {
+    if (!fileContent)
+      return;
+    try {
+      setTree(parseMarkdown(fileContent));
+    } catch (e) {
+      console.error(e);
     }
   }, [fileContent]);
-  (0, import_react6.useEffect)(() => {
-    if (onTreeChange) {
-      onTreeChange(tree);
-    }
-  }, [tree, onTreeChange]);
-  (0, import_react6.useEffect)(() => {
-    if (!tree)
-      return;
-    const md = serializeMarkdown(tree);
-    onSave(md);
-  }, [tree, onSave]);
-  (0, import_react6.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!tree) {
       setNodes([]);
-      setEdges([]);
       return;
     }
-    const { nodes: ns, edges: es } = buildGraph(tree, activeId, focusedId);
+    const ns = [];
+    let yOff = 0;
+    const buildFromNode = (node2, depth, xBase, yBase) => {
+      ns.push({
+        id: node2.id,
+        type: "mindmapNode",
+        position: { x: xBase, y: yBase },
+        data: { label: node2.title || "", depth }
+      });
+      let childX = 0;
+      node2.children.forEach((child) => {
+        buildFromNode(child, depth + 1, xBase + 250, yBase + childX);
+        childX += 80;
+      });
+    };
+    tree.children.forEach((rootChild) => {
+      buildFromNode(rootChild, 0, 50, yOff);
+      const countDescendants = (n) => 1 + n.children.reduce((s, c) => s + countDescendants(c), 0);
+      yOff += countDescendants(rootChild) * 80;
+    });
+    console.log(`[MindMap] ${ns.length} nodes, container ${size.w}x${size.h}`);
     setNodes(ns);
-    setEdges(es);
-    initKey.current++;
-    setFitKey(initKey.current);
-  }, [tree, focusedId]);
-  function buildGraph(root2, activeId2, focusedId2) {
-    const nodes2 = [];
-    const edges2 = [];
-    function preview(body) {
-      return body.replace(/\n/g, " ").slice(0, 60);
-    }
-    let yOffset = 0;
-    const layoutRoots = focusedId2 ? (findById(root2, focusedId2) || root2).id === root2.id ? root2.children : [findById(root2, focusedId2)] : root2.children;
-    for (const child of layoutRoots) {
-      const h = hierarchy(child, (d) => d.collapsed ? void 0 : d.children);
-      const treeLayout = tree_default().nodeSize([NODE_W, DEPTH_W]).separation((a, b) => a.parent === b.parent ? 1 : 1.3);
-      treeLayout(h);
-      h.each((d) => {
-        const node2 = d.data;
-        nodes2.push({
-          id: node2.id,
-          type: "mindmapNode",
-          position: { x: d.y + MARGIN.left, y: d.x + yOffset + MARGIN.top },
-          sourcePosition: Position.Right,
-          targetPosition: Position.Left,
-          data: {
-            id: node2.id,
-            label: node2.title || "",
-            depth: d.depth,
-            isActive: node2.id === activeId2,
-            collapsed: node2.collapsed,
-            childCount: node2.children.length,
-            preview: preview(node2.content),
-            shouldEdit: false,
-            onToggleCollapse: handleToggleCollapse,
-            onSetFocused: handleSetFocused,
-            onUpdateTitle: handleUpdateTitle
-          }
-        });
-      });
-      h.links().forEach((link) => {
-        edges2.push({
-          id: `e_${link.source.data.id}_${link.target.data.id}`,
-          source: link.source.data.id,
-          target: link.target.data.id,
-          type: "mindmapEdge"
-        });
-      });
-      const maxY = Math.max(...h.descendants().map((d) => d.x));
-      yOffset += maxY + TREE_GAP;
-    }
-    return { nodes: nodes2, edges: edges2 };
-  }
-  const handleToggleCollapse = (0, import_react6.useCallback)((id2) => {
-    setTree((prev) => {
-      if (!prev)
-        return prev;
-      const node2 = findById(prev, id2);
-      if (node2)
-        node2.collapsed = !node2.collapsed;
-      return { ...prev };
-    });
-  }, []);
-  const handleSetFocused = (0, import_react6.useCallback)((id2) => {
-    setFocusedId((prev) => prev === id2 ? null : id2);
-  }, []);
-  const handleUpdateTitle = (0, import_react6.useCallback)((id2, title) => {
-    setTree((prev) => {
-      if (!prev)
-        return prev;
-      const node2 = findById(prev, id2);
-      if (node2)
-        node2.title = title;
-      return { ...prev };
-    });
-  }, []);
-  const handleSave = (0, import_react6.useCallback)(() => {
-    if (tree) {
-      const md = serializeMarkdown(tree);
-      onSave(md);
-    }
+  }, [tree]);
+  (0, import_react3.useEffect)(() => {
+    if (!tree)
+      return;
+    onSave(serializeMarkdown(tree));
   }, [tree, onSave]);
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { width: "100%", height: "100%", position: "relative" }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "absolute", top: 8, left: 8, zIndex: 10, display: "flex", gap: 8 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { onClick: handleSave, style: { padding: "4px 12px", cursor: "pointer", fontSize: 12 }, children: "Save to Markdown" }),
-      focusedId && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { onClick: () => setFocusedId(null), style: { padding: "4px 12px", cursor: "pointer", fontSize: 12 }, children: "\u2190 Back" })
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-      index,
-      {
-        nodes,
-        edges,
-        nodeTypes,
-        edgeTypes,
-        nodesDraggable: true,
-        nodesConnectable: false,
-        elementsSelectable: true,
-        selectNodesOnDrag: false,
-        fitView: false,
-        minZoom: 0.15,
-        maxZoom: 3,
-        proOptions: { hideAttribution: true },
-        onInit: (instance) => {
-          rfInstance.current = instance;
-        },
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Background, { color: "var(--background-modifier-border, #e2e8f0)", gap: 20, size: 0.8 }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Controls, { showInteractive: false, position: "bottom-right" })
-        ]
-      }
-    )
-  ] });
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    "div",
+    {
+      ref: containerRef,
+      style: {
+        width: "100%",
+        height: "100vh",
+        // 用 viewport 高度而不是百分比
+        position: "relative",
+        overflow: "hidden"
+      },
+      children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "div",
+        {
+          ref: rfWrapperRef,
+          style: {
+            width: `${size.w}px`,
+            height: `${size.h}px`,
+            position: "absolute",
+            top: 0,
+            left: 0
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+            index,
+            {
+              nodes,
+              edges: [],
+              nodeTypes,
+              fitView: true,
+              minZoom: 0.05,
+              maxZoom: 2,
+              proOptions: { hideAttribution: true },
+              onInit: (inst) => {
+                console.log("[MindMap] RF init OK, size:", size.w, "x", size.h);
+                setTimeout(() => inst?.fitView?.({ padding: 0.3 }), 400);
+              },
+              style: { width: "100%", height: "100%" },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Background, { color: "#e5e7eb", gap: 20, size: 1 }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Controls, { showInteractive: false })
+              ]
+            }
+          )
+        }
+      )
+    }
+  );
 }
 
 // src/view/MindmapView.tsx
-var import_jsx_runtime5 = __toESM(require_jsx_runtime());
+var import_jsx_runtime3 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_MINDMAP = "mindmap-view";
 var MindmapView = class extends import_obsidian.ItemView {
   constructor(leaf) {
@@ -39426,9 +38881,13 @@ var MindmapView = class extends import_obsidian.ItemView {
   getDisplayText() {
     return this.fileName ? `\u{1F9E0} ${this.fileName}` : "MindMap";
   }
+  getFilePath() {
+    return this.filePath;
+  }
   async setState(state) {
-    if (state?.file) {
-      this.filePath = state.file;
+    const fp = state?.file || "";
+    if (fp) {
+      this.filePath = fp;
       await this.loadFile();
     }
     return Promise.resolve();
@@ -39437,76 +38896,87 @@ var MindmapView = class extends import_obsidian.ItemView {
     if (!this.filePath)
       return;
     try {
-      const file = this.app.vault.getAbstractFileByPath(this.filePath);
+      let file = this.app.vault.getAbstractFileByPath(this.filePath);
+      if (!file)
+        file = this.app.workspace.getActiveFile();
       if (file) {
         this.fileContent = await this.app.vault.read(file);
         this.fileName = file.name || "untitled";
+        this.filePath = file.path || this.filePath;
         this.refreshView();
       }
     } catch (e) {
-      console.error("[MindMap] loadFile error:", e);
-      new import_obsidian.Notice("MindMap: \u65E0\u6CD5\u8BFB\u53D6\u6587\u4EF6");
+      console.error("[MindMap-View] load error:", e);
     }
   }
-  /**
-   * 供 main.ts 在切换视图前调用：把当前脑图内容写回 md 文件
-   */
   async saveCurrentTree() {
-    if (this.latestTreeJson && this.filePath) {
-      try {
-        const file = this.app.vault.getAbstractFileByPath(this.filePath);
-        if (file) {
-          await this.app.vault.modify(file, this.latestTreeJson);
-          console.log("[MindMap] saved");
-        }
-      } catch (e) {
-        console.error("[MindMap] save error:", e);
-      }
+    if (!this.latestTreeJson || !this.filePath)
+      return;
+    try {
+      const file = this.app.vault.getAbstractFileByPath(this.filePath) || this.app.workspace.getActiveFile();
+      if (file)
+        await this.app.vault.modify(file, this.latestTreeJson);
+    } catch (e) {
+      console.error(e);
     }
   }
-  /**
-   * React 组件通过 onSave 回调更新最新序列化内容
-   */
-  updateLatestTree(serialized) {
-    this.latestTreeJson = serialized;
+  updateLatestTree(s) {
+    this.latestTreeJson = s;
   }
   async onOpen() {
-    const container = this.containerEl.children[1] || this.containerEl;
-    container.empty();
-    const reactContainer = container.createDiv();
+    const applySize = () => {
+      const rect = this.containerEl.parentElement?.getBoundingClientRect();
+      const h = rect?.height || window.innerHeight - 120;
+      this.containerEl.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: ${h}px;
+        overflow: hidden;
+      `;
+    };
+    applySize();
+    setTimeout(applySize, 100);
+    setTimeout(applySize, 500);
+    this.registerEvent(this.app.workspace.on("resize", applySize));
+    const reactContainer = document.createElement("div");
     reactContainer.className = "mindmap-react-container";
-    reactContainer.style.width = "100%";
-    reactContainer.style.height = "100%";
+    reactContainer.style.cssText = `
+      position: relative;
+      width: 100%;
+      flex: 1;
+      min-height: 400px;   /* \u515C\u5E95\uFF1A\u786E\u4FDD\u6709\u6700\u5C0F\u9AD8\u5EA6 */
+    `;
+    this.containerEl.appendChild(reactContainer);
     this.root = (0, import_client.createRoot)(reactContainer);
+    const af = this.app.workspace.getActiveFile();
+    if (af && !this.filePath) {
+      this.filePath = af.path;
+      await this.loadFile();
+    }
     this.refreshView();
   }
   async onClose() {
     await this.saveCurrentTree();
-    if (this.root) {
-      this.root.unmount();
-      this.root = null;
-    }
+    this.root?.unmount();
+    this.root = null;
   }
   refreshView() {
     if (!this.root)
       return;
     const self = this;
     this.root.render(
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_react8.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_react5.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         MindmapReactView,
         {
           fileContent: this.fileContent,
           fileName: this.fileName,
           onSave: (content3) => {
             self.updateLatestTree(content3);
-            if (self.filePath) {
-              const file = self.app.vault.getAbstractFileByPath(self.filePath);
-              if (file) {
-                self.app.vault.modify(file, content3).catch((e) => {
-                  console.error("[MindMap] onSave error:", e);
-                });
-              }
-            }
+            const f = self.app.vault.getAbstractFileByPath(self.filePath) || self.app.workspace.getActiveFile();
+            if (f)
+              self.app.vault.modify(f, content3).catch(() => {
+              });
           }
         }
       ) })
@@ -39516,68 +38986,87 @@ var MindmapView = class extends import_obsidian.ItemView {
 
 // src/main.ts
 var MindMapPlugin = class extends import_obsidian2.Plugin {
+  constructor() {
+    super(...arguments);
+    // 始终记住最后打开的文件路径（通过事件监听，不依赖 getActiveFile）
+    this.lastFilePath = null;
+  }
   async onload() {
-    try {
-      console.log("[MindMap] Plugin loading...");
-      this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf));
-      const iconNames = ["brain", "brain-circuit", "git-branch", "file-text"];
-      for (const icon of iconNames) {
-        try {
-          this.addRibbonIcon(icon, "Toggle MindMap View", () => {
-            this.toggleMindMapView();
-          });
-          console.log("[MindMap] Ribbon icon added:", icon);
-          break;
-        } catch (e) {
-          console.log("[MindMap] Icon", icon, "not available, trying next...");
-        }
+    console.log("[MindMap] Plugin loading...");
+    this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
+      const af = this.app.workspace.getActiveFile();
+      if (af) {
+        this.lastFilePath = af.path;
+        console.log("[MindMap] tracked file:", af.path);
       }
-      this.addCommand({
-        id: "toggle-mindmap-view",
-        name: "Toggle MindMap View",
-        callback: () => {
-          this.toggleMindMapView();
-        }
-      });
-      const statusBarItem = this.addStatusBarItem();
-      statusBarItem.setText("\u{1F9E0}");
-      statusBarItem.title = "Toggle MindMap View";
-      statusBarItem.style.cursor = "pointer";
-      statusBarItem.onClickEvent(() => {
-        this.toggleMindMapView();
-      });
-      console.log("[MindMap] Plugin loaded successfully!");
-    } catch (err) {
-      console.error("[MindMap] FATAL ERROR during onload:", err);
+    }));
+    this.registerEvent(this.app.vault.on("open", (f) => {
+      if (f)
+        this.lastFilePath = f.path;
+    }));
+    this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf));
+    for (const icon of ["brain", "brain-circuit", "git-branch", "file-text"]) {
+      try {
+        this.addRibbonIcon(icon, "Toggle MindMap View", () => this.toggleMindMapView());
+        break;
+      } catch (_) {
+      }
     }
+    this.addCommand({
+      id: "toggle-mindmap-view",
+      name: "Toggle MindMap View",
+      callback: () => this.toggleMindMapView()
+    });
+    const sb = this.addStatusBarItem();
+    sb.setText("\u{1F9E0}");
+    sb.title = "Toggle MindMap View";
+    sb.style.cursor = "pointer";
+    sb.addEventListener("click", () => this.toggleMindMapView());
+    console.log("[MindMap] Plugin loaded!");
   }
   async onunload() {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_MINDMAP);
   }
   /**
-   * 核心切换逻辑：
-   * - 当前是 Markdown → 切成脑图（同一位置）
-   * - 当前是脑图 → 先保存，再切回 Markdown
+   * 切换脑图/Markdown 视图
+   * 
+   * 关键改进：用 lastFilePath（事件追踪）代替 getActiveFile()
    */
   async toggleMindMapView() {
-    const activeFile = this.app.workspace.getActiveFile();
     const activeLeaf = this.app.workspace.activeLeaf;
-    if (!activeFile || !activeLeaf)
+    if (!activeLeaf)
       return;
     const viewType = activeLeaf.view.getViewType();
+    console.log(
+      "[MindMap] toggle: viewType=",
+      viewType,
+      "lastFilePath=",
+      this.lastFilePath,
+      "getActiveFile=",
+      this.app.workspace.getActiveFile()?.path
+    );
     if (viewType === VIEW_TYPE_MINDMAP) {
       const view = activeLeaf.view;
       await view.saveCurrentTree();
+      const targetPath = view.getFilePath() || this.lastFilePath || "";
+      if (!targetPath)
+        return;
       await activeLeaf.setViewState({
         type: "markdown",
-        state: { file: activeFile.path, mode: "source" },
+        state: { file: targetPath, mode: "source" },
         active: true
       });
       return;
     }
+    const filePath = this.lastFilePath || this.app.workspace.getActiveFile()?.path || "";
+    if (!filePath) {
+      new Notice("\u26A0\uFE0F \u8BF7\u5148\u6253\u5F00\u4E00\u4E2A\u7B14\u8BB0");
+      return;
+    }
+    console.log("[MindMap] \u2192 mindmap:", filePath);
     await activeLeaf.setViewState({
       type: VIEW_TYPE_MINDMAP,
-      state: { file: activeFile.path },
+      state: { file: filePath },
       active: true
     });
   }

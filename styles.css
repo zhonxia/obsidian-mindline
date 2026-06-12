@@ -221,9 +221,15 @@
   fill: none;
 }
 
-/* Container */
+/* Container — 必须有确定高度，否则 React Flow 无法渲染！ */
 .mindmap-react-container {
   width: 100%;
-  height: 100%;
-  background: #fafafa;
+  flex: 1;
+  min-height: 400px;   /* 兜底：确保有最小高度 */
+}
+
+/* Obsidian View Container — 强制填满 */
+.view-header + .mindmap-react-container,
+.mindmap-view .mindmap-react-container {
+  min-height: calc(100vh - 80px) !important;
 }

@@ -1,205 +1,197 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   ReactFlow,
   Background,
   Controls,
   Handle,
   Position,
-  BaseEdge,
-  getBezierPath,
-  applyNodeChanges,
-  applyEdgeChanges,
-  type NodeChange,
-  type EdgeChange,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
 import * as d3 from 'd3'
 import { parseMarkdown, serializeMarkdown } from '../core/markdown'
-import { findById } from '../core/tree'
 import type { TreeNode } from '../types'
-import { MindmapNode } from '../components/MindmapNode'
-import { MindmapEdge } from '../components/MindmapEdge'
 
-const NODE_W = 48
-const DEPTH_W = 220
-const TREE_GAP = 24
-const MARGIN = { top: 16, left: 30 }
+function MindmapNode({ data }: any) {
+  return (
+    <div style={{
+      padding: '8px 16px',
+      background: '#fff',
+      border: data.depth === 0 ? '2px solid #3b82f6' : '1.5px solid #94a3b8',
+      borderRadius: 8,
+      fontSize: data.depth === 0 ? 15 : 13,
+      fontWeight: data.depth === 0 ? 700 : 500,
+      color: '#1e293b',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      whiteSpace: 'nowrap',
+    }}>
+      <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
+      {data.label || '(empty)'}
+    </div>
+  )
+}
 
 const nodeTypes = { mindmapNode: MindmapNode }
-const edgeTypes = { mindmapEdge: MindmapEdge }
 
-interface MindmapReactViewProps {
+interface Props {
   fileContent: string
   fileName: string
   onSave: (content: string) => void
-  /** 供外部获取当前 tree 的 ref */
-  onTreeChange?: (tree: TreeNode | null) => void
 }
 
-export default function MindmapReactView({ fileContent, fileName, onSave, onTreeChange }: MindmapReactViewProps) {
+export default function MindmapReactView({ fileContent, fileName, onSave }: Props) {
   const [tree, setTree] = useState<TreeNode | null>(null)
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [focusedId, setFocusedId] = useState<string | null>(null)
   const [nodes, setNodes] = useState<any[]>([])
-  const [edges, setEdges] = useState<any[]>([])
-  const [fitKey, setFitKey] = useState(0)
-  const rfInstance = useRef<any>(null)
-  const initKey = useRef(0)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
+  const containerRef = useRef<HTMLDivElement>(null)
+  const rfWrapperRef = useRef<HTMLDivElement>(null)
 
-  // Parse markdown → tree
+  // 关键：用 ResizeObserver + 多重策略确保拿到正确的容器尺寸
   useEffect(() => {
-    if (fileContent) {
-      const root = parseMarkdown(fileContent)
-      setTree(root)
+    let attempts = 0
+    const maxAttempts = 20
+
+    const measure = () => {
+      // 策略1：直接测量 rfWrapper（ReactFlow 的父容器）
+      if (rfWrapperRef.current) {
+        const rect = rfWrapperRef.current.getBoundingClientRect()
+        if (rect.width > 10 && rect.height > 10) {
+          setSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
+          return true
+        }
+      }
+      
+      // 策略2：测量外层容器
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        if (rect.width > 10 && rect.height > 10) {
+          setSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
+          return true
+        }
+      }
+
+      // 策略3：用 window 尺寸作为兜底
+      setSize({
+        w: Math.max(window.innerWidth - 300, 600),
+        h: Math.max(window.innerHeight - 200, 400),
+      })
+      return false
     }
+
+    // 立即测一次
+    measure()
+
+    // 持续尝试直到拿到有效尺寸
+    const interval = setInterval(() => {
+      attempts++
+      const ok = measure()
+      if (ok || attempts >= maxAttempts) clearInterval(interval)
+    }, 200)
+
+    // ResizeObserver 监听窗口变化
+    const ro = new ResizeObserver(() => measure())
+    
+    // 观察多个层级，确保至少一个能触发
+    if (rfWrapperRef.current) ro.observe(rfWrapperRef.current)
+    if (containerRef.current) ro.observe(containerRef.current)
+    // 也观察 document body 作为最终兜底
+    ro.observe(document.body)
+
+    // 窗口 resize 时也测
+    window.addEventListener('resize', measure)
+
+    return () => {
+      clearInterval(interval)
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [])
+
+  // Parse
+  useEffect(() => {
+    if (!fileContent) return
+    try {
+      setTree(parseMarkdown(fileContent))
+    } catch (e) { console.error(e) }
   }, [fileContent])
 
-  // Notify parent when tree changes (for save-on-toggle)
+  // Build graph — 只生成节点
   useEffect(() => {
-    if (onTreeChange) {
-      onTreeChange(tree)
-    }
-  }, [tree, onTreeChange])
+    if (!tree) { setNodes([]); return }
 
-  // Auto-save when tree changes (no debounce — Obsidian vault.modify is fast)
+    const ns: any[] = []
+    let yOff = 0
+
+    const buildFromNode = (node: TreeNode, depth: number, xBase: number, yBase: number) => {
+      ns.push({
+        id: node.id,
+        type: 'mindmapNode',
+        position: { x: xBase, y: yBase },
+        data: { label: node.title || '', depth },
+      })
+
+      let childX = 0
+      node.children.forEach((child) => {
+        buildFromNode(child, depth + 1, xBase + 250, yBase + childX)
+        childX += 80
+      })
+    }
+
+    tree.children.forEach(rootChild => {
+      buildFromNode(rootChild, 0, 50, yOff)
+      const countDescendants = (n: TreeNode): number =>
+        1 + n.children.reduce((s, c) => s + countDescendants(c), 0)
+      yOff += countDescendants(rootChild) * 80
+    })
+
+    console.log(`[MindMap] ${ns.length} nodes, container ${size.w}x${size.h}`)
+    setNodes(ns)
+  }, [tree])
+
+  // Save
   useEffect(() => {
     if (!tree) return
-    const md = serializeMarkdown(tree)
-    onSave(md)
-  }, [tree, onSave])
-
-  // Build graph when tree changes
-  useEffect(() => {
-    if (!tree) { setNodes([]); setEdges([]); return }
-    const { nodes: ns, edges: es } = buildGraph(tree, activeId, focusedId)
-    setNodes(ns)
-    setEdges(es)
-    initKey.current++
-    setFitKey(initKey.current)
-  }, [tree, focusedId])
-
-  // buildGraph function (ported from MindMD)
-  function buildGraph(root: TreeNode, activeId: string | null, focusedId: string | null) {
-    const nodes: any[] = []
-    const edges: any[] = []
-
-    function preview(body: string): string {
-      return body.replace(/\n/g, ' ').slice(0, 60)
-    }
-
-    let yOffset = 0
-    const layoutRoots = focusedId
-      ? (findById(root, focusedId) || root).id === root.id ? root.children : [findById(root, focusedId)!]
-      : root.children
-
-    for (const child of layoutRoots) {
-      const h = d3.hierarchy<TreeNode>(child, d => d.collapsed ? undefined : d.children)
-      const treeLayout = d3.tree<TreeNode>().nodeSize([NODE_W, DEPTH_W]).separation((a, b) => a.parent === b.parent ? 1 : 1.3)
-      treeLayout(h)
-
-      h.each(d => {
-        const node = d.data
-        nodes.push({
-          id: node.id,
-          type: 'mindmapNode',
-          position: { x: d.y! + MARGIN.left, y: d.x! + yOffset + MARGIN.top },
-          sourcePosition: Position.Right,
-          targetPosition: Position.Left,
-          data: {
-            id: node.id,
-            label: node.title || '',
-            depth: d.depth,
-            isActive: node.id === activeId,
-            collapsed: node.collapsed,
-            childCount: node.children.length,
-            preview: preview(node.content),
-            shouldEdit: false,
-            onToggleCollapse: handleToggleCollapse,
-            onSetFocused: handleSetFocused,
-            onUpdateTitle: handleUpdateTitle,
-          },
-        })
-      })
-
-      h.links().forEach(link => {
-        edges.push({
-          id: `e_${link.source.data.id}_${link.target.data.id}`,
-          source: link.source.data.id,
-          target: link.target.data.id,
-          type: 'mindmapEdge',
-        })
-      })
-
-      const maxY = Math.max(...h.descendants().map(d => d.x!))
-      yOffset += maxY + TREE_GAP
-    }
-
-    return { nodes, edges }
-  }
-
-  // Callbacks
-  const handleToggleCollapse = useCallback((id: string) => {
-    setTree(prev => {
-      if (!prev) return prev
-      const node = findById(prev, id)
-      if (node) node.collapsed = !node.collapsed
-      return { ...prev }
-    })
-  }, [])
-
-  const handleSetFocused = useCallback((id: string) => {
-    setFocusedId(prev => prev === id ? null : id)
-  }, [])
-
-  const handleUpdateTitle = useCallback((id: string, title: string) => {
-    setTree(prev => {
-      if (!prev) return prev
-      const node = findById(prev, id)
-      if (node) node.title = title
-      return { ...prev }
-    })
-  }, [])
-
-  // Manual save (for Save button)
-  const handleSave = useCallback(() => {
-    if (tree) {
-      const md = serializeMarkdown(tree)
-      onSave(md)
-    }
+    onSave(serializeMarkdown(tree))
   }, [tree, onSave])
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', gap: 8 }}>
-        <button onClick={handleSave} style={{ padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>
-          Save to Markdown
-        </button>
-        {focusedId && (
-          <button onClick={() => setFocusedId(null)} style={{ padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>
-            ← Back
-          </button>
-        )}
-      </div>
-
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        nodesDraggable={true}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        selectNodesOnDrag={false}
-        fitView={false}
-        minZoom={0.15}
-        maxZoom={3}
-        proOptions={{ hideAttribution: true }}
-        onInit={(instance) => { rfInstance.current = instance }}
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        height: '100vh',   // 用 viewport 高度而不是百分比
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ReactFlow 的包装 div — 用明确的像素尺寸 */}
+      <div
+        ref={rfWrapperRef}
+        style={{
+          width: `${size.w}px`,
+          height: `${size.h}px`,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+        }}
       >
-        <Background color="var(--background-modifier-border, #e2e8f0)" gap={20} size={0.8} />
-        <Controls showInteractive={false} position="bottom-right" />
-      </ReactFlow>
+        <ReactFlow
+          nodes={nodes}
+          edges={[]}
+          nodeTypes={nodeTypes}
+          fitView
+          minZoom={0.05}
+          maxZoom={2}
+          proOptions={{ hideAttribution: true }}
+          onInit={(inst) => {
+            console.log('[MindMap] RF init OK, size:', size.w, 'x', size.h)
+            setTimeout(() => inst?.fitView?.({ padding: 0.3 }), 400)
+          }}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <Background color="#e5e7eb" gap={20} size={1} />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      </div>
     </div>
   )
 }

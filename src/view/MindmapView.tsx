@@ -1,8 +1,6 @@
 import { ItemView, WorkspaceLeaf, Notice } from 'obsidian'
 import { createRoot, Root } from 'react-dom/client'
 import { StrictMode } from 'react'
-import { parseMarkdown } from '../../core/markdown'
-import { serializeMarkdown } from '../../core/markdown'
 import MindmapReactView from './MindmapReactView'
 
 export const VIEW_TYPE_MINDMAP = 'mindmap-view'
@@ -18,17 +16,18 @@ export class MindmapView extends ItemView {
     super(leaf)
   }
 
-  getViewType(): string {
-    return VIEW_TYPE_MINDMAP
-  }
+  getViewType(): string { return VIEW_TYPE_MINDMAP }
 
   getDisplayText(): string {
     return this.fileName ? `🧠 ${this.fileName}` : 'MindMap'
   }
 
+  getFilePath(): string { return this.filePath }
+
   async setState(state: any): Promise<void> {
-    if (state?.file) {
-      this.filePath = state.file
+    const fp = state?.file || ''
+    if (fp) {
+      this.filePath = fp
       await this.loadFile()
     }
     return Promise.resolve()
@@ -36,62 +35,81 @@ export class MindmapView extends ItemView {
 
   private async loadFile(): Promise<void> {
     if (!this.filePath) return
+
     try {
-      const file = this.app.vault.getAbstractFileByPath(this.filePath)
+      let file = this.app.vault.getAbstractFileByPath(this.filePath)
+      if (!file) file = this.app.workspace.getActiveFile() as any
+      
       if (file) {
         this.fileContent = await this.app.vault.read(file as any)
         this.fileName = (file as any).name || 'untitled'
+        this.filePath = (file as any).path || this.filePath
         this.refreshView()
       }
     } catch (e) {
-      console.error('[MindMap] loadFile error:', e)
-      new Notice('MindMap: 无法读取文件')
+      console.error('[MindMap-View] load error:', e)
     }
   }
 
-  /**
-   * 供 main.ts 在切换视图前调用：把当前脑图内容写回 md 文件
-   */
   public async saveCurrentTree(): Promise<void> {
-    if (this.latestTreeJson && this.filePath) {
-      try {
-        const file = this.app.vault.getAbstractFileByPath(this.filePath)
-        if (file) {
-          await this.app.vault.modify(file as any, this.latestTreeJson)
-          console.log('[MindMap] saved')
-        }
-      } catch (e) {
-        console.error('[MindMap] save error:', e)
-      }
-    }
+    if (!this.latestTreeJson || !this.filePath) return
+    try {
+      const file = this.app.vault.getAbstractFileByPath(this.filePath)
+        || this.app.workspace.getActiveFile()
+      if (file) await this.app.vault.modify(file as any, this.latestTreeJson)
+    } catch (e) { console.error(e) }
   }
 
-  /**
-   * React 组件通过 onSave 回调更新最新序列化内容
-   */
-  public updateLatestTree(serialized: string) {
-    this.latestTreeJson = serialized
-  }
+  public updateLatestTree(s: string) { this.latestTreeJson = s }
 
   async onOpen() {
-    const container = this.containerEl.children[1] || this.containerEl
-    container.empty()
-    const reactContainer = container.createDiv()
+    // 关键：给 Obsidian 的 containerEl 强制设置像素高度
+    // Obsidian 的 ItemView 容器默认没有明确尺寸，React Flow 需要具体像素
+    const applySize = () => {
+      const rect = this.containerEl.parentElement?.getBoundingClientRect()
+      const h = rect?.height || window.innerHeight - 120
+      this.containerEl.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: ${h}px;
+        overflow: hidden;
+      `
+    }
+    applySize()
+    
+    // 延迟再设置一次（等 DOM 渲染完）
+    setTimeout(applySize, 100)
+    setTimeout(applySize, 500)
+    
+    // 窗口 resize 时也更新
+    this.registerEvent(this.app.workspace.on('resize', applySize))
+    
+    // 创建 React 容器
+    const reactContainer = document.createElement('div')
     reactContainer.className = 'mindmap-react-container'
-    reactContainer.style.width = '100%'
-    reactContainer.style.height = '100%'
+    reactContainer.style.cssText = `
+      position: relative;
+      width: 100%;
+      flex: 1;
+      min-height: 400px;   /* 兜底：确保有最小高度 */
+    `
+    this.containerEl.appendChild(reactContainer)
 
     this.root = createRoot(reactContainer)
+
+    const af = this.app.workspace.getActiveFile()
+    if (af && !this.filePath) {
+      this.filePath = af.path
+      await this.loadFile()
+    }
     this.refreshView()
   }
 
   async onClose() {
-    // 关闭前保存（保险措施）
     await this.saveCurrentTree()
-    if (this.root) {
-      this.root.unmount()
-      this.root = null
-    }
+    this.root?.unmount()
+    this.root = null
   }
 
   private refreshView() {
@@ -102,17 +120,11 @@ export class MindmapView extends ItemView {
         <MindmapReactView
           fileContent={this.fileContent}
           fileName={this.fileName}
-          onSave={(content: string) => {
+          onSave={(content) => {
             self.updateLatestTree(content)
-            // 立即写入文件（Obsidian vault API 很快）
-            if (self.filePath) {
-              const file = self.app.vault.getAbstractFileByPath(self.filePath)
-              if (file) {
-                self.app.vault.modify(file as any, content).catch(e => {
-                  console.error('[MindMap] onSave error:', e)
-                })
-              }
-            }
+            const f = self.app.vault.getAbstractFileByPath(self.filePath)
+              || self.app.workspace.getActiveFile()
+            if (f) self.app.vault.modify(f as any, content).catch(() => {})
           }}
         />
       </StrictMode>
