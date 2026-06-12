@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-mindmap-plugin",
+  "name": "MindMap View",
+  "version": "0.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "Markdown 大纲脑图可视化与编辑 - 将笔记的 Heading 结构渲染为可编辑的脑图",
+  "author": "Qin Bai",
+  "authorUrl": "",
+  "isDesktopOnly": false,
+  "isMobileSupported": true
+}
