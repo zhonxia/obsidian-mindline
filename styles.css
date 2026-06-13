@@ -72,18 +72,50 @@
 
 .mm-node.depth-0 {
   border-color: #64748b;
+  border-width: 2px;
   color: #0f172a;
   font-weight: 700;
+  font-size: 14px;
+  background: #f1f5f9;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 }
 
 .mm-node.depth-1 {
-  border-color: #93c5fd;
+  border-color: #60a5fa;
+  border-width: 1.5px;
+  color: #1e3a5f;
+  font-weight: 600;
+  font-size: 13px;
 }
 
-.mm-node.depth-2,
-.mm-node.depth-3,
+.mm-node.depth-2 {
+  border-color: #34d399;
+  border-width: 1px;
+  color: #064e3b;
+  font-weight: 600;
+}
+
+.mm-node.depth-3 {
+  border-color: #a78bfa;
+  border-width: 1px;
+  color: #4c1d95;
+  font-weight: 500;
+}
+
 .mm-node.depth-4 {
+  border-color: #f472b6;
+  border-width: 1px;
+  color: #831843;
+  font-weight: 500;
+  border-style: dashed;
+}
+
+.mm-node.depth-5 {
+  border-color: #cbd5e1;
+  border-width: 1px;
   color: #475569;
+  font-weight: 400;
+  border-style: dashed;
 }
 
 .mm-title {
@@ -207,17 +239,33 @@
 }
 
 /* ── 节点内联编辑 ─────────────────── */
+.mm-edit-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .mm-edit-input {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #3b82f6;
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 4px 6px;
   font-size: 13px;
   font-weight: 500;
+  font-family: inherit;
   color: #0f172a;
   background: #fff;
   outline: none;
+  resize: vertical;
+  line-height: 1.35;
+}
+
+.mm-edit-hint {
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: right;
 }
 
 /* ── 节点拖拽 ─────────────────── */
@@ -230,6 +278,36 @@
 .mm-node.drop-target {
   box-shadow: 0 0 0 2px #3b82f6;
   background-color: #eff6ff;
+}
+
+.mm-node.selected {
+  box-shadow: 0 0 0 2px #f59e0b, 0 2px 8px rgba(245, 158, 11, 0.25);
+  z-index: 5;
+}
+
+/* ── Markdown 内联渲染 ──────── */
+.mm-title strong {
+  color: #0f172a;
+}
+
+.mm-title em {
+  font-style: italic;
+  color: #475569;
+}
+
+.mm-title code {
+  display: inline;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  color: #dc2626;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.mm-title del {
+  text-decoration: line-through;
+  color: #94a3b8;
 }
 
 .mindmap-drag-hint {

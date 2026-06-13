@@ -126,6 +126,24 @@ interface MindmapRenderEdge {
   target: MindmapRenderNode
 }
 
+/** 渲染标题中的基本 Markdown 内联语法（**粗体** *斜体* `代码` ~~删除线~~） */
+function renderInlineMarkdown(text: string): string {
+  // 安全转义 HTML
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  // **粗体**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  // *斜体*（不匹配 **）
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  // `代码`
+  html = html.replace(/`(.+?)`/g, '<code>$1</code>')
+  // ~~删除线~~
+  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>')
+  return html
+}
+
 function MindmapMessage({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="mindmap-message">
@@ -270,6 +288,7 @@ export default function MindmapReactView({
   const [contextMenu, setContextMenu] = useState<{
     nodeId: string; x: number; y: number
   } | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -284,7 +303,9 @@ export default function MindmapReactView({
   const dropTargetIdRef = useRef<string | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const justSavedRef = useRef(false)
+  /** 保存计数器：每次 saveTree 递增，fileContent 变化时递减。
+   *   防止异步写入期间的陈旧数据覆盖本地状态。 */
+  const saveCounterRef = useRef(0)
 
   // 画布拖拽用 useRef（mousedown 兼容鼠标，触控板用 wheel 平移）
   const panDragRef = useRef<{
@@ -300,8 +321,9 @@ export default function MindmapReactView({
 
   // ── 文件内容同步 ─────────────────────────────
   useEffect(() => {
-    if (justSavedRef.current) {
-      justSavedRef.current = false
+    // 跳过由本组件 saveTree 触发的文件更新（与 saveCounterRef 配对）
+    if (saveCounterRef.current > 0) {
+      saveCounterRef.current -= 1
       return
     }
     if (fileLoaded && fileContent) {
@@ -331,7 +353,7 @@ export default function MindmapReactView({
       const next = cloneTree(prev)
       modify(next)
       const md = serializeMarkdown(next)
-      justSavedRef.current = true
+      saveCounterRef.current += 1  // 配对 useEffect 中的递减
       onSaveContent(md)
       return next
     })
@@ -436,12 +458,62 @@ export default function MindmapReactView({
       if (idx >= 0) parent.children.splice(idx, 1)
     })
     setContextMenu(null)
+    if (selectedNodeId === nodeId) setSelectedNodeId(null)
+  }, [saveTree, selectedNodeId])
+
+  // ── 缩进 / 反向缩进 ─────────────────────────
+  const handleIndent = useCallback((nodeId: string) => {
+    saveTree((newTree) => {
+      const node = findById(newTree, nodeId)
+      const oldParent = findParent(newTree, nodeId)
+      if (!node || !oldParent) return
+      const idx = oldParent.children.indexOf(node)
+      if (idx <= 0) return  // 需要前一个兄弟作为新父节点
+      const newParent = oldParent.children[idx - 1]
+      oldParent.children.splice(idx, 1)
+      newParent.children.push(node)
+    })
   }, [saveTree])
+
+  const handleOutdent = useCallback((nodeId: string) => {
+    saveTree((newTree) => {
+      const node = findById(newTree, nodeId)
+      const oldParent = findParent(newTree, nodeId)
+      if (!node || !oldParent) return
+      const grandParent = findParent(newTree, oldParent.id)
+      if (!grandParent) return  // 根节点不能反向缩进
+      const childIdx = oldParent.children.indexOf(node)
+      oldParent.children.splice(childIdx, 1)
+      const parentIdx = grandParent.children.indexOf(oldParent)
+      grandParent.children.splice(parentIdx + 1, 0, node)
+    })
+  }, [saveTree])
+
+  // ── 选中节点导航 ───────────────────────────
+  const getSiblingIds = useCallback((nodeId: string): { prev: string | null; next: string | null } => {
+    if (!tree) return { prev: null, next: null }
+    const parent = findParent(tree, nodeId)
+    if (!parent) return { prev: null, next: null }
+    const siblings = parent.children
+    const idx = siblings.findIndex(c => c.id === nodeId)
+    return {
+      prev: idx > 0 ? siblings[idx - 1].id : null,
+      next: idx < siblings.length - 1 ? siblings[idx + 1].id : null,
+    }
+  }, [tree])
+
+  const navigateSelection = useCallback((direction: 'up' | 'down') => {
+    if (!selectedNodeId) return
+    const { prev, next } = getSiblingIds(selectedNodeId)
+    const target = direction === 'up' ? prev : next
+    if (target) setSelectedNodeId(target)
+  }, [selectedNodeId, getSiblingIds])
 
   const handleContextMenu = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.preventDefault()
     e.stopPropagation()
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY })
+    setSelectedNodeId(nodeId)
     setEditingNodeId(null)
   }, [])
 
@@ -598,6 +670,58 @@ export default function MindmapReactView({
     }
   }, [editingNodeId, handleDrop])
 
+  // ── 全局键盘快捷键 ──────────────────────
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // 编辑模式下只处理 Escape
+      if (editingNodeId) {
+        if (e.key === 'Escape') { handleEditCancel(); e.preventDefault() }
+        return
+      }
+      // 输入框内不拦截
+      if ((e.target as HTMLElement)?.tagName === 'INPUT' ||
+          (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
+
+      const sid = selectedNodeId
+      if (!sid) return
+
+      if (e.key === 'Tab') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleOutdent(sid)
+        } else {
+          handleIndent(sid)
+        }
+      } else if (e.key === 'Enter' && !contextMenu) {
+        e.preventDefault()
+        saveTree((newTree) => {
+          const parent = findParent(newTree, sid)
+          if (!parent) return
+          const refNode = findById(newTree, sid)!
+          const sibling = createNode('')
+          sibling.depth = refNode.depth
+          const idx = parent.children.indexOf(refNode)
+          parent.children.splice(idx + 1, 0, sibling)
+          setEditingNodeId(sibling.id)
+          setEditValue('')
+        })
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        handleDeleteNode(sid)
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        navigateSelection('up')
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        navigateSelection('down')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [editingNodeId, selectedNodeId, contextMenu,
+      handleIndent, handleOutdent, handleDeleteNode, navigateSelection,
+      handleEditCancel, saveTree])
+
   // 组件卸载时清理拖拽监听
   useEffect(() => {
     return () => {
@@ -700,7 +824,7 @@ export default function MindmapReactView({
               <div
                 key={node.id}
                 data-node-id={node.id}
-                className={`mm-node depth-${Math.min(node.depth, 4)}${node.kind === 'content' ? ' kind-content' : ''}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
+                className={`mm-node depth-${Math.min(node.depth, 5)}${node.kind === 'content' ? ' kind-content' : ''}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${node.id === selectedNodeId ? ' selected' : ''}`}
                 style={{
                   left: `${node.x}px`,
                   top: `${node.y}px`,
@@ -710,26 +834,36 @@ export default function MindmapReactView({
                 title={node.content ? `${node.label}\n\n${node.content}` : node.label}
                 onDoubleClick={() => handleDoubleClick(node.id, node.label)}
                 onContextMenu={e => handleContextMenu(e, node.id)}
-                onPointerDown={e => handleNodePointerDown(e, node.id)}
+                onPointerDown={e => {
+                  setSelectedNodeId(node.id)
+                  handleNodePointerDown(e, node.id)
+                }}
               >
                 {isEditing ? (
-                  <input
-                    className="mm-edit-input"
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleEditSave()
-                      if (e.key === 'Escape') handleEditCancel()
-                    }}
-                    onBlur={handleEditSave}
-                    autoFocus
-                    onClick={e => e.stopPropagation()}
-                    onPointerDown={e => e.stopPropagation()}
-                  />
+                  <div className="mm-edit-wrap">
+                    <textarea
+                      className="mm-edit-input"
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleEditSave()
+                        }
+                        if (e.key === 'Escape') handleEditCancel()
+                      }}
+                      onBlur={handleEditSave}
+                      autoFocus
+                      rows={3}
+                      onClick={e => e.stopPropagation()}
+                      onPointerDown={e => e.stopPropagation()}
+                    />
+                    <div className="mm-edit-hint">Enter 保存 · Shift+Enter 换行 · Esc 取消</div>
+                  </div>
                 ) : (
                   <>
                     <div className="mm-body">
-                      <span className="mm-title">{node.label}</span>
+                      <span className="mm-title" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(node.label) }} />
                       {node.content && <div className="mm-content">{node.content}</div>}
                     </div>
                     {node.childCount > 0 && <span className="mm-badge">{node.childCount}</span>}

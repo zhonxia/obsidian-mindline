@@ -29694,6 +29694,14 @@ function placeSubtree(layoutNode, x, top, nodes, edgeRefs) {
     childTop += child.subtreeH + SIBLING_GAP;
   }
 }
+function renderInlineMarkdown(text3) {
+  let html = text3.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
+  html = html.replace(/`(.+?)`/g, "<code>$1</code>");
+  html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
+  return html;
+}
 function MindmapMessage({ title, detail }) {
   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-message-card", children: [
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message-title", children: title }),
@@ -29806,6 +29814,7 @@ function MindmapReactView({
   const [editingNodeId, setEditingNodeId] = (0, import_react.useState)(null);
   const [editValue, setEditValue] = (0, import_react.useState)("");
   const [contextMenu, setContextMenu] = (0, import_react.useState)(null);
+  const [selectedNodeId, setSelectedNodeId] = (0, import_react.useState)(null);
   const [pan, setPan] = (0, import_react.useState)({ x: 0, y: 0 });
   const [zoom, setZoom] = (0, import_react.useState)(1);
   const zoomRef = (0, import_react.useRef)(1);
@@ -29815,7 +29824,7 @@ function MindmapReactView({
   const draggingNodeIdRef = (0, import_react.useRef)(null);
   const dropTargetIdRef = (0, import_react.useRef)(null);
   const containerRef = (0, import_react.useRef)(null);
-  const justSavedRef = (0, import_react.useRef)(false);
+  const saveCounterRef = (0, import_react.useRef)(0);
   const panDragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
   const dragCleanupRef = (0, import_react.useRef)(null);
   (0, import_react.useEffect)(() => {
@@ -29825,8 +29834,8 @@ function MindmapReactView({
     panRef.current = pan;
   }, [pan]);
   (0, import_react.useEffect)(() => {
-    if (justSavedRef.current) {
-      justSavedRef.current = false;
+    if (saveCounterRef.current > 0) {
+      saveCounterRef.current -= 1;
       return;
     }
     if (fileLoaded && fileContent) {
@@ -29853,7 +29862,7 @@ function MindmapReactView({
       const next = cloneTree(prev);
       modify(next);
       const md = serializeMarkdown(next);
-      justSavedRef.current = true;
+      saveCounterRef.current += 1;
       onSaveContent(md);
       return next;
     });
@@ -29959,11 +29968,64 @@ function MindmapReactView({
         parent.children.splice(idx, 1);
     });
     setContextMenu(null);
+    if (selectedNodeId === nodeId)
+      setSelectedNodeId(null);
+  }, [saveTree, selectedNodeId]);
+  const handleIndent = (0, import_react.useCallback)((nodeId) => {
+    saveTree((newTree) => {
+      const node2 = findById(newTree, nodeId);
+      const oldParent = findParent(newTree, nodeId);
+      if (!node2 || !oldParent)
+        return;
+      const idx = oldParent.children.indexOf(node2);
+      if (idx <= 0)
+        return;
+      const newParent = oldParent.children[idx - 1];
+      oldParent.children.splice(idx, 1);
+      newParent.children.push(node2);
+    });
   }, [saveTree]);
+  const handleOutdent = (0, import_react.useCallback)((nodeId) => {
+    saveTree((newTree) => {
+      const node2 = findById(newTree, nodeId);
+      const oldParent = findParent(newTree, nodeId);
+      if (!node2 || !oldParent)
+        return;
+      const grandParent = findParent(newTree, oldParent.id);
+      if (!grandParent)
+        return;
+      const childIdx = oldParent.children.indexOf(node2);
+      oldParent.children.splice(childIdx, 1);
+      const parentIdx = grandParent.children.indexOf(oldParent);
+      grandParent.children.splice(parentIdx + 1, 0, node2);
+    });
+  }, [saveTree]);
+  const getSiblingIds = (0, import_react.useCallback)((nodeId) => {
+    if (!tree)
+      return { prev: null, next: null };
+    const parent = findParent(tree, nodeId);
+    if (!parent)
+      return { prev: null, next: null };
+    const siblings = parent.children;
+    const idx = siblings.findIndex((c) => c.id === nodeId);
+    return {
+      prev: idx > 0 ? siblings[idx - 1].id : null,
+      next: idx < siblings.length - 1 ? siblings[idx + 1].id : null
+    };
+  }, [tree]);
+  const navigateSelection = (0, import_react.useCallback)((direction) => {
+    if (!selectedNodeId)
+      return;
+    const { prev, next } = getSiblingIds(selectedNodeId);
+    const target = direction === "up" ? prev : next;
+    if (target)
+      setSelectedNodeId(target);
+  }, [selectedNodeId, getSiblingIds]);
   const handleContextMenu = (0, import_react.useCallback)((e, nodeId) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
+    setSelectedNodeId(nodeId);
     setEditingNodeId(null);
   }, []);
   const handleCanvasClick = (0, import_react.useCallback)(() => {
@@ -30100,6 +30162,65 @@ function MindmapReactView({
     };
   }, [editingNodeId, handleDrop]);
   (0, import_react.useEffect)(() => {
+    const onKeyDown = (e) => {
+      if (editingNodeId) {
+        if (e.key === "Escape") {
+          handleEditCancel();
+          e.preventDefault();
+        }
+        return;
+      }
+      if (e.target?.tagName === "INPUT" || e.target?.tagName === "TEXTAREA")
+        return;
+      const sid = selectedNodeId;
+      if (!sid)
+        return;
+      if (e.key === "Tab") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleOutdent(sid);
+        } else {
+          handleIndent(sid);
+        }
+      } else if (e.key === "Enter" && !contextMenu) {
+        e.preventDefault();
+        saveTree((newTree) => {
+          const parent = findParent(newTree, sid);
+          if (!parent)
+            return;
+          const refNode = findById(newTree, sid);
+          const sibling = createNode("");
+          sibling.depth = refNode.depth;
+          const idx = parent.children.indexOf(refNode);
+          parent.children.splice(idx + 1, 0, sibling);
+          setEditingNodeId(sibling.id);
+          setEditValue("");
+        });
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        handleDeleteNode(sid);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        navigateSelection("up");
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        navigateSelection("down");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    editingNodeId,
+    selectedNodeId,
+    contextMenu,
+    handleIndent,
+    handleOutdent,
+    handleDeleteNode,
+    navigateSelection,
+    handleEditCancel,
+    saveTree
+  ]);
+  (0, import_react.useEffect)(() => {
     return () => {
       if (dragCleanupRef.current)
         dragCleanupRef.current();
@@ -30180,7 +30301,7 @@ function MindmapReactView({
                     "div",
                     {
                       "data-node-id": node2.id,
-                      className: `mm-node depth-${Math.min(node2.depth, 4)}${node2.kind === "content" ? " kind-content" : ""}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`,
+                      className: `mm-node depth-${Math.min(node2.depth, 5)}${node2.kind === "content" ? " kind-content" : ""}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}${node2.id === selectedNodeId ? " selected" : ""}`,
                       style: {
                         left: `${node2.x}px`,
                         top: `${node2.y}px`,
@@ -30192,27 +30313,36 @@ function MindmapReactView({
 ${node2.content}` : node2.label,
                       onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
-                      onPointerDown: (e) => handleNodePointerDown(e, node2.id),
-                      children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                        "input",
-                        {
-                          className: "mm-edit-input",
-                          value: editValue,
-                          onChange: (e) => setEditValue(e.target.value),
-                          onKeyDown: (e) => {
-                            if (e.key === "Enter")
-                              handleEditSave();
-                            if (e.key === "Escape")
-                              handleEditCancel();
-                          },
-                          onBlur: handleEditSave,
-                          autoFocus: true,
-                          onClick: (e) => e.stopPropagation(),
-                          onPointerDown: (e) => e.stopPropagation()
-                        }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                      onPointerDown: (e) => {
+                        setSelectedNodeId(node2.id);
+                        handleNodePointerDown(e, node2.id);
+                      },
+                      children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-edit-wrap", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "textarea",
+                          {
+                            className: "mm-edit-input",
+                            value: editValue,
+                            onChange: (e) => setEditValue(e.target.value),
+                            onKeyDown: (e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleEditSave();
+                              }
+                              if (e.key === "Escape")
+                                handleEditCancel();
+                            },
+                            onBlur: handleEditSave,
+                            autoFocus: true,
+                            rows: 3,
+                            onClick: (e) => e.stopPropagation(),
+                            onPointerDown: (e) => e.stopPropagation()
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-edit-hint", children: "Enter \u4FDD\u5B58 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
+                      ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-body", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", children: node2.label }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", dangerouslySetInnerHTML: { __html: renderInlineMarkdown(node2.label) } }),
                           node2.content && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-content", children: node2.content })
                         ] }),
                         node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-badge", children: node2.childCount }),
