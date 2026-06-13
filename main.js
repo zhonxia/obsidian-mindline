@@ -30045,6 +30045,34 @@ function MindmapReactView({
     editValueRef.current = "";
     return sibling.id;
   }, [editingNodeKind, saveTree]);
+  const commitEditingAndInsertChild = (0, import_react.useCallback)((nodeId) => {
+    const currentTree = treeRef.current;
+    const currentNode = currentTree ? findById(currentTree, nodeId) : null;
+    if (!currentNode || currentNode.kind === "content")
+      return null;
+    const currentKind = editingNodeKind;
+    const currentText = editValueRef.current.trim();
+    const child = createNode("");
+    saveTree((newTree) => {
+      const node2 = findById(newTree, nodeId);
+      if (!node2 || node2.kind === "content")
+        return;
+      if (currentKind === "content") {
+        node2.content = currentText;
+      } else {
+        node2.title = currentText;
+      }
+      child.depth = node2.depth + 1;
+      node2.children.push(child);
+      node2.collapsed = false;
+    });
+    setSelectedNodeId(child.id);
+    setEditingNodeId(child.id);
+    setEditingNodeKind("heading");
+    setEditValue("");
+    editValueRef.current = "";
+    return child.id;
+  }, [editingNodeKind, saveTree]);
   const handleEditCancel = (0, import_react.useCallback)(() => {
     setEditingNodeId(null);
     setEditingNodeKind("heading");
@@ -30506,6 +30534,11 @@ ${node2.content}` : node2.label,
                                 e.stopPropagation();
                                 commitEditingAndInsertSibling(node2.id);
                               }
+                              if (e.key === "Tab" && !e.shiftKey) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                commitEditingAndInsertChild(node2.id);
+                              }
                               if (e.key === "Escape") {
                                 e.stopPropagation();
                                 handleEditCancel();
@@ -30518,7 +30551,7 @@ ${node2.content}` : node2.label,
                             onPointerDown: (e) => e.stopPropagation()
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-edit-hint", children: "Enter \u65B0\u5EFA\u540C\u7EA7 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-edit-hint", children: "Enter \u65B0\u5EFA\u540C\u7EA7 \xB7 Tab \u65B0\u5EFA\u5B50\u7EA7 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
                       ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-body", children: [
                           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", dangerouslySetInnerHTML: { __html: renderInlineMarkdown(node2.label) } }),

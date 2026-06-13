@@ -534,6 +534,38 @@ export default function MindmapReactView({
     return sibling.id
   }, [editingNodeKind, saveTree])
 
+  const commitEditingAndInsertChild = useCallback((nodeId: string) => {
+    const currentTree = treeRef.current
+    const currentNode = currentTree ? findById(currentTree, nodeId) : null
+    if (!currentNode || currentNode.kind === 'content') return null
+
+    const currentKind = editingNodeKind
+    const currentText = editValueRef.current.trim()
+    const child = createNode('')
+
+    saveTree((newTree) => {
+      const node = findById(newTree, nodeId)
+      if (!node || node.kind === 'content') return
+
+      if (currentKind === 'content') {
+        node.content = currentText
+      } else {
+        node.title = currentText
+      }
+
+      child.depth = node.depth + 1
+      node.children.push(child)
+      node.collapsed = false
+    })
+
+    setSelectedNodeId(child.id)
+    setEditingNodeId(child.id)
+    setEditingNodeKind('heading')
+    setEditValue('')
+    editValueRef.current = ''
+    return child.id
+  }, [editingNodeKind, saveTree])
+
   const handleEditCancel = useCallback(() => {
     setEditingNodeId(null)
     setEditingNodeKind('heading')
@@ -1034,6 +1066,11 @@ export default function MindmapReactView({
                           e.stopPropagation()
                           commitEditingAndInsertSibling(node.id)
                         }
+                        if (e.key === 'Tab' && !e.shiftKey) {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          commitEditingAndInsertChild(node.id)
+                        }
                         if (e.key === 'Escape') {
                           e.stopPropagation()
                           handleEditCancel()
@@ -1045,7 +1082,7 @@ export default function MindmapReactView({
                       onClick={e => e.stopPropagation()}
                       onPointerDown={e => e.stopPropagation()}
                     />
-                    <div className="mm-edit-hint">Enter 新建同级 · Shift+Enter 换行 · Esc 取消</div>
+                    <div className="mm-edit-hint">Enter 新建同级 · Tab 新建子级 · Shift+Enter 换行 · Esc 取消</div>
                   </div>
                 ) : (
                   <>
