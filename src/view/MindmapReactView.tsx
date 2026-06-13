@@ -159,11 +159,17 @@ export default function MindmapReactView({
 
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  
+  // 节点拖拽状态
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+  
   const dragRef = useRef<{
     dragging: boolean; startX: number; startY: number; panX: number; panY: number
   }>({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const justSavedRef = useRef(false)
+  const dragNodeRef = useRef<{ nodeId: string } | null>(null)
 
   // 当 fileContent 从外部变化时，重建 tree（排除自己刚保存的）
   useEffect(() => {
@@ -204,6 +210,58 @@ export default function MindmapReactView({
       return next
     })
   }, [onSaveContent])
+
+  // 检查 nodeId 是否是 ancestorId 的祖先（用于防止循环）
+  const isAncestor = useCallback((root: TreeNode, ancestorId: string, nodeId: string): boolean => {
+    if (root.id === ancestorId) {
+      // 从 root 开始找 nodeId
+      const findNode = (n: TreeNode): boolean => {
+        if (n.id === nodeId) return true
+        for (const c of n.children) {
+          if (findNode(c)) return true
+        }
+        return false
+      }
+      return findNode(root)
+    }
+    for (const c of root.children) {
+      if (isAncestor(c, ancestorId, nodeId)) return true
+    }
+    return false
+  }, [])
+
+  // 拖拽放置：改变节点父子关系
+  const handleDrop = useCallback((draggedNodeId: string, targetNodeId: string) => {
+    if (draggedNodeId === targetNodeId) return
+    
+    saveTree((newTree) => {
+      const draggedNode = findById(newTree, draggedNodeId)
+      const targetNode = findById(newTree, targetNodeId)
+      if (!draggedNode || !targetNode) return
+      
+      // 检查是否会产生循环（不能将节点拖拽到它自己的子节点上）
+      if (isAncestor(draggedNode, draggedNode.id, targetNodeId)) {
+        console.warn('[MindMap] 不能将节点拖拽到它自己的子节点上')
+        return
+      }
+      
+      // 从原父节点移除
+      const oldParent = findParent(newTree, draggedNodeId)
+      if (!oldParent) return
+      const idx = oldParent.children.findIndex(c => c.id === draggedNodeId)
+      if (idx >= 0) oldParent.children.splice(idx, 1)
+      
+      // 添加到目标节点
+      targetNode.children.push(draggedNode)
+      
+      // 更新 depth
+      const updateDepth = (node: TreeNode, depth: number) => {
+        node.depth = depth
+        node.children.forEach(c => updateDepth(c, depth + 1))
+      }
+      updateDepth(draggedNode, targetNode.depth + 1)
+    })
+  }, [saveTree, isAncestor])
 
   // 编辑节点标题
   const handleDoubleClick = useCallback((nodeId: string, currentTitle: string) => {
@@ -318,7 +376,7 @@ export default function MindmapReactView({
     return () => container.removeEventListener('wheel', onWheel)
   }, [])
 
-  // 拖拽
+  // 画布拖拽
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.mm-node')) return
     setContextMenu(null)
@@ -339,6 +397,34 @@ export default function MindmapReactView({
   const onMouseUp = useCallback(() => {
     dragRef.current.dragging = false
   }, [])
+
+  // 节点拖拽开始
+  const handleNodeDragStart = useCallback((e: React.MouseEvent, nodeId: string) => {
+    if (editingNodeId) return // 正在编辑，不拖拽
+    e.stopPropagation()
+    setDraggingNodeId(nodeId)
+    dragNodeRef.current = { nodeId }
+  }, [editingNodeId])
+
+  // 节点拖拽结束
+  const handleNodeDragEnd = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (draggingNodeId && dropTargetId && draggingNodeId !== dropTargetId) {
+      handleDrop(draggingNodeId, dropTargetId)
+    }
+    setDraggingNodeId(null)
+    setDropTargetId(null)
+    dragNodeRef.current = null
+  }, [draggingNodeId, dropTargetId, handleDrop])
+
+  // 节点拖拽经过（设置放置目标）
+  const handleNodeDragOver = useCallback((e: React.MouseEvent, nodeId: string) => {
+    if (draggingNodeId && nodeId !== draggingNodeId) {
+      e.preventDefault()
+      e.stopPropagation()
+      setDropTargetId(nodeId)
+    }
+  }, [draggingNodeId])
 
   // ── 渲染 ──────────────────────────────────
 
@@ -399,6 +485,7 @@ export default function MindmapReactView({
             transformOrigin: '0 0',
           }}
           onClick={e => e.stopPropagation()}
+          onMouseUp={handleNodeDragEnd}
         >
           <svg className="mindmap-edges" width={graph.width} height={graph.height}>
             {graph.edges.map(edge => (
@@ -408,10 +495,13 @@ export default function MindmapReactView({
 
           {graph.nodes.map(node => {
             const isEditing = editingNodeId === node.id
+            const isDragging = draggingNodeId === node.id
+            const isDropTarget = dropTargetId === node.id && draggingNodeId !== node.id
+            
             return (
               <div
                 key={node.id}
-                className={`mm-node depth-${Math.min(node.depth, 4)}`}
+                className={`mm-node depth-${Math.min(node.depth, 4)}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
                 style={{
                   left: `${node.x}px`,
                   top: `${node.y}px`,
@@ -421,6 +511,9 @@ export default function MindmapReactView({
                 title={node.label}
                 onDoubleClick={() => handleDoubleClick(node.id, node.label)}
                 onContextMenu={e => handleContextMenu(e, node.id)}
+                onMouseDown={e => handleNodeDragStart(e, node.id)}
+                onMouseEnter={e => handleNodeDragOver(e, node.id)}
+                onMouseUp={handleNodeDragEnd}
               >
                 {isEditing ? (
                   <input
@@ -448,6 +541,13 @@ export default function MindmapReactView({
         </div>
 
         <div className="mindmap-zoom-info">{Math.round(zoom * 100)}%</div>
+        
+        {/* 拖拽提示 */}
+        {draggingNodeId && (
+          <div className="mindmap-drag-hint">
+            拖拽到目标节点上释放以改变层级关系
+          </div>
+        )}
       </div>
     </MindmapErrorBoundary>
   )

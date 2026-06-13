@@ -29962,9 +29962,12 @@ function MindmapReactView({
   const [contextMenu, setContextMenu] = (0, import_react.useState)(null);
   const [pan, setPan] = (0, import_react.useState)({ x: 0, y: 0 });
   const [zoom, setZoom] = (0, import_react.useState)(1);
+  const [draggingNodeId, setDraggingNodeId] = (0, import_react.useState)(null);
+  const [dropTargetId, setDropTargetId] = (0, import_react.useState)(null);
   const dragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
   const containerRef = (0, import_react.useRef)(null);
   const justSavedRef = (0, import_react.useRef)(false);
+  const dragNodeRef = (0, import_react.useRef)(null);
   (0, import_react.useEffect)(() => {
     if (justSavedRef.current) {
       justSavedRef.current = false;
@@ -29999,6 +30002,51 @@ function MindmapReactView({
       return next;
     });
   }, [onSaveContent]);
+  const isAncestor = (0, import_react.useCallback)((root, ancestorId, nodeId) => {
+    if (root.id === ancestorId) {
+      const findNode = (n) => {
+        if (n.id === nodeId)
+          return true;
+        for (const c of n.children) {
+          if (findNode(c))
+            return true;
+        }
+        return false;
+      };
+      return findNode(root);
+    }
+    for (const c of root.children) {
+      if (isAncestor(c, ancestorId, nodeId))
+        return true;
+    }
+    return false;
+  }, []);
+  const handleDrop = (0, import_react.useCallback)((draggedNodeId, targetNodeId) => {
+    if (draggedNodeId === targetNodeId)
+      return;
+    saveTree((newTree) => {
+      const draggedNode = findById(newTree, draggedNodeId);
+      const targetNode = findById(newTree, targetNodeId);
+      if (!draggedNode || !targetNode)
+        return;
+      if (isAncestor(draggedNode, draggedNode.id, targetNodeId)) {
+        console.warn("[MindMap] \u4E0D\u80FD\u5C06\u8282\u70B9\u62D6\u62FD\u5230\u5B83\u81EA\u5DF1\u7684\u5B50\u8282\u70B9\u4E0A");
+        return;
+      }
+      const oldParent = findParent(newTree, draggedNodeId);
+      if (!oldParent)
+        return;
+      const idx = oldParent.children.findIndex((c) => c.id === draggedNodeId);
+      if (idx >= 0)
+        oldParent.children.splice(idx, 1);
+      targetNode.children.push(draggedNode);
+      const updateDepth = (node2, depth) => {
+        node2.depth = depth;
+        node2.children.forEach((c) => updateDepth(c, depth + 1));
+      };
+      updateDepth(draggedNode, targetNode.depth + 1);
+    });
+  }, [saveTree, isAncestor]);
   const handleDoubleClick = (0, import_react.useCallback)((nodeId, currentTitle) => {
     setEditingNodeId(nodeId);
     setEditValue(currentTitle);
@@ -30127,6 +30175,29 @@ function MindmapReactView({
   const onMouseUp = (0, import_react.useCallback)(() => {
     dragRef.current.dragging = false;
   }, []);
+  const handleNodeDragStart = (0, import_react.useCallback)((e, nodeId) => {
+    if (editingNodeId)
+      return;
+    e.stopPropagation();
+    setDraggingNodeId(nodeId);
+    dragNodeRef.current = { nodeId };
+  }, [editingNodeId]);
+  const handleNodeDragEnd = (0, import_react.useCallback)((e) => {
+    e.stopPropagation();
+    if (draggingNodeId && dropTargetId && draggingNodeId !== dropTargetId) {
+      handleDrop(draggingNodeId, dropTargetId);
+    }
+    setDraggingNodeId(null);
+    setDropTargetId(null);
+    dragNodeRef.current = null;
+  }, [draggingNodeId, dropTargetId, handleDrop]);
+  const handleNodeDragOver = (0, import_react.useCallback)((e, nodeId) => {
+    if (draggingNodeId && nodeId !== draggingNodeId) {
+      e.preventDefault();
+      e.stopPropagation();
+      setDropTargetId(nodeId);
+    }
+  }, [draggingNodeId]);
   if (!fileLoaded) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u6B63\u5728\u8BFB\u53D6\u6587\u4EF6", detail: filePath || "\u7B49\u5F85\u4F20\u5165\u6587\u4EF6" });
   }
@@ -30178,14 +30249,17 @@ function MindmapReactView({
                 transformOrigin: "0 0"
               },
               onClick: (e) => e.stopPropagation(),
+              onMouseUp: handleNodeDragEnd,
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { className: "mindmap-edges", width: graph.width, height: graph.height, children: graph.edges.map((edge) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: edgePath(edge) }, edge.id)) }),
                 graph.nodes.map((node2) => {
                   const isEditing = editingNodeId === node2.id;
+                  const isDragging = draggingNodeId === node2.id;
+                  const isDropTarget = dropTargetId === node2.id && draggingNodeId !== node2.id;
                   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "div",
                     {
-                      className: `mm-node depth-${Math.min(node2.depth, 4)}`,
+                      className: `mm-node depth-${Math.min(node2.depth, 4)}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`,
                       style: {
                         left: `${node2.x}px`,
                         top: `${node2.y}px`,
@@ -30195,6 +30269,9 @@ function MindmapReactView({
                       title: node2.label,
                       onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
+                      onMouseDown: (e) => handleNodeDragStart(e, node2.id),
+                      onMouseEnter: (e) => handleNodeDragOver(e, node2.id),
+                      onMouseUp: handleNodeDragEnd,
                       children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                         "input",
                         {
@@ -30226,7 +30303,8 @@ function MindmapReactView({
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-zoom-info", children: [
             Math.round(zoom * 100),
             "%"
-          ] })
+          ] }),
+          draggingNodeId && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-drag-hint", children: "\u62D6\u62FD\u5230\u76EE\u6807\u8282\u70B9\u4E0A\u91CA\u653E\u4EE5\u6539\u53D8\u5C42\u7EA7\u5173\u7CFB" })
         ]
       }
     )
