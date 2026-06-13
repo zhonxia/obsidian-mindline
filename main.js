@@ -29927,7 +29927,6 @@ function MindmapReactView({
   const editingNodeIdRef = (0, import_react2.useRef)(null);
   const editValueRef = (0, import_react2.useRef)("");
   const initialFitDone = (0, import_react2.useRef)(false);
-  const editRef = (0, import_react2.useRef)(null);
   const [draggingNodeId, setDraggingNodeId] = (0, import_react2.useState)(null);
   const [dropTarget, setDropTarget] = (0, import_react2.useState)(null);
   const draggingNodeIdRef = (0, import_react2.useRef)(null);
@@ -30078,16 +30077,6 @@ function MindmapReactView({
     setEditingNodeId(nodeId);
     setEditValue(text3);
     setContextMenu(null);
-    setTimeout(() => {
-      if (editRef.current) {
-        editRef.current.focus();
-        const range = document.createRange();
-        range.selectNodeContents(editRef.current);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
-    }, 0);
   }, []);
   const handleEditSave = (0, import_react2.useCallback)(() => {
     const newText = editValue.trim();
@@ -30200,27 +30189,6 @@ function MindmapReactView({
     setEditingNodeId(null);
     setEditValue("");
   }, []);
-  const handleEditInput = (0, import_react2.useCallback)((e) => {
-    const newText = e.currentTarget.textContent || "";
-    editValueRef.current = newText;
-    setEditValue(newText);
-  }, []);
-  const handleEditKeyDown = (0, import_react2.useCallback)((e, nodeId) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      commitEditingAndInsertSibling(nodeId);
-    }
-    if (e.key === "Tab" && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      commitEditingAndInsertChild(nodeId);
-    }
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      handleEditCancel();
-    }
-  }, [commitEditingAndInsertSibling, commitEditingAndInsertChild, handleEditCancel]);
   const handleAddChild = (0, import_react2.useCallback)((nodeId) => {
     const parent = tree ? findById(tree, nodeId) : null;
     if (!parent) {
@@ -30699,21 +30667,17 @@ ${node2.content}` : node2.label,
                         setSelectedNodeId(node2.id);
                         handleNodePointerDown(e, node2.id);
                       },
-                      children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mm-body", children: [
+                      children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mm-edit-wrap", children: [
                         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                          "span",
+                          "textarea",
                           {
-                            ref: isEditing ? editRef : void 0,
-                            className: "mm-title",
-                            contentEditable: isEditing ? "plaintext-only" : void 0,
-                            suppressContentEditableWarning: isEditing,
-                            onInput: isEditing ? (e) => {
-                              const newText = e.currentTarget.textContent || "";
-                              editValueRef.current = newText;
-                              setEditValue(newText);
-                            } : void 0,
-                            onBlur: isEditing ? handleEditSave : void 0,
-                            onKeyDown: isEditing ? (e) => {
+                            className: "mm-edit-input",
+                            value: editValue,
+                            onChange: (e) => {
+                              editValueRef.current = e.target.value;
+                              setEditValue(e.target.value);
+                            },
+                            onKeyDown: (e) => {
                               if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -30728,17 +30692,15 @@ ${node2.content}` : node2.label,
                                 e.stopPropagation();
                                 handleEditCancel();
                               }
-                            } : void 0,
-                            children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: editValue }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-                              headingMarker.level && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "mm-heading-badge", children: [
-                                "H",
-                                headingMarker.level
-                              ] }),
-                              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { dangerouslySetInnerHTML: { __html: renderInlineMarkdown(headingMarker.label) } })
-                            ] })
+                            },
+                            onBlur: handleEditSave,
+                            autoFocus: true,
+                            rows: 3,
+                            onClick: (e) => e.stopPropagation(),
+                            onPointerDown: (e) => e.stopPropagation()
                           }
                         ),
-                        !isEditing && node2.content && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mm-content", children: node2.content })
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mm-edit-hint", children: "Enter \u65B0\u5EFA\u540C\u7EA7 \xB7 Tab \u65B0\u5EFA\u5B50\u7EA7 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
                       ] }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
                         /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mm-body", children: [
                           /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "mm-title", children: [
