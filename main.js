@@ -29964,10 +29964,12 @@ function MindmapReactView({
   const [zoom, setZoom] = (0, import_react.useState)(1);
   const [draggingNodeId, setDraggingNodeId] = (0, import_react.useState)(null);
   const [dropTargetId, setDropTargetId] = (0, import_react.useState)(null);
-  const dragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
+  const draggingNodeIdRef = (0, import_react.useRef)(null);
+  const dropTargetIdRef = (0, import_react.useRef)(null);
   const containerRef = (0, import_react.useRef)(null);
   const justSavedRef = (0, import_react.useRef)(false);
-  const dragNodeRef = (0, import_react.useRef)(null);
+  const panDragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
+  const dragCleanupRef = (0, import_react.useRef)(null);
   (0, import_react.useEffect)(() => {
     if (justSavedRef.current) {
       justSavedRef.current = false;
@@ -30029,10 +30031,8 @@ function MindmapReactView({
       const targetNode = findById(newTree, targetNodeId);
       if (!draggedNode || !targetNode)
         return;
-      if (isAncestor(draggedNode, draggedNode.id, targetNodeId)) {
-        console.warn("[MindMap] \u4E0D\u80FD\u5C06\u8282\u70B9\u62D6\u62FD\u5230\u5B83\u81EA\u5DF1\u7684\u5B50\u8282\u70B9\u4E0A");
+      if (isAncestor(draggedNode, draggedNode.id, targetNodeId))
         return;
-      }
       const oldParent = findParent(newTree, draggedNodeId);
       if (!oldParent)
         return;
@@ -30149,55 +30149,94 @@ function MindmapReactView({
       return;
     const onWheel = (e) => {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.08 : 0.08;
-      setZoom((prev) => Math.min(3, Math.max(0.1, +(prev + delta).toFixed(2))));
+      const absDY = Math.abs(e.deltaY);
+      const isTrackpad = e.deltaMode === 0 && absDY < 30;
+      if (isTrackpad && !e.ctrlKey) {
+        setPan((prev) => ({
+          x: prev.x - (e.deltaX || 0),
+          y: prev.y - e.deltaY
+        }));
+      } else {
+        const factor = e.deltaY > 0 ? -0.08 : 0.08;
+        setZoom((prev) => Math.min(3, Math.max(0.1, +(prev + factor).toFixed(2))));
+      }
     };
     container.addEventListener("wheel", onWheel, { passive: false });
     return () => container.removeEventListener("wheel", onWheel);
   }, []);
-  const onMouseDown = (0, import_react.useCallback)((e) => {
+  const handleCanvasPointerDown = (0, import_react.useCallback)((e) => {
+    if (e.pointerType === "touch")
+      return;
     if (e.target.closest(".mm-node"))
       return;
     setContextMenu(null);
-    const d = dragRef.current;
+    const d = panDragRef.current;
     d.dragging = true;
     d.startX = e.clientX;
     d.startY = e.clientY;
     d.panX = pan.x;
     d.panY = pan.y;
   }, [pan]);
-  const onMouseMove = (0, import_react.useCallback)((e) => {
-    const d = dragRef.current;
+  const handleCanvasPointerMove = (0, import_react.useCallback)((e) => {
+    const d = panDragRef.current;
     if (!d.dragging)
       return;
     setPan({ x: d.panX + (e.clientX - d.startX), y: d.panY + (e.clientY - d.startY) });
   }, []);
-  const onMouseUp = (0, import_react.useCallback)(() => {
-    dragRef.current.dragging = false;
+  const handleCanvasPointerUp = (0, import_react.useCallback)(() => {
+    panDragRef.current.dragging = false;
   }, []);
-  const handleNodeDragStart = (0, import_react.useCallback)((e, nodeId) => {
+  const handleNodePointerDown = (0, import_react.useCallback)((e, nodeId) => {
     if (editingNodeId)
       return;
     e.stopPropagation();
+    e.preventDefault();
+    const container = containerRef.current;
+    if (!container)
+      return;
+    draggingNodeIdRef.current = nodeId;
+    dropTargetIdRef.current = null;
     setDraggingNodeId(nodeId);
-    dragNodeRef.current = { nodeId };
-  }, [editingNodeId]);
-  const handleNodeDragEnd = (0, import_react.useCallback)((e) => {
-    e.stopPropagation();
-    if (draggingNodeId && dropTargetId && draggingNodeId !== dropTargetId) {
-      handleDrop(draggingNodeId, dropTargetId);
-    }
-    setDraggingNodeId(null);
     setDropTargetId(null);
-    dragNodeRef.current = null;
-  }, [draggingNodeId, dropTargetId, handleDrop]);
-  const handleNodeDragOver = (0, import_react.useCallback)((e, nodeId) => {
-    if (draggingNodeId && nodeId !== draggingNodeId) {
-      e.preventDefault();
-      e.stopPropagation();
-      setDropTargetId(nodeId);
-    }
-  }, [draggingNodeId]);
+    const handlePointerMove = (ev) => {
+      const elements = document.elementsFromPoint(ev.clientX, ev.clientY);
+      let foundId = null;
+      for (const el of elements) {
+        const nodeEl = el.closest?.("[data-node-id]");
+        if (nodeEl && nodeEl.dataset.nodeId && nodeEl.dataset.nodeId !== draggingNodeIdRef.current) {
+          foundId = nodeEl.dataset.nodeId;
+          break;
+        }
+      }
+      dropTargetIdRef.current = foundId;
+      setDropTargetId(foundId);
+    };
+    const handlePointerUp = (ev) => {
+      const dragId = draggingNodeIdRef.current;
+      const tgtId = dropTargetIdRef.current;
+      if (dragId && tgtId && dragId !== tgtId) {
+        handleDrop(dragId, tgtId);
+      }
+      draggingNodeIdRef.current = null;
+      dropTargetIdRef.current = null;
+      setDraggingNodeId(null);
+      setDropTargetId(null);
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerup", handlePointerUp);
+    };
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerup", handlePointerUp);
+    dragCleanupRef.current = () => {
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [editingNodeId, handleDrop]);
+  (0, import_react.useEffect)(() => {
+    return () => {
+      if (dragCleanupRef.current)
+        dragCleanupRef.current();
+    };
+  }, []);
   if (!fileLoaded) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u6B63\u5728\u8BFB\u53D6\u6587\u4EF6", detail: filePath || "\u7B49\u5F85\u4F20\u5165\u6587\u4EF6" });
   }
@@ -30232,11 +30271,12 @@ function MindmapReactView({
       {
         ref: containerRef,
         className: "mindmap-react-inner",
-        onMouseDown,
-        onMouseMove,
-        onMouseUp,
-        onMouseLeave: onMouseUp,
+        onPointerDown: handleCanvasPointerDown,
+        onPointerMove: handleCanvasPointerMove,
+        onPointerUp: handleCanvasPointerUp,
+        onPointerLeave: handleCanvasPointerUp,
         onClick: handleCanvasClick,
+        style: { touchAction: "none" },
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "div",
@@ -30249,16 +30289,16 @@ function MindmapReactView({
                 transformOrigin: "0 0"
               },
               onClick: (e) => e.stopPropagation(),
-              onMouseUp: handleNodeDragEnd,
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { className: "mindmap-edges", width: graph.width, height: graph.height, children: graph.edges.map((edge) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: edgePath(edge) }, edge.id)) }),
                 graph.nodes.map((node2) => {
                   const isEditing = editingNodeId === node2.id;
                   const isDragging = draggingNodeId === node2.id;
-                  const isDropTarget = dropTargetId === node2.id && draggingNodeId !== node2.id;
+                  const isDropTarget = dropTargetId === node2.id && draggingNodeId !== null && draggingNodeId !== node2.id;
                   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "div",
                     {
+                      "data-node-id": node2.id,
                       className: `mm-node depth-${Math.min(node2.depth, 4)}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`,
                       style: {
                         left: `${node2.x}px`,
@@ -30269,9 +30309,7 @@ function MindmapReactView({
                       title: node2.label,
                       onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
-                      onMouseDown: (e) => handleNodeDragStart(e, node2.id),
-                      onMouseEnter: (e) => handleNodeDragOver(e, node2.id),
-                      onMouseUp: handleNodeDragEnd,
+                      onPointerDown: (e) => handleNodePointerDown(e, node2.id),
                       children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                         "input",
                         {
@@ -30287,11 +30325,39 @@ function MindmapReactView({
                           onBlur: handleEditSave,
                           autoFocus: true,
                           onClick: (e) => e.stopPropagation(),
-                          onMouseDown: (e) => e.stopPropagation()
+                          onPointerDown: (e) => e.stopPropagation()
                         }
                       ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", children: node2.label }),
-                        node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-badge", children: node2.childCount })
+                        node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-badge", children: node2.childCount }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "span",
+                          {
+                            className: "mm-drag-handle",
+                            title: "\u62D6\u62FD\u5230\u5176\u5B83\u8282\u70B9\u4E0A\u4EE5\u6539\u53D8\u5C42\u7EA7",
+                            style: {
+                              position: "absolute",
+                              left: -8,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              width: 16,
+                              height: 24,
+                              cursor: "grab",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#94a3b8",
+                              fontSize: 10,
+                              borderRadius: 4,
+                              userSelect: "none"
+                            },
+                            onPointerDown: (e) => {
+                              e.stopPropagation();
+                              handleNodePointerDown(e, node2.id);
+                            },
+                            children: "\u22EE"
+                          }
+                        )
                       ] })
                     },
                     node2.id
