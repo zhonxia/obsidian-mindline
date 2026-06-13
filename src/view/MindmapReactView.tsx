@@ -866,7 +866,7 @@ export default function MindmapReactView({
         if (e.shiftKey) {
           handleOutdent(sid)
         } else {
-          handleIndent(sid)
+          insertChildFor(sid)
         }
       } else if (e.key === 'Enter' && !contextMenu) {
         e.preventDefault()
@@ -893,7 +893,7 @@ export default function MindmapReactView({
     window.addEventListener('keydown', onKeyDown, { capture: true })
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [editingNodeId, selectedNodeId, contextMenu,
-      handleIndent, handleOutdent, handleDeleteNode, navigateSelection,
+      handleOutdent, handleDeleteNode, navigateSelection,
       handleEditCancel, insertChildFor, insertSiblingAfter])
 
   // 组件卸载时清理拖拽监听

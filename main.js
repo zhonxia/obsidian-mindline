@@ -30352,7 +30352,7 @@ function MindmapReactView({
         if (e.shiftKey) {
           handleOutdent(sid);
         } else {
-          handleIndent(sid);
+          insertChildFor(sid);
         }
       } else if (e.key === "Enter" && !contextMenu) {
         e.preventDefault();
@@ -30382,7 +30382,6 @@ function MindmapReactView({
     editingNodeId,
     selectedNodeId,
     contextMenu,
-    handleIndent,
     handleOutdent,
     handleDeleteNode,
     navigateSelection,
