@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian'
+import { Plugin, Notice, WorkspaceLeaf } from 'obsidian'
 import { MindmapView, VIEW_TYPE_MINDMAP } from './view/MindmapView'
 
 export default class MindMapPlugin extends Plugin {
@@ -18,9 +18,9 @@ export default class MindMapPlugin extends Plugin {
       }
     }))
     
-    // 也监听 file-open 作为备份
-    this.registerEvent(this.app.vault.on('open', (f: any) => {
-      if (f) this.lastFilePath = f.path
+    // 也监听 file-open 作为备份（用 workspace，不用 vault）
+    this.registerEvent(this.app.workspace.on('file-open', (file) => {
+      if (file) this.lastFilePath = file.path
     }))
 
     // Register view type
@@ -73,8 +73,6 @@ export default class MindMapPlugin extends Plugin {
     // ── 脑图 → Markdown ──
     if (viewType === VIEW_TYPE_MINDMAP) {
       const view = activeLeaf.view as MindmapView
-      await view.saveCurrentTree()
-
       const targetPath = view.getFilePath() || this.lastFilePath || ''
       if (!targetPath) return
 

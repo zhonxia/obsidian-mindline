@@ -1,15 +1,16 @@
 {
   "name": "obsidian-mindmap-plugin",
-  "version": "0.1.0",
-  "description": "MindMD 脑图视图 Obsidian 插件 - Markdown 大纲可视化与编辑",
+  "version": "0.2.0",
+  "description": "Markdown 大纲脑图视图（只读预览）",
   "main": "main.js",
   "scripts": {
-    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && node esbuild.config.mjs",
     "dev": "node esbuild.config.mjs --watch"
   },
   "dependencies": {
-    "@xyflow/react": "^12.0.0",
     "d3": "^7.9.0",
+    "d3-hierarchy": "^3.1.2",
     "mdast-util-from-markdown": "^2.0.0",
     "mdast-util-to-markdown": "^2.1.0",
     "nanoid": "^5.0.0",
@@ -17,6 +18,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/d3-hierarchy": "^3.1.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "obsidian": "^1.0.0",

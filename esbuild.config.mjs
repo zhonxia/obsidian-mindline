@@ -6,9 +6,9 @@ Obsidian MindMap Plugin - Ported from MindMD
 */`
 
 const prod = process.argv[2] !== '--watch'
+const DEV = !prod
 
 // CSS loader: return empty string (styles go in styles.css)
-// This allows `import '@xyflow/react/dist/style.css'` to not break the build
 const cssLoaderPlugin = {
   name: 'css-loader',
   setup(build) {
@@ -32,6 +32,9 @@ const context = await esbuild.context({
   jsx: 'automatic',
   jsxImportSource: 'react',
   plugins: [cssLoaderPlugin],
+  define: {
+    'DEV': DEV ? 'true' : 'false',
+  },
 })
 
 if (prod) {
