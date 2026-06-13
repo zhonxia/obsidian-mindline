@@ -246,20 +246,20 @@ var require_react_development = __commonJS({
         {
           Object.freeze(emptyObject);
         }
-        function Component(props, context, updater) {
+        function Component2(props, context, updater) {
           this.props = props;
           this.context = context;
           this.refs = emptyObject;
           this.updater = updater || ReactNoopUpdateQueue;
         }
-        Component.prototype.isReactComponent = {};
-        Component.prototype.setState = function(partialState, callback) {
+        Component2.prototype.isReactComponent = {};
+        Component2.prototype.setState = function(partialState, callback) {
           if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null) {
             throw new Error("setState(...): takes an object of state variables to update or a function which returns an object of state variables.");
           }
           this.updater.enqueueSetState(this, partialState, callback, "setState");
         };
-        Component.prototype.forceUpdate = function(callback) {
+        Component2.prototype.forceUpdate = function(callback) {
           this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
         };
         {
@@ -268,7 +268,7 @@ var require_react_development = __commonJS({
             replaceState: ["replaceState", "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."]
           };
           var defineDeprecationWarning = function(methodName, info) {
-            Object.defineProperty(Component.prototype, methodName, {
+            Object.defineProperty(Component2.prototype, methodName, {
               get: function() {
                 warn("%s(...) is deprecated in plain JavaScript React classes. %s", info[0], info[1]);
                 return void 0;
@@ -283,7 +283,7 @@ var require_react_development = __commonJS({
         }
         function ComponentDummy() {
         }
-        ComponentDummy.prototype = Component.prototype;
+        ComponentDummy.prototype = Component2.prototype;
         function PureComponent(props, context, updater) {
           this.props = props;
           this.context = context;
@@ -292,7 +292,7 @@ var require_react_development = __commonJS({
         }
         var pureComponentPrototype = PureComponent.prototype = new ComponentDummy();
         pureComponentPrototype.constructor = PureComponent;
-        assign(pureComponentPrototype, Component.prototype);
+        assign(pureComponentPrototype, Component2.prototype);
         pureComponentPrototype.isPureReactComponent = true;
         function createRef() {
           var refObject = {
@@ -1357,8 +1357,8 @@ var require_react_development = __commonJS({
             return describeNativeComponentFrame(fn, false);
           }
         }
-        function shouldConstruct(Component2) {
-          var prototype = Component2.prototype;
+        function shouldConstruct(Component3) {
+          var prototype = Component3.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
         function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
@@ -1864,7 +1864,7 @@ var require_react_development = __commonJS({
           only: onlyChild
         };
         exports.Children = Children;
-        exports.Component = Component;
+        exports.Component = Component2;
         exports.Fragment = REACT_FRAGMENT_TYPE;
         exports.Profiler = REACT_PROFILER_TYPE;
         exports.PureComponent = PureComponent;
@@ -2391,9 +2391,9 @@ var require_react_dom_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var React2 = require_react();
+        var React3 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -3428,8 +3428,8 @@ var require_react_dom_development = __commonJS({
             return describeNativeComponentFrame(fn, false);
           }
         }
-        function shouldConstruct(Component) {
-          var prototype = Component.prototype;
+        function shouldConstruct(Component2) {
+          var prototype = Component2.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
         function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
@@ -3998,7 +3998,7 @@ var require_react_dom_development = __commonJS({
           {
             if (props.value == null) {
               if (typeof props.children === "object" && props.children !== null) {
-                React2.Children.forEach(props.children, function(child) {
+                React3.Children.forEach(props.children, function(child) {
                   if (child == null) {
                     return;
                   }
@@ -10862,9 +10862,9 @@ var require_react_dom_development = __commonJS({
         var contextStackCursor = createCursor(emptyContextObject);
         var didPerformWorkStackCursor = createCursor(false);
         var previousContext = emptyContextObject;
-        function getUnmaskedContext(workInProgress2, Component, didPushOwnContextIfProvider) {
+        function getUnmaskedContext(workInProgress2, Component2, didPushOwnContextIfProvider) {
           {
-            if (didPushOwnContextIfProvider && isContextProvider(Component)) {
+            if (didPushOwnContextIfProvider && isContextProvider(Component2)) {
               return previousContext;
             }
             return contextStackCursor.current;
@@ -11001,8 +11001,8 @@ var require_react_dom_development = __commonJS({
                 case HostRoot:
                   return node2.stateNode.context;
                 case ClassComponent: {
-                  var Component = node2.type;
-                  if (isContextProvider(Component)) {
+                  var Component2 = node2.type;
+                  if (isContextProvider(Component2)) {
                     return node2.stateNode.__reactInternalMemoizedMergedChildContext;
                   }
                   break;
@@ -13459,7 +13459,7 @@ var require_react_dom_development = __commonJS({
           }
           return true;
         }
-        function renderWithHooks(current2, workInProgress2, Component, props, secondArg, nextRenderLanes) {
+        function renderWithHooks(current2, workInProgress2, Component2, props, secondArg, nextRenderLanes) {
           renderLanes = nextRenderLanes;
           currentlyRenderingFiber$1 = workInProgress2;
           {
@@ -13479,7 +13479,7 @@ var require_react_dom_development = __commonJS({
               ReactCurrentDispatcher$1.current = HooksDispatcherOnMountInDEV;
             }
           }
-          var children = Component(props, secondArg);
+          var children = Component2(props, secondArg);
           if (didScheduleRenderPhaseUpdateDuringThisPass) {
             var numberOfReRenders = 0;
             do {
@@ -13499,7 +13499,7 @@ var require_react_dom_development = __commonJS({
                 hookTypesUpdateIndexDev = -1;
               }
               ReactCurrentDispatcher$1.current = HooksDispatcherOnRerenderInDEV;
-              children = Component(props, secondArg);
+              children = Component2(props, secondArg);
             } while (didScheduleRenderPhaseUpdateDuringThisPass);
           }
           ReactCurrentDispatcher$1.current = ContextOnlyDispatcher;
@@ -15298,10 +15298,10 @@ var require_react_dom_development = __commonJS({
             child = child.sibling;
           }
         }
-        function resolveDefaultProps(Component, baseProps) {
-          if (Component && Component.defaultProps) {
+        function resolveDefaultProps(Component2, baseProps) {
+          if (Component2 && Component2.defaultProps) {
             var props = assign({}, baseProps);
-            var defaultProps = Component.defaultProps;
+            var defaultProps = Component2.defaultProps;
             for (var propName in defaultProps) {
               if (props[propName] === void 0) {
                 props[propName] = defaultProps[propName];
@@ -16230,22 +16230,22 @@ var require_react_dom_development = __commonJS({
           workInProgress2.child = reconcileChildFibers(workInProgress2, current2.child, null, renderLanes2);
           workInProgress2.child = reconcileChildFibers(workInProgress2, null, nextChildren, renderLanes2);
         }
-        function updateForwardRef(current2, workInProgress2, Component, nextProps, renderLanes2) {
+        function updateForwardRef(current2, workInProgress2, Component2, nextProps, renderLanes2) {
           {
             if (workInProgress2.type !== workInProgress2.elementType) {
-              var innerPropTypes = Component.propTypes;
+              var innerPropTypes = Component2.propTypes;
               if (innerPropTypes) {
                 checkPropTypes(
                   innerPropTypes,
                   nextProps,
                   // Resolved props
                   "prop",
-                  getComponentNameFromType(Component)
+                  getComponentNameFromType(Component2)
                 );
               }
             }
           }
-          var render2 = Component.render;
+          var render2 = Component2.render;
           var ref = workInProgress2.ref;
           var nextChildren;
           var hasId;
@@ -16283,11 +16283,11 @@ var require_react_dom_development = __commonJS({
           reconcileChildren(current2, workInProgress2, nextChildren, renderLanes2);
           return workInProgress2.child;
         }
-        function updateMemoComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+        function updateMemoComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
           if (current2 === null) {
-            var type = Component.type;
-            if (isSimpleFunctionComponent(type) && Component.compare === null && // SimpleMemoComponent codepath doesn't resolve outer props either.
-            Component.defaultProps === void 0) {
+            var type = Component2.type;
+            if (isSimpleFunctionComponent(type) && Component2.compare === null && // SimpleMemoComponent codepath doesn't resolve outer props either.
+            Component2.defaultProps === void 0) {
               var resolvedType = type;
               {
                 resolvedType = resolveFunctionForHotReloading(type);
@@ -16310,7 +16310,7 @@ var require_react_dom_development = __commonJS({
                   getComponentNameFromType(type)
                 );
               }
-              if (Component.defaultProps !== void 0) {
+              if (Component2.defaultProps !== void 0) {
                 var componentName = getComponentNameFromType(type) || "Unknown";
                 if (!didWarnAboutDefaultPropsOnFunctionComponent[componentName]) {
                   error("%s: Support for defaultProps will be removed from memo components in a future major release. Use JavaScript default parameters instead.", componentName);
@@ -16318,14 +16318,14 @@ var require_react_dom_development = __commonJS({
                 }
               }
             }
-            var child = createFiberFromTypeAndProps(Component.type, null, nextProps, workInProgress2, workInProgress2.mode, renderLanes2);
+            var child = createFiberFromTypeAndProps(Component2.type, null, nextProps, workInProgress2, workInProgress2.mode, renderLanes2);
             child.ref = workInProgress2.ref;
             child.return = workInProgress2;
             workInProgress2.child = child;
             return child;
           }
           {
-            var _type = Component.type;
+            var _type = Component2.type;
             var _innerPropTypes = _type.propTypes;
             if (_innerPropTypes) {
               checkPropTypes(
@@ -16341,7 +16341,7 @@ var require_react_dom_development = __commonJS({
           var hasScheduledUpdateOrContext = checkScheduledUpdateOrContext(current2, renderLanes2);
           if (!hasScheduledUpdateOrContext) {
             var prevProps = currentChild.memoizedProps;
-            var compare = Component.compare;
+            var compare = Component2.compare;
             compare = compare !== null ? compare : shallowEqual;
             if (compare(prevProps, nextProps) && current2.ref === workInProgress2.ref) {
               return bailoutOnAlreadyFinishedWork(current2, workInProgress2, renderLanes2);
@@ -16354,7 +16354,7 @@ var require_react_dom_development = __commonJS({
           workInProgress2.child = newChild;
           return newChild;
         }
-        function updateSimpleMemoComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+        function updateSimpleMemoComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
           {
             if (workInProgress2.type !== workInProgress2.elementType) {
               var outerMemoType = workInProgress2.elementType;
@@ -16394,7 +16394,7 @@ var require_react_dom_development = __commonJS({
               }
             }
           }
-          return updateFunctionComponent(current2, workInProgress2, Component, nextProps, renderLanes2);
+          return updateFunctionComponent(current2, workInProgress2, Component2, nextProps, renderLanes2);
         }
         function updateOffscreenComponent(current2, workInProgress2, renderLanes2) {
           var nextProps = workInProgress2.pendingProps;
@@ -16484,24 +16484,24 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function updateFunctionComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+        function updateFunctionComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
           {
             if (workInProgress2.type !== workInProgress2.elementType) {
-              var innerPropTypes = Component.propTypes;
+              var innerPropTypes = Component2.propTypes;
               if (innerPropTypes) {
                 checkPropTypes(
                   innerPropTypes,
                   nextProps,
                   // Resolved props
                   "prop",
-                  getComponentNameFromType(Component)
+                  getComponentNameFromType(Component2)
                 );
               }
             }
           }
           var context;
           {
-            var unmaskedContext = getUnmaskedContext(workInProgress2, Component, true);
+            var unmaskedContext = getUnmaskedContext(workInProgress2, Component2, true);
             context = getMaskedContext(workInProgress2, unmaskedContext);
           }
           var nextChildren;
@@ -16513,12 +16513,12 @@ var require_react_dom_development = __commonJS({
           {
             ReactCurrentOwner$1.current = workInProgress2;
             setIsRendering(true);
-            nextChildren = renderWithHooks(current2, workInProgress2, Component, nextProps, context, renderLanes2);
+            nextChildren = renderWithHooks(current2, workInProgress2, Component2, nextProps, context, renderLanes2);
             hasId = checkDidRenderIdHook();
             if (workInProgress2.mode & StrictLegacyMode) {
               setIsStrictModeForDevtools(true);
               try {
-                nextChildren = renderWithHooks(current2, workInProgress2, Component, nextProps, context, renderLanes2);
+                nextChildren = renderWithHooks(current2, workInProgress2, Component2, nextProps, context, renderLanes2);
                 hasId = checkDidRenderIdHook();
               } finally {
                 setIsStrictModeForDevtools(false);
@@ -16540,7 +16540,7 @@ var require_react_dom_development = __commonJS({
           reconcileChildren(current2, workInProgress2, nextChildren, renderLanes2);
           return workInProgress2.child;
         }
-        function updateClassComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+        function updateClassComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
           {
             switch (shouldError(workInProgress2)) {
               case false: {
@@ -16563,20 +16563,20 @@ var require_react_dom_development = __commonJS({
               }
             }
             if (workInProgress2.type !== workInProgress2.elementType) {
-              var innerPropTypes = Component.propTypes;
+              var innerPropTypes = Component2.propTypes;
               if (innerPropTypes) {
                 checkPropTypes(
                   innerPropTypes,
                   nextProps,
                   // Resolved props
                   "prop",
-                  getComponentNameFromType(Component)
+                  getComponentNameFromType(Component2)
                 );
               }
             }
           }
           var hasContext;
-          if (isContextProvider(Component)) {
+          if (isContextProvider(Component2)) {
             hasContext = true;
             pushContextProvider(workInProgress2);
           } else {
@@ -16587,15 +16587,15 @@ var require_react_dom_development = __commonJS({
           var shouldUpdate;
           if (instance === null) {
             resetSuspendedCurrentOnMountInLegacyMode(current2, workInProgress2);
-            constructClassInstance(workInProgress2, Component, nextProps);
-            mountClassInstance(workInProgress2, Component, nextProps, renderLanes2);
+            constructClassInstance(workInProgress2, Component2, nextProps);
+            mountClassInstance(workInProgress2, Component2, nextProps, renderLanes2);
             shouldUpdate = true;
           } else if (current2 === null) {
-            shouldUpdate = resumeMountClassInstance(workInProgress2, Component, nextProps, renderLanes2);
+            shouldUpdate = resumeMountClassInstance(workInProgress2, Component2, nextProps, renderLanes2);
           } else {
-            shouldUpdate = updateClassInstance(current2, workInProgress2, Component, nextProps, renderLanes2);
+            shouldUpdate = updateClassInstance(current2, workInProgress2, Component2, nextProps, renderLanes2);
           }
-          var nextUnitOfWork = finishClassComponent(current2, workInProgress2, Component, shouldUpdate, hasContext, renderLanes2);
+          var nextUnitOfWork = finishClassComponent(current2, workInProgress2, Component2, shouldUpdate, hasContext, renderLanes2);
           {
             var inst = workInProgress2.stateNode;
             if (shouldUpdate && inst.props !== nextProps) {
@@ -16607,19 +16607,19 @@ var require_react_dom_development = __commonJS({
           }
           return nextUnitOfWork;
         }
-        function finishClassComponent(current2, workInProgress2, Component, shouldUpdate, hasContext, renderLanes2) {
+        function finishClassComponent(current2, workInProgress2, Component2, shouldUpdate, hasContext, renderLanes2) {
           markRef(current2, workInProgress2);
           var didCaptureError = (workInProgress2.flags & DidCapture) !== NoFlags;
           if (!shouldUpdate && !didCaptureError) {
             if (hasContext) {
-              invalidateContextProvider(workInProgress2, Component, false);
+              invalidateContextProvider(workInProgress2, Component2, false);
             }
             return bailoutOnAlreadyFinishedWork(current2, workInProgress2, renderLanes2);
           }
           var instance = workInProgress2.stateNode;
           ReactCurrentOwner$1.current = workInProgress2;
           var nextChildren;
-          if (didCaptureError && typeof Component.getDerivedStateFromError !== "function") {
+          if (didCaptureError && typeof Component2.getDerivedStateFromError !== "function") {
             nextChildren = null;
             {
               stopProfilerTimerIfRunning();
@@ -16653,7 +16653,7 @@ var require_react_dom_development = __commonJS({
           }
           workInProgress2.memoizedState = instance.state;
           if (hasContext) {
-            invalidateContextProvider(workInProgress2, Component, true);
+            invalidateContextProvider(workInProgress2, Component2, true);
           }
           return workInProgress2.child;
         }
@@ -16753,45 +16753,45 @@ var require_react_dom_development = __commonJS({
           var lazyComponent = elementType;
           var payload = lazyComponent._payload;
           var init = lazyComponent._init;
-          var Component = init(payload);
-          workInProgress2.type = Component;
-          var resolvedTag = workInProgress2.tag = resolveLazyComponentTag(Component);
-          var resolvedProps = resolveDefaultProps(Component, props);
+          var Component2 = init(payload);
+          workInProgress2.type = Component2;
+          var resolvedTag = workInProgress2.tag = resolveLazyComponentTag(Component2);
+          var resolvedProps = resolveDefaultProps(Component2, props);
           var child;
           switch (resolvedTag) {
             case FunctionComponent: {
               {
-                validateFunctionComponentInDev(workInProgress2, Component);
-                workInProgress2.type = Component = resolveFunctionForHotReloading(Component);
+                validateFunctionComponentInDev(workInProgress2, Component2);
+                workInProgress2.type = Component2 = resolveFunctionForHotReloading(Component2);
               }
-              child = updateFunctionComponent(null, workInProgress2, Component, resolvedProps, renderLanes2);
+              child = updateFunctionComponent(null, workInProgress2, Component2, resolvedProps, renderLanes2);
               return child;
             }
             case ClassComponent: {
               {
-                workInProgress2.type = Component = resolveClassForHotReloading(Component);
+                workInProgress2.type = Component2 = resolveClassForHotReloading(Component2);
               }
-              child = updateClassComponent(null, workInProgress2, Component, resolvedProps, renderLanes2);
+              child = updateClassComponent(null, workInProgress2, Component2, resolvedProps, renderLanes2);
               return child;
             }
             case ForwardRef: {
               {
-                workInProgress2.type = Component = resolveForwardRefForHotReloading(Component);
+                workInProgress2.type = Component2 = resolveForwardRefForHotReloading(Component2);
               }
-              child = updateForwardRef(null, workInProgress2, Component, resolvedProps, renderLanes2);
+              child = updateForwardRef(null, workInProgress2, Component2, resolvedProps, renderLanes2);
               return child;
             }
             case MemoComponent: {
               {
                 if (workInProgress2.type !== workInProgress2.elementType) {
-                  var outerPropTypes = Component.propTypes;
+                  var outerPropTypes = Component2.propTypes;
                   if (outerPropTypes) {
                     checkPropTypes(
                       outerPropTypes,
                       resolvedProps,
                       // Resolved for outer only
                       "prop",
-                      getComponentNameFromType(Component)
+                      getComponentNameFromType(Component2)
                     );
                   }
                 }
@@ -16799,8 +16799,8 @@ var require_react_dom_development = __commonJS({
               child = updateMemoComponent(
                 null,
                 workInProgress2,
-                Component,
-                resolveDefaultProps(Component.type, resolvedProps),
+                Component2,
+                resolveDefaultProps(Component2.type, resolvedProps),
                 // The inner type can have defaults too
                 renderLanes2
               );
@@ -16809,33 +16809,33 @@ var require_react_dom_development = __commonJS({
           }
           var hint = "";
           {
-            if (Component !== null && typeof Component === "object" && Component.$$typeof === REACT_LAZY_TYPE) {
+            if (Component2 !== null && typeof Component2 === "object" && Component2.$$typeof === REACT_LAZY_TYPE) {
               hint = " Did you wrap a component in React.lazy() more than once?";
             }
           }
-          throw new Error("Element type is invalid. Received a promise that resolves to: " + Component + ". " + ("Lazy element type must resolve to a class or function." + hint));
+          throw new Error("Element type is invalid. Received a promise that resolves to: " + Component2 + ". " + ("Lazy element type must resolve to a class or function." + hint));
         }
-        function mountIncompleteClassComponent(_current, workInProgress2, Component, nextProps, renderLanes2) {
+        function mountIncompleteClassComponent(_current, workInProgress2, Component2, nextProps, renderLanes2) {
           resetSuspendedCurrentOnMountInLegacyMode(_current, workInProgress2);
           workInProgress2.tag = ClassComponent;
           var hasContext;
-          if (isContextProvider(Component)) {
+          if (isContextProvider(Component2)) {
             hasContext = true;
             pushContextProvider(workInProgress2);
           } else {
             hasContext = false;
           }
           prepareToReadContext(workInProgress2, renderLanes2);
-          constructClassInstance(workInProgress2, Component, nextProps);
-          mountClassInstance(workInProgress2, Component, nextProps, renderLanes2);
-          return finishClassComponent(null, workInProgress2, Component, true, hasContext, renderLanes2);
+          constructClassInstance(workInProgress2, Component2, nextProps);
+          mountClassInstance(workInProgress2, Component2, nextProps, renderLanes2);
+          return finishClassComponent(null, workInProgress2, Component2, true, hasContext, renderLanes2);
         }
-        function mountIndeterminateComponent(_current, workInProgress2, Component, renderLanes2) {
+        function mountIndeterminateComponent(_current, workInProgress2, Component2, renderLanes2) {
           resetSuspendedCurrentOnMountInLegacyMode(_current, workInProgress2);
           var props = workInProgress2.pendingProps;
           var context;
           {
-            var unmaskedContext = getUnmaskedContext(workInProgress2, Component, false);
+            var unmaskedContext = getUnmaskedContext(workInProgress2, Component2, false);
             context = getMaskedContext(workInProgress2, unmaskedContext);
           }
           prepareToReadContext(workInProgress2, renderLanes2);
@@ -16845,8 +16845,8 @@ var require_react_dom_development = __commonJS({
             markComponentRenderStarted(workInProgress2);
           }
           {
-            if (Component.prototype && typeof Component.prototype.render === "function") {
-              var componentName = getComponentNameFromType(Component) || "Unknown";
+            if (Component2.prototype && typeof Component2.prototype.render === "function") {
+              var componentName = getComponentNameFromType(Component2) || "Unknown";
               if (!didWarnAboutBadClass[componentName]) {
                 error("The <%s /> component appears to have a render method, but doesn't extend React.Component. This is likely to cause errors. Change %s to extend React.Component instead.", componentName, componentName);
                 didWarnAboutBadClass[componentName] = true;
@@ -16857,7 +16857,7 @@ var require_react_dom_development = __commonJS({
             }
             setIsRendering(true);
             ReactCurrentOwner$1.current = workInProgress2;
-            value = renderWithHooks(null, workInProgress2, Component, props, context, renderLanes2);
+            value = renderWithHooks(null, workInProgress2, Component2, props, context, renderLanes2);
             hasId = checkDidRenderIdHook();
             setIsRendering(false);
           }
@@ -16867,7 +16867,7 @@ var require_react_dom_development = __commonJS({
           workInProgress2.flags |= PerformedWork;
           {
             if (typeof value === "object" && value !== null && typeof value.render === "function" && value.$$typeof === void 0) {
-              var _componentName = getComponentNameFromType(Component) || "Unknown";
+              var _componentName = getComponentNameFromType(Component2) || "Unknown";
               if (!didWarnAboutModulePatternComponent[_componentName]) {
                 error("The <%s /> component appears to be a function component that returns a class instance. Change %s to a class that extends React.Component instead. If you can't use a class try assigning the prototype on the function as a workaround. `%s.prototype = React.Component.prototype`. Don't use an arrow function since it cannot be called with `new` by React.", _componentName, _componentName, _componentName);
                 didWarnAboutModulePatternComponent[_componentName] = true;
@@ -16880,7 +16880,7 @@ var require_react_dom_development = __commonJS({
             typeof value === "object" && value !== null && typeof value.render === "function" && value.$$typeof === void 0
           ) {
             {
-              var _componentName2 = getComponentNameFromType(Component) || "Unknown";
+              var _componentName2 = getComponentNameFromType(Component2) || "Unknown";
               if (!didWarnAboutModulePatternComponent[_componentName2]) {
                 error("The <%s /> component appears to be a function component that returns a class instance. Change %s to a class that extends React.Component instead. If you can't use a class try assigning the prototype on the function as a workaround. `%s.prototype = React.Component.prototype`. Don't use an arrow function since it cannot be called with `new` by React.", _componentName2, _componentName2, _componentName2);
                 didWarnAboutModulePatternComponent[_componentName2] = true;
@@ -16890,7 +16890,7 @@ var require_react_dom_development = __commonJS({
             workInProgress2.memoizedState = null;
             workInProgress2.updateQueue = null;
             var hasContext = false;
-            if (isContextProvider(Component)) {
+            if (isContextProvider(Component2)) {
               hasContext = true;
               pushContextProvider(workInProgress2);
             } else {
@@ -16899,15 +16899,15 @@ var require_react_dom_development = __commonJS({
             workInProgress2.memoizedState = value.state !== null && value.state !== void 0 ? value.state : null;
             initializeUpdateQueue(workInProgress2);
             adoptClassInstance(workInProgress2, value);
-            mountClassInstance(workInProgress2, Component, props, renderLanes2);
-            return finishClassComponent(null, workInProgress2, Component, true, hasContext, renderLanes2);
+            mountClassInstance(workInProgress2, Component2, props, renderLanes2);
+            return finishClassComponent(null, workInProgress2, Component2, true, hasContext, renderLanes2);
           } else {
             workInProgress2.tag = FunctionComponent;
             {
               if (workInProgress2.mode & StrictLegacyMode) {
                 setIsStrictModeForDevtools(true);
                 try {
-                  value = renderWithHooks(null, workInProgress2, Component, props, context, renderLanes2);
+                  value = renderWithHooks(null, workInProgress2, Component2, props, context, renderLanes2);
                   hasId = checkDidRenderIdHook();
                 } finally {
                   setIsStrictModeForDevtools(false);
@@ -16919,16 +16919,16 @@ var require_react_dom_development = __commonJS({
             }
             reconcileChildren(null, workInProgress2, value, renderLanes2);
             {
-              validateFunctionComponentInDev(workInProgress2, Component);
+              validateFunctionComponentInDev(workInProgress2, Component2);
             }
             return workInProgress2.child;
           }
         }
-        function validateFunctionComponentInDev(workInProgress2, Component) {
+        function validateFunctionComponentInDev(workInProgress2, Component2) {
           {
-            if (Component) {
-              if (Component.childContextTypes) {
-                error("%s(...): childContextTypes cannot be defined on a function component.", Component.displayName || Component.name || "Component");
+            if (Component2) {
+              if (Component2.childContextTypes) {
+                error("%s(...): childContextTypes cannot be defined on a function component.", Component2.displayName || Component2.name || "Component");
               }
             }
             if (workInProgress2.ref !== null) {
@@ -16947,22 +16947,22 @@ var require_react_dom_development = __commonJS({
                 error("Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s", info);
               }
             }
-            if (Component.defaultProps !== void 0) {
-              var componentName = getComponentNameFromType(Component) || "Unknown";
+            if (Component2.defaultProps !== void 0) {
+              var componentName = getComponentNameFromType(Component2) || "Unknown";
               if (!didWarnAboutDefaultPropsOnFunctionComponent[componentName]) {
                 error("%s: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.", componentName);
                 didWarnAboutDefaultPropsOnFunctionComponent[componentName] = true;
               }
             }
-            if (typeof Component.getDerivedStateFromProps === "function") {
-              var _componentName3 = getComponentNameFromType(Component) || "Unknown";
+            if (typeof Component2.getDerivedStateFromProps === "function") {
+              var _componentName3 = getComponentNameFromType(Component2) || "Unknown";
               if (!didWarnAboutGetDerivedStateOnFunctionComponent[_componentName3]) {
                 error("%s: Function components do not support getDerivedStateFromProps.", _componentName3);
                 didWarnAboutGetDerivedStateOnFunctionComponent[_componentName3] = true;
               }
             }
-            if (typeof Component.contextType === "object" && Component.contextType !== null) {
-              var _componentName4 = getComponentNameFromType(Component) || "Unknown";
+            if (typeof Component2.contextType === "object" && Component2.contextType !== null) {
+              var _componentName4 = getComponentNameFromType(Component2) || "Unknown";
               if (!didWarnAboutContextTypeOnFunctionComponent[_componentName4]) {
                 error("%s: Function components do not support contextType.", _componentName4);
                 didWarnAboutContextTypeOnFunctionComponent[_componentName4] = true;
@@ -17724,8 +17724,8 @@ var require_react_dom_development = __commonJS({
               pushHostContext(workInProgress2);
               break;
             case ClassComponent: {
-              var Component = workInProgress2.type;
-              if (isContextProvider(Component)) {
+              var Component2 = workInProgress2.type;
+              if (isContextProvider(Component2)) {
                 pushContextProvider(workInProgress2);
               }
               break;
@@ -17852,10 +17852,10 @@ var require_react_dom_development = __commonJS({
               return mountLazyComponent(current2, workInProgress2, elementType, renderLanes2);
             }
             case FunctionComponent: {
-              var Component = workInProgress2.type;
+              var Component2 = workInProgress2.type;
               var unresolvedProps = workInProgress2.pendingProps;
-              var resolvedProps = workInProgress2.elementType === Component ? unresolvedProps : resolveDefaultProps(Component, unresolvedProps);
-              return updateFunctionComponent(current2, workInProgress2, Component, resolvedProps, renderLanes2);
+              var resolvedProps = workInProgress2.elementType === Component2 ? unresolvedProps : resolveDefaultProps(Component2, unresolvedProps);
+              return updateFunctionComponent(current2, workInProgress2, Component2, resolvedProps, renderLanes2);
             }
             case ClassComponent: {
               var _Component = workInProgress2.type;
@@ -18160,8 +18160,8 @@ var require_react_dom_development = __commonJS({
               bubbleProperties(workInProgress2);
               return null;
             case ClassComponent: {
-              var Component = workInProgress2.type;
-              if (isContextProvider(Component)) {
+              var Component2 = workInProgress2.type;
+              if (isContextProvider(Component2)) {
                 popContext(workInProgress2);
               }
               bubbleProperties(workInProgress2);
@@ -18479,8 +18479,8 @@ var require_react_dom_development = __commonJS({
           popTreeContext(workInProgress2);
           switch (workInProgress2.tag) {
             case ClassComponent: {
-              var Component = workInProgress2.type;
-              if (isContextProvider(Component)) {
+              var Component2 = workInProgress2.type;
+              if (isContextProvider(Component2)) {
                 popContext(workInProgress2);
               }
               var flags = workInProgress2.flags;
@@ -22167,18 +22167,18 @@ var require_react_dom_development = __commonJS({
         var createFiber = function(tag, pendingProps, key, mode) {
           return new FiberNode(tag, pendingProps, key, mode);
         };
-        function shouldConstruct$1(Component) {
-          var prototype = Component.prototype;
+        function shouldConstruct$1(Component2) {
+          var prototype = Component2.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
         function isSimpleFunctionComponent(type) {
           return typeof type === "function" && !shouldConstruct$1(type) && type.defaultProps === void 0;
         }
-        function resolveLazyComponentTag(Component) {
-          if (typeof Component === "function") {
-            return shouldConstruct$1(Component) ? ClassComponent : FunctionComponent;
-          } else if (Component !== void 0 && Component !== null) {
-            var $$typeof = Component.$$typeof;
+        function resolveLazyComponentTag(Component2) {
+          if (typeof Component2 === "function") {
+            return shouldConstruct$1(Component2) ? ClassComponent : FunctionComponent;
+          } else if (Component2 !== void 0 && Component2 !== null) {
+            var $$typeof = Component2.$$typeof;
             if ($$typeof === REACT_FORWARD_REF_TYPE) {
               return ForwardRef;
             }
@@ -22615,9 +22615,9 @@ var require_react_dom_development = __commonJS({
           var fiber = get(parentComponent);
           var parentContext = findCurrentUnmaskedContext(fiber);
           if (fiber.tag === ClassComponent) {
-            var Component = fiber.type;
-            if (isContextProvider(Component)) {
-              return processChildContext(fiber, Component, parentContext);
+            var Component2 = fiber.type;
+            if (isContextProvider(Component2)) {
+              return processChildContext(fiber, Component2, parentContext);
             }
           }
           return parentContext;
@@ -23567,7 +23567,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (true) {
       (function() {
         "use strict";
-        var React2 = require_react();
+        var React3 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -23593,7 +23593,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -23924,8 +23924,8 @@ var require_react_jsx_runtime_development = __commonJS({
             return describeNativeComponentFrame(fn, false);
           }
         }
-        function shouldConstruct(Component) {
-          var prototype = Component.prototype;
+        function shouldConstruct(Component2) {
+          var prototype = Component2.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
         function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
@@ -24443,11 +24443,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx3 = jsxWithValidationDynamic;
-        var jsxs2 = jsxWithValidationStatic;
+        var jsx8 = jsxWithValidationDynamic;
+        var jsxs7 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx3;
-        exports.jsxs = jsxs2;
+        exports.jsx = jsx8;
+        exports.jsxs = jsxs7;
       })();
     }
   }
@@ -24476,10 +24476,10 @@ var import_obsidian2 = require("obsidian");
 // src/view/MindmapView.tsx
 var import_obsidian = require("obsidian");
 var import_client = __toESM(require_client());
-var import_react2 = __toESM(require_react());
+var import_react3 = __toESM(require_react());
 
 // src/view/MindmapReactView.tsx
-var import_react = __toESM(require_react());
+var import_react2 = __toESM(require_react());
 
 // node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
@@ -29368,99 +29368,93 @@ function findParent(root, id) {
 function parseMarkdown(md) {
   const ast = fromMarkdown(md);
   const root = createNode("__root__");
-  const stack = [{ node: root, level: 0 }];
-  let bodyNodes = [];
-  let pendingTarget = null;
-  const flushBody = () => {
-    if (!pendingTarget || bodyNodes.length === 0) {
-      bodyNodes = [];
-      pendingTarget = null;
-      return;
-    }
-    const decision = analyzeBody(bodyNodes);
-    if (decision.type === "inline") {
-      pendingTarget.content = decision.value;
-    } else {
-      for (const childNode of decision.children) {
-        addChild(pendingTarget, childNode);
-      }
-    }
-    bodyNodes = [];
-    pendingTarget = null;
-  };
+  const headingStack = [{ node: root, level: 0 }];
+  let currentParent = root;
   for (const node2 of ast.children) {
     if (node2.type === "heading") {
-      flushBody();
       const level = node2.depth;
-      const title = extractText(node2);
-      const newNode = createNode(title, "", null, 0, "heading");
-      while (stack.length > 1 && stack[stack.length - 1].level >= level) {
-        stack.pop();
+      const title = `${"#".repeat(level)} ${extractText(node2)}`.trim();
+      const newNode = createNode(title);
+      while (headingStack.length > 1 && headingStack[headingStack.length - 1].level >= level) {
+        headingStack.pop();
       }
-      const parent = stack[stack.length - 1].node;
+      const parent = headingStack[headingStack.length - 1].node;
       addChild(parent, newNode);
-      pendingTarget = newNode;
-      stack.push({ node: newNode, level });
+      headingStack.push({ node: newNode, level });
+      currentParent = newNode;
+    } else if (node2.type === "list") {
+      appendList(currentParent, node2);
+    } else if (node2.type === "paragraph") {
+      for (const line of paragraphToOutlineLines(node2)) {
+        addChild(currentParent, createNode(line));
+      }
     } else {
-      bodyNodes.push(node2);
+      const text3 = serializeNode(node2);
+      if (text3)
+        addChild(currentParent, createNode(text3));
     }
   }
-  flushBody();
+  updateDepths(root, -1);
   return root;
 }
-function analyzeBody(nodes) {
-  if (nodes.length === 0)
-    return { type: "inline", value: "" };
-  const hasComplex = nodes.some(
-    (n) => n.type === "code" || n.type === "blockquote" || n.type === "thematicBreak" || n.type === "table"
-  );
-  if (hasComplex) {
-    return { type: "inline", value: serializeBody(nodes) };
+function appendList(parent, list2) {
+  for (const item of list2.children || []) {
+    const node2 = listItemToNode(item);
+    if (node2)
+      addChild(parent, node2);
   }
-  if (nodes.length === 1 && nodes[0].type === "list") {
-    const list2 = nodes[0];
-    const children = [];
-    for (const item of list2.children || []) {
-      const text3 = extractListItemText(item);
-      if (text3) {
-        children.push(createNode(text3, "", null, 0, "content"));
+}
+function listItemToNode(item) {
+  let title = "";
+  const nestedLists = [];
+  const extraNodes = [];
+  for (const child of item.children || []) {
+    if (child.type === "paragraph") {
+      const text3 = extractParagraphText(child);
+      if (!title) {
+        title = text3;
+      } else if (text3) {
+        extraNodes.push(createNode(text3));
+      }
+    } else if (child.type === "list") {
+      nestedLists.push(child);
+    } else if (child.type === "heading") {
+      const h = child;
+      const text3 = `${"#".repeat(h.depth)} ${extractText(h)}`.trim();
+      if (!title) {
+        title = text3;
+      } else {
+        extraNodes.push(createNode(text3));
+      }
+    } else {
+      const text3 = serializeNode(child);
+      if (!title) {
+        title = text3;
+      } else if (text3) {
+        extraNodes.push(createNode(text3));
       }
     }
-    if (children.length > 0)
-      return { type: "children", children };
-    return { type: "inline", value: "" };
   }
-  if (nodes.length > 1) {
-    const children = [];
-    for (const n of nodes) {
-      if (n.type === "paragraph") {
-        const text3 = extractParagraphText(n);
-        if (text3)
-          children.push(createNode(text3, "", null, 0, "content"));
-      }
-    }
-    if (children.length > 0)
-      return { type: "children", children };
-    return { type: "inline", value: serializeBody(nodes) };
-  }
-  if (nodes.length === 1 && nodes[0].type === "paragraph") {
-    const para = nodes[0];
-    let lines = splitBySoftBreaks(para);
-    if (lines.length <= 1) {
-      const rawText = extractParagraphText(para);
-      const newlineLines = rawText.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
-      if (newlineLines.length > 1) {
-        lines = newlineLines;
-      }
-    }
-    if (lines.length > 1) {
-      const children = lines.map((line) => createNode(line, "", null, 0, "content"));
-      return { type: "children", children };
-    }
-    const text3 = extractParagraphText(para);
-    return { type: "inline", value: text3 };
-  }
-  return { type: "inline", value: serializeBody(nodes) };
+  if (!title && nestedLists.length === 0 && extraNodes.length === 0)
+    return null;
+  const node2 = createNode(title || "(empty)");
+  for (const extra of extraNodes)
+    addChild(node2, extra);
+  for (const nested of nestedLists)
+    appendList(node2, nested);
+  return node2;
+}
+function paragraphToOutlineLines(para) {
+  const byBreak = splitBySoftBreaks(para);
+  if (byBreak.length > 1)
+    return byBreak;
+  const text3 = extractParagraphText(para);
+  return text3.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+function updateDepths(node2, depth) {
+  node2.depth = depth;
+  for (const child of node2.children)
+    updateDepths(child, depth + 1);
 }
 function extractParagraphText(para) {
   return para.children.filter((c) => c.type !== "break").map((c) => {
@@ -29520,46 +29514,29 @@ function inlineChildrenText(children) {
     return "";
   }).join("");
 }
-function extractListItemText(item) {
-  const firstChild = item.children?.[0];
-  if (!firstChild)
-    return "";
-  if (firstChild.type === "paragraph") {
-    return extractParagraphText(firstChild);
-  }
-  return "";
-}
 function serializeMarkdown(root) {
   const lines = [];
   const walkChildren = (children, depth) => {
-    let prevWasContent = false;
+    const indent = "  ".repeat(depth);
     for (const node2 of children) {
-      if (node2.kind === "content") {
-        lines.push(node2.title);
-        prevWasContent = true;
-      } else {
-        if (prevWasContent) {
-          lines.push("");
-        }
-        const prefix = "#".repeat(depth);
-        lines.push(`${prefix} ${node2.title}`);
-        if (node2.content && node2.content.trim()) {
-          lines.push("", node2.content);
-        }
-        lines.push("");
-        prevWasContent = false;
-      }
-      if (node2.children.length > 0 && node2.kind !== "content") {
-        const childEndsWithContent = walkChildren(node2.children, depth + 1);
-        if (childEndsWithContent) {
-          prevWasContent = true;
+      const title = normalizeOutlineLine(node2.title);
+      lines.push(`${indent}- ${title}`);
+      if (node2.content && node2.content.trim()) {
+        for (const line of node2.content.split("\n").map((s) => s.trim()).filter(Boolean)) {
+          lines.push(`${indent}  - ${line}`);
         }
       }
+      if (node2.children.length > 0)
+        walkChildren(node2.children, depth + 1);
     }
-    return prevWasContent;
   };
-  walkChildren(root.children, 1);
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  walkChildren(root.children, 0);
+  const md = lines.join("\n").trim();
+  return md ? md + "\n" : "";
+}
+function normalizeOutlineLine(text3) {
+  const oneLine = (text3 || "").replace(/\s*\n\s*/g, " ").trim();
+  return oneLine || "(empty)";
 }
 function extractText(heading) {
   return heading.children.map((c) => {
@@ -29629,14 +29606,12 @@ function serializeNode(node2) {
   }
 }
 
-// src/view/MindmapReactView.tsx
-var import_jsx_runtime = __toESM(require_jsx_runtime());
+// src/view/MindmapLayout.ts
 var LEVEL_X = 320;
 var SIBLING_GAP = 36;
 var TREE_GAP = 64;
 var NODE_W = 260;
 var NODE_H = 34;
-var CONTENT_NODE_H = 24;
 var PADDING = 48;
 function buildGraphFromTree(rootTree) {
   const nodes = [];
@@ -29695,64 +29670,9 @@ function placeSubtree(layoutNode, x, top, nodes, edgeRefs) {
     childTop += child.subtreeH + SIBLING_GAP;
   }
 }
-function renderInlineMarkdown(text3) {
-  let html = text3.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
-  html = html.replace(/`(.+?)`/g, "<code>$1</code>");
-  html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
-  return html;
-}
-function MindmapMessage({ title, detail }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-message-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message-title", children: title }),
-    detail && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message-detail", children: detail })
-  ] }) });
-}
-function busEdgeGroups(edges) {
-  const map = /* @__PURE__ */ new Map();
-  for (const e of edges) {
-    let g = map.get(e.source.id);
-    if (!g) {
-      const sh = e.source.nodeH ?? NODE_H;
-      const sx = e.source.x + NODE_W;
-      const sy = e.source.y + sh / 2;
-      const gap = e.target.x - sx;
-      const run = Math.max(gap * 0.5, 24);
-      g = { source: e.source, children: [], turnX: sx + run, sourceY: sy, minY: Infinity, maxY: -Infinity };
-      map.set(e.source.id, g);
-    }
-    const th = e.target.nodeH ?? NODE_H;
-    const ty = e.target.y + th / 2;
-    g.children.push({ edge: e, child: e.target, childY: ty });
-    if (ty < g.minY)
-      g.minY = ty;
-    if (ty > g.maxY)
-      g.maxY = ty;
-  }
-  return [...map.values()];
-}
-function busEdgePath(children, turnX, childX) {
-  if (children.length === 0)
-    return "";
-  if (children.length === 1) {
-    const ty = children[0];
-    return `M ${turnX} ${ty} L ${childX} ${ty}`;
-  }
-  const minTy = Math.min(...children);
-  const maxTy = Math.max(...children);
-  const branches = children.map((ty) => {
-    const dx = childX - turnX;
-    return `M ${turnX} ${ty} L ${childX - Math.min(dx * 0.3, 8)} ${ty}`;
-  }).join(" ");
-  return `M ${turnX} ${minTy} L ${turnX} ${maxTy} ${branches}`;
-}
 function estimateNodeHeight(node2) {
-  const titleUnitsPerLine = node2.kind === "content" ? 20 : 18;
+  const titleUnitsPerLine = 18;
   const titleLines = countWrappedLines(node2.title || "(empty)", titleUnitsPerLine);
-  if (node2.kind === "content") {
-    return Math.max(CONTENT_NODE_H, 12 + titleLines * 15);
-  }
   let h = 12 + titleLines * 17;
   if (node2.content && node2.content.trim()) {
     const contentLines = node2.content.split("\n").reduce((total, line) => {
@@ -29782,7 +29702,114 @@ function estimateTextUnits(text3) {
   }
   return units;
 }
-var MindmapErrorBoundary = class extends import_react.default.Component {
+function parseHeadingMarker(text3) {
+  const match = text3.match(/^(#{1,6})\s+(.+)$/);
+  if (!match)
+    return { level: null, label: text3 };
+  return { level: match[1].length, label: match[2] };
+}
+function renderInlineMarkdown(text3) {
+  let html = text3.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
+  html = html.replace(/`(.+?)`/g, "<code>$1</code>");
+  html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
+  return html;
+}
+
+// src/view/MindmapEdges.tsx
+var import_jsx_runtime = __toESM(require_jsx_runtime());
+function busEdgeGroups(edges) {
+  const map = /* @__PURE__ */ new Map();
+  for (const e of edges) {
+    let g = map.get(e.source.id);
+    if (!g) {
+      const sh = e.source.nodeH ?? 34;
+      const sx = e.source.x + NODE_W;
+      const sy = e.source.y + sh / 2;
+      const gap = e.target.x - sx;
+      const run = Math.max(gap * 0.5, 24);
+      g = { source: e.source, children: [], turnX: sx + run, sourceY: sy, minY: Infinity, maxY: -Infinity };
+      map.set(e.source.id, g);
+    }
+    const th = e.target.nodeH ?? 34;
+    const ty = e.target.y + th / 2;
+    g.children.push({ edge: e, child: e.target, childY: ty });
+    if (ty < g.minY)
+      g.minY = ty;
+    if (ty > g.maxY)
+      g.maxY = ty;
+  }
+  return [...map.values()];
+}
+function busEdgePath(children, turnX, childX) {
+  if (children.length === 0)
+    return "";
+  if (children.length === 1) {
+    const ty = children[0];
+    return `M ${turnX} ${ty} L ${childX} ${ty}`;
+  }
+  const minTy = Math.min(...children);
+  const maxTy = Math.max(...children);
+  const branches = children.map((ty) => {
+    const dx = childX - turnX;
+    return `M ${turnX} ${ty} L ${childX - Math.min(dx * 0.3, 8)} ${ty}`;
+  }).join(" ");
+  return `M ${turnX} ${minTy} L ${turnX} ${maxTy} ${branches}`;
+}
+function MindmapEdges({ edges, width, height }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { className: "mindmap-edges", width, height, children: busEdgeGroups(edges).map((g, gi) => {
+    const { source, children, turnX, sourceY } = g;
+    const childYs = children.map((c) => c.childY);
+    const childX = children.length > 0 ? children[0].child.x : turnX;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "path",
+        {
+          d: `M ${source.x + NODE_W} ${sourceY} L ${turnX} ${sourceY}`
+        }
+      ),
+      children.length === 1 && Math.abs(children[0].childY - sourceY) < 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: `M ${turnX} ${sourceY} L ${childX} ${sourceY}` }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: busEdgePath(childYs, turnX, childX) })
+    ] }, `bus-${gi}`);
+  }) });
+}
+
+// src/view/MindmapContextMenu.tsx
+var import_jsx_runtime2 = __toESM(require_jsx_runtime());
+function MindmapContextMenu({ x, y, nodeId, canDelete, onAddChild, onAddSibling, onDelete }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+    "div",
+    {
+      className: "mindmap-context-menu",
+      style: { position: "fixed", left: x, top: y },
+      onMouseDown: (e) => e.stopPropagation(),
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item", onClick: () => onAddChild(nodeId), children: "\u2795 \u6DFB\u52A0\u5B50\u8282\u70B9" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item", onClick: () => onAddSibling(nodeId), children: "\u2B06 \u6DFB\u52A0\u540C\u7EA7\u8282\u70B9" }),
+        canDelete && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item danger", onClick: () => onDelete(nodeId), children: "\u{1F5D1} \u5220\u9664\u8282\u70B9" })
+      ]
+    }
+  );
+}
+
+// src/view/MindmapToolbar.tsx
+var import_jsx_runtime3 = __toESM(require_jsx_runtime());
+function MindmapToolbar({ zoom, onZoomIn, onZoomOut, onFitToView }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "mindmap-toolbar", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "mindmap-toolbar-btn", onClick: onZoomIn, title: "\u653E\u5927", children: "+" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "mindmap-toolbar-label", children: [
+      Math.round(zoom * 100),
+      "%"
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "mindmap-toolbar-btn", onClick: onZoomOut, title: "\u7F29\u5C0F", children: "\u2212" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "mindmap-toolbar-btn", onClick: onFitToView, title: "\u9002\u5E94\u753B\u5E03", children: "\u22A1" })
+  ] });
+}
+
+// src/view/MindmapErrorBoundary.tsx
+var import_react = __toESM(require_react());
+var import_jsx_runtime4 = __toESM(require_jsx_runtime());
+var MindmapErrorBoundary = class extends import_react.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false };
@@ -29792,9 +29819,9 @@ var MindmapErrorBoundary = class extends import_react.default.Component {
   }
   render() {
     if (this.state.hasError) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-message-card", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message-title", children: "\u8111\u56FE\u6E32\u67D3\u51FA\u9519" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-message-detail", children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "mindmap-message", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "mindmap-message-card", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "mindmap-message-title", children: "\u8111\u56FE\u6E32\u67D3\u51FA\u9519" }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "mindmap-message-detail", children: [
           this.state.error?.message || "\u672A\u77E5\u9519\u8BEF",
           "\n\u6587\u4EF6\u8DEF\u5F84\uFF1A" + this.props.filePath
         ] })
@@ -29803,6 +29830,18 @@ var MindmapErrorBoundary = class extends import_react.default.Component {
     return this.props.children;
   }
 };
+
+// src/view/MindmapMessage.tsx
+var import_jsx_runtime5 = __toESM(require_jsx_runtime());
+function MindmapMessage({ title, detail }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "mindmap-message", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "mindmap-message-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "mindmap-message-title", children: title }),
+    detail && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "mindmap-message-detail", children: detail })
+  ] }) });
+}
+
+// src/view/MindmapReactView.tsx
+var import_jsx_runtime6 = __toESM(require_jsx_runtime());
 function MindmapReactView({
   filePath,
   fileContent,
@@ -29811,47 +29850,46 @@ function MindmapReactView({
   fileError,
   onSaveContent
 }) {
-  const [tree, setTree] = (0, import_react.useState)(null);
-  const [editingNodeId, setEditingNodeId] = (0, import_react.useState)(null);
-  const [editingNodeKind, setEditingNodeKind] = (0, import_react.useState)("heading");
-  const [editValue, setEditValue] = (0, import_react.useState)("");
-  const [contextMenu, setContextMenu] = (0, import_react.useState)(null);
-  const [selectedNodeId, setSelectedNodeId] = (0, import_react.useState)(null);
-  const [pan, setPan] = (0, import_react.useState)({ x: 0, y: 0 });
-  const [zoom, setZoom] = (0, import_react.useState)(1);
-  const zoomRef = (0, import_react.useRef)(1);
-  const panRef = (0, import_react.useRef)({ x: 0, y: 0 });
-  const graphRef = (0, import_react.useRef)(null);
-  const treeRef = (0, import_react.useRef)(null);
-  const editingNodeIdRef = (0, import_react.useRef)(null);
-  const editValueRef = (0, import_react.useRef)("");
-  const initialFitDone = (0, import_react.useRef)(false);
-  const [draggingNodeId, setDraggingNodeId] = (0, import_react.useState)(null);
-  const [dropTarget, setDropTarget] = (0, import_react.useState)(null);
-  const draggingNodeIdRef = (0, import_react.useRef)(null);
-  const dropTargetRef = (0, import_react.useRef)(null);
-  const containerRef = (0, import_react.useRef)(null);
-  const saveCounterRef = (0, import_react.useRef)(0);
+  const [tree, setTree] = (0, import_react2.useState)(null);
+  const [editingNodeId, setEditingNodeId] = (0, import_react2.useState)(null);
+  const [editValue, setEditValue] = (0, import_react2.useState)("");
+  const [contextMenu, setContextMenu] = (0, import_react2.useState)(null);
+  const [selectedNodeId, setSelectedNodeId] = (0, import_react2.useState)(null);
+  const [pan, setPan] = (0, import_react2.useState)({ x: 0, y: 0 });
+  const [zoom, setZoom] = (0, import_react2.useState)(1);
+  const zoomRef = (0, import_react2.useRef)(1);
+  const panRef = (0, import_react2.useRef)({ x: 0, y: 0 });
+  const graphRef = (0, import_react2.useRef)(null);
+  const treeRef = (0, import_react2.useRef)(null);
+  const editingNodeIdRef = (0, import_react2.useRef)(null);
+  const editValueRef = (0, import_react2.useRef)("");
+  const initialFitDone = (0, import_react2.useRef)(false);
+  const [draggingNodeId, setDraggingNodeId] = (0, import_react2.useState)(null);
+  const [dropTarget, setDropTarget] = (0, import_react2.useState)(null);
+  const draggingNodeIdRef = (0, import_react2.useRef)(null);
+  const dropTargetRef = (0, import_react2.useRef)(null);
+  const containerRef = (0, import_react2.useRef)(null);
+  const saveCounterRef = (0, import_react2.useRef)(0);
   const MAX_UNDO = 50;
-  const undoStackRef = (0, import_react.useRef)([]);
-  const panDragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
-  const dragCleanupRef = (0, import_react.useRef)(null);
-  (0, import_react.useEffect)(() => {
+  const undoStackRef = (0, import_react2.useRef)([]);
+  const panDragRef = (0, import_react2.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
+  const dragCleanupRef = (0, import_react2.useRef)(null);
+  (0, import_react2.useEffect)(() => {
     zoomRef.current = zoom;
   }, [zoom]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     panRef.current = pan;
   }, [pan]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     editingNodeIdRef.current = editingNodeId;
   }, [editingNodeId]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     editValueRef.current = editValue;
   }, [editValue]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     initialFitDone.current = false;
   }, [filePath]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     if (saveCounterRef.current > 0) {
       saveCounterRef.current -= 1;
       return;
@@ -29862,7 +29900,7 @@ function MindmapReactView({
       setEditingNodeId(null);
     }
   }, [fileContent, fileLoaded]);
-  const graph = (0, import_react.useMemo)(() => {
+  const graph = (0, import_react2.useMemo)(() => {
     if (!tree)
       return null;
     try {
@@ -29872,14 +29910,14 @@ function MindmapReactView({
       return null;
     }
   }, [tree]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     graphRef.current = graph;
   }, [graph]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     treeRef.current = tree;
   }, [tree]);
   const cloneTree = (t) => JSON.parse(JSON.stringify(t));
-  const saveTree = (0, import_react.useCallback)((modify) => {
+  const saveTree = (0, import_react2.useCallback)((modify) => {
     setTree((prev) => {
       if (!prev)
         return prev;
@@ -29894,7 +29932,7 @@ function MindmapReactView({
       return next;
     });
   }, [onSaveContent]);
-  const isAncestor = (0, import_react.useCallback)((root, ancestorId, nodeId) => {
+  const isAncestor = (0, import_react2.useCallback)((root, ancestorId, nodeId) => {
     if (root.id === ancestorId) {
       const findNode = (n) => {
         if (n.id === nodeId)
@@ -29913,7 +29951,7 @@ function MindmapReactView({
     }
     return false;
   }, []);
-  const handleDrop = (0, import_react.useCallback)((draggedNodeId, targetNodeId, position2) => {
+  const handleDrop = (0, import_react2.useCallback)((draggedNodeId, targetNodeId, position2) => {
     if (draggedNodeId === targetNodeId)
       return;
     saveTree((newTree) => {
@@ -29933,7 +29971,7 @@ function MindmapReactView({
         node2.depth = depth;
         node2.children.forEach((c) => updateDepth(c, depth + 1));
       };
-      if (position2 === "inside" && targetNode.kind !== "content") {
+      if (position2 === "inside") {
         targetNode.children.push(draggedNode);
         targetNode.collapsed = false;
         updateDepth(draggedNode, targetNode.depth + 1);
@@ -29951,13 +29989,12 @@ function MindmapReactView({
     });
     setSelectedNodeId(draggedNodeId);
   }, [saveTree, isAncestor]);
-  const handleDoubleClick = (0, import_react.useCallback)((nodeId, text3, kind) => {
+  const handleDoubleClick = (0, import_react2.useCallback)((nodeId, text3) => {
     setEditingNodeId(nodeId);
-    setEditingNodeKind(kind || "heading");
     setEditValue(text3);
     setContextMenu(null);
   }, []);
-  const handleEditSave = (0, import_react.useCallback)(() => {
+  const handleEditSave = (0, import_react2.useCallback)(() => {
     const newText = editValue.trim();
     if (!editingNodeId)
       return;
@@ -29965,20 +30002,14 @@ function MindmapReactView({
       const node2 = findById(newTree, editingNodeId);
       if (!node2)
         return;
-      if (editingNodeKind === "content") {
-        if (newText === node2.content)
-          return;
-        node2.content = newText;
-      } else {
-        if (newText === node2.title)
-          return;
-        node2.title = newText;
-      }
+      if (newText === node2.title)
+        return;
+      node2.title = newText;
     });
     setEditingNodeId(null);
     setEditValue("");
-  }, [editingNodeId, editValue, editingNodeKind, saveTree]);
-  const insertSiblingAfter = (0, import_react.useCallback)((nodeId) => {
+  }, [editingNodeId, editValue, saveTree]);
+  const insertSiblingAfter = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     if (!currentTree || !findParent(currentTree, nodeId))
       return null;
@@ -29994,20 +30025,19 @@ function MindmapReactView({
     });
     setSelectedNodeId(sibling.id);
     setEditingNodeId(sibling.id);
-    setEditingNodeKind("heading");
     setEditValue("");
     editValueRef.current = "";
     return sibling.id;
   }, [saveTree]);
-  const insertChildFor = (0, import_react.useCallback)((nodeId) => {
+  const insertChildFor = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     const parentNode = currentTree ? findById(currentTree, nodeId) : null;
-    if (!parentNode || parentNode.kind === "content")
+    if (!parentNode)
       return null;
     const child = createNode("");
     saveTree((newTree) => {
       const parent = findById(newTree, nodeId);
-      if (!parent || parent.kind === "content")
+      if (!parent)
         return;
       child.depth = parent.depth + 1;
       parent.children.push(child);
@@ -30015,27 +30045,21 @@ function MindmapReactView({
     });
     setSelectedNodeId(child.id);
     setEditingNodeId(child.id);
-    setEditingNodeKind("heading");
     setEditValue("");
     editValueRef.current = "";
     return child.id;
   }, [saveTree]);
-  const commitEditingAndInsertSibling = (0, import_react.useCallback)((nodeId) => {
+  const commitEditingAndInsertSibling = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     if (!currentTree || !findParent(currentTree, nodeId))
       return null;
-    const currentKind = editingNodeKind;
     const currentText = editValueRef.current.trim();
     const sibling = createNode("");
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
       if (!node2)
         return;
-      if (currentKind === "content") {
-        node2.content = currentText;
-      } else {
-        node2.title = currentText;
-      }
+      node2.title = currentText;
       const parent = findParent(newTree, nodeId);
       if (!parent)
         return;
@@ -30045,47 +30069,39 @@ function MindmapReactView({
     });
     setSelectedNodeId(sibling.id);
     setEditingNodeId(sibling.id);
-    setEditingNodeKind("heading");
     setEditValue("");
     editValueRef.current = "";
     return sibling.id;
-  }, [editingNodeKind, saveTree]);
-  const commitEditingAndInsertChild = (0, import_react.useCallback)((nodeId) => {
+  }, [saveTree]);
+  const commitEditingAndInsertChild = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     const currentNode = currentTree ? findById(currentTree, nodeId) : null;
-    if (!currentNode || currentNode.kind === "content")
+    if (!currentNode)
       return null;
-    const currentKind = editingNodeKind;
     const currentText = editValueRef.current.trim();
     const child = createNode("");
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
-      if (!node2 || node2.kind === "content")
+      if (!node2)
         return;
-      if (currentKind === "content") {
-        node2.content = currentText;
-      } else {
-        node2.title = currentText;
-      }
+      node2.title = currentText;
       child.depth = node2.depth + 1;
       node2.children.push(child);
       node2.collapsed = false;
     });
     setSelectedNodeId(child.id);
     setEditingNodeId(child.id);
-    setEditingNodeKind("heading");
     setEditValue("");
     editValueRef.current = "";
     return child.id;
-  }, [editingNodeKind, saveTree]);
-  const handleEditCancel = (0, import_react.useCallback)(() => {
+  }, [saveTree]);
+  const handleEditCancel = (0, import_react2.useCallback)(() => {
     setEditingNodeId(null);
-    setEditingNodeKind("heading");
     setEditValue("");
   }, []);
-  const handleAddChild = (0, import_react.useCallback)((nodeId) => {
+  const handleAddChild = (0, import_react2.useCallback)((nodeId) => {
     const parent = tree ? findById(tree, nodeId) : null;
-    if (!parent || parent.kind === "content") {
+    if (!parent) {
       setContextMenu(null);
       return;
     }
@@ -30101,7 +30117,7 @@ function MindmapReactView({
     setSelectedNodeId(child.id);
     setContextMenu(null);
   }, [tree, saveTree]);
-  const handleAddSibling = (0, import_react.useCallback)((nodeId) => {
+  const handleAddSibling = (0, import_react2.useCallback)((nodeId) => {
     const parent = tree ? findParent(tree, nodeId) : null;
     if (!parent) {
       setContextMenu(null);
@@ -30120,7 +30136,7 @@ function MindmapReactView({
     setSelectedNodeId(sibling.id);
     setContextMenu(null);
   }, [tree, saveTree]);
-  const handleDeleteNode = (0, import_react.useCallback)((nodeId) => {
+  const handleDeleteNode = (0, import_react2.useCallback)((nodeId) => {
     let nextSelection = null;
     if (tree) {
       const parent = findParent(tree, nodeId);
@@ -30141,7 +30157,7 @@ function MindmapReactView({
     if (selectedNodeId === nodeId)
       setSelectedNodeId(nextSelection === tree?.id ? null : nextSelection);
   }, [tree, saveTree, selectedNodeId]);
-  const handleIndent = (0, import_react.useCallback)((nodeId) => {
+  const handleIndent = (0, import_react2.useCallback)((nodeId) => {
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
       const oldParent = findParent(newTree, nodeId);
@@ -30151,14 +30167,12 @@ function MindmapReactView({
       if (idx <= 0)
         return;
       const newParent = oldParent.children[idx - 1];
-      if (newParent.kind === "content")
-        return;
       oldParent.children.splice(idx, 1);
       newParent.children.push(node2);
       newParent.collapsed = false;
     });
   }, [saveTree]);
-  const handleOutdent = (0, import_react.useCallback)((nodeId) => {
+  const handleOutdent = (0, import_react2.useCallback)((nodeId) => {
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
       const oldParent = findParent(newTree, nodeId);
@@ -30173,7 +30187,7 @@ function MindmapReactView({
       grandParent.children.splice(parentIdx + 1, 0, node2);
     });
   }, [saveTree]);
-  const handleToggleCollapse = (0, import_react.useCallback)((nodeId) => {
+  const handleToggleCollapse = (0, import_react2.useCallback)((nodeId) => {
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
       if (!node2 || node2.children.length === 0)
@@ -30181,7 +30195,7 @@ function MindmapReactView({
       node2.collapsed = !node2.collapsed;
     });
   }, [saveTree]);
-  const getSiblingIds = (0, import_react.useCallback)((nodeId) => {
+  const getSiblingIds = (0, import_react2.useCallback)((nodeId) => {
     if (!tree)
       return { prev: null, next: null };
     const parent = findParent(tree, nodeId);
@@ -30194,7 +30208,7 @@ function MindmapReactView({
       next: idx < siblings.length - 1 ? siblings[idx + 1].id : null
     };
   }, [tree]);
-  const navigateSelection = (0, import_react.useCallback)((direction) => {
+  const navigateSelection = (0, import_react2.useCallback)((direction) => {
     if (!selectedNodeId)
       return;
     const { prev, next } = getSiblingIds(selectedNodeId);
@@ -30202,18 +30216,18 @@ function MindmapReactView({
     if (target)
       setSelectedNodeId(target);
   }, [selectedNodeId, getSiblingIds]);
-  const handleContextMenu = (0, import_react.useCallback)((e, nodeId) => {
+  const handleContextMenu = (0, import_react2.useCallback)((e, nodeId) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
     setSelectedNodeId(nodeId);
     setEditingNodeId(null);
   }, []);
-  const handleCanvasClick = (0, import_react.useCallback)(() => {
+  const handleCanvasClick = (0, import_react2.useCallback)(() => {
     setContextMenu(null);
     setEditingNodeId(null);
   }, []);
-  const fitToView = (0, import_react.useCallback)(() => {
+  const fitToView = (0, import_react2.useCallback)(() => {
     const graph2 = graphRef.current;
     const container = containerRef.current;
     if (!container || !graph2 || graph2.nodes.length === 0)
@@ -30227,7 +30241,7 @@ function MindmapReactView({
     setZoom(newZoom);
     setPan({ x: offsetX, y: offsetY });
   }, []);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     if (!graph || graph.nodes.length === 0)
       return;
     if (initialFitDone.current)
@@ -30239,7 +30253,7 @@ function MindmapReactView({
     initialFitDone.current = true;
     return () => cancelAnimationFrame(timer);
   }, [graph, fitToView]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     const container = containerRef.current;
     if (!container)
       return;
@@ -30256,7 +30270,37 @@ function MindmapReactView({
     ro.observe(container);
     return () => ro.disconnect();
   }, [fitToView]);
-  (0, import_react.useEffect)(() => {
+  const handleZoomIn = (0, import_react2.useCallback)(() => {
+    const newZoom = Math.min(3, +(zoom + 0.1).toFixed(2));
+    const container = containerRef.current;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const scale = newZoom / zoom;
+      setZoom(newZoom);
+      setPan((prev) => ({
+        x: cx - (cx - prev.x) * scale,
+        y: cy - (cy - prev.y) * scale
+      }));
+    }
+  }, [zoom]);
+  const handleZoomOut = (0, import_react2.useCallback)(() => {
+    const newZoom = Math.max(0.1, +(zoom - 0.1).toFixed(2));
+    const container = containerRef.current;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const scale = newZoom / zoom;
+      setZoom(newZoom);
+      setPan((prev) => ({
+        x: cx - (cx - prev.x) * scale,
+        y: cy - (cy - prev.y) * scale
+      }));
+    }
+  }, [zoom]);
+  (0, import_react2.useEffect)(() => {
     const onWheel = (e) => {
       const container = containerRef.current;
       if (!container)
@@ -30291,7 +30335,7 @@ function MindmapReactView({
     window.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => window.removeEventListener("wheel", onWheel);
   }, []);
-  const handleCanvasPointerDown = (0, import_react.useCallback)((e) => {
+  const handleCanvasPointerDown = (0, import_react2.useCallback)((e) => {
     if (e.pointerType === "touch")
       return;
     if (e.target.closest(".mm-node"))
@@ -30304,16 +30348,16 @@ function MindmapReactView({
     d.panX = pan.x;
     d.panY = pan.y;
   }, [pan]);
-  const handleCanvasPointerMove = (0, import_react.useCallback)((e) => {
+  const handleCanvasPointerMove = (0, import_react2.useCallback)((e) => {
     const d = panDragRef.current;
     if (!d.dragging)
       return;
     setPan({ x: d.panX + (e.clientX - d.startX), y: d.panY + (e.clientY - d.startY) });
   }, []);
-  const handleCanvasPointerUp = (0, import_react.useCallback)(() => {
+  const handleCanvasPointerUp = (0, import_react2.useCallback)(() => {
     panDragRef.current.dragging = false;
   }, []);
-  const handleNodePointerDown = (0, import_react.useCallback)((e, nodeId) => {
+  const handleNodePointerDown = (0, import_react2.useCallback)((e, nodeId) => {
     if (editingNodeId)
       return;
     e.stopPropagation();
@@ -30364,7 +30408,7 @@ function MindmapReactView({
       container.removeEventListener("pointerup", handlePointerUp);
     };
   }, [editingNodeId, handleDrop]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     const onKeyDown = (e) => {
       if (editingNodeId) {
         if (e.key === "Escape") {
@@ -30444,42 +30488,41 @@ function MindmapReactView({
     insertSiblingAfter,
     onSaveContent
   ]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     return () => {
       if (dragCleanupRef.current)
         dragCleanupRef.current();
     };
   }, []);
   if (!fileLoaded) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u6B63\u5728\u8BFB\u53D6\u6587\u4EF6", detail: filePath || "\u7B49\u5F85\u4F20\u5165\u6587\u4EF6" });
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapMessage, { title: "\u6B63\u5728\u8BFB\u53D6\u6587\u4EF6", detail: filePath || "\u7B49\u5F85\u4F20\u5165\u6587\u4EF6" });
   }
   if (fileError) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u8BFB\u53D6\u6587\u4EF6\u5931\u8D25", detail: fileError });
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapMessage, { title: "\u8BFB\u53D6\u6587\u4EF6\u5931\u8D25", detail: fileError });
   }
   if (!fileContent) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u6587\u4EF6\u5185\u5BB9\u4E3A\u7A7A", detail: fileName || filePath });
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapMessage, { title: "\u6587\u4EF6\u5185\u5BB9\u4E3A\u7A7A", detail: fileName || filePath });
   }
   if (!tree) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u6B63\u5728\u89E3\u6790\u6587\u6863\u7ED3\u6784\u2026" });
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapMessage, { title: "\u6B63\u5728\u89E3\u6790\u6587\u6863\u7ED3\u6784\u2026" });
   }
   if (!graph || graph.nodes.length === 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MindmapMessage, { title: "\u5F53\u524D\u6587\u6863\u6CA1\u6709\u6807\u9898\uFF08# Heading\uFF09\uFF0C\u65E0\u6CD5\u751F\u6210\u8111\u56FE", detail: fileName || filePath });
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapMessage, { title: "\u5F53\u524D\u6587\u6863\u6CA1\u6709\u5927\u7EB2\u9879\uFF0C\u65E0\u6CD5\u751F\u6210\u8111\u56FE", detail: fileName || filePath });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(MindmapErrorBoundary, { filePath, children: [
-    contextMenu && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-      "div",
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(MindmapErrorBoundary, { filePath, children: [
+    contextMenu && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      MindmapContextMenu,
       {
-        className: "mindmap-context-menu",
-        style: { position: "fixed", left: contextMenu.x, top: contextMenu.y },
-        onMouseDown: (e) => e.stopPropagation(),
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-context-item", onClick: () => handleAddChild(contextMenu.nodeId), children: "\u2795 \u6DFB\u52A0\u5B50\u8282\u70B9" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-context-item", onClick: () => handleAddSibling(contextMenu.nodeId), children: "\u2B06 \u6DFB\u52A0\u540C\u7EA7\u8282\u70B9" }),
-          findParent(tree, contextMenu.nodeId) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-context-item danger", onClick: () => handleDeleteNode(contextMenu.nodeId), children: "\u{1F5D1} \u5220\u9664\u8282\u70B9" })
-        ]
+        x: contextMenu.x,
+        y: contextMenu.y,
+        nodeId: contextMenu.nodeId,
+        canDelete: !!findParent(tree, contextMenu.nodeId),
+        onAddChild: handleAddChild,
+        onAddSibling: handleAddSibling,
+        onDelete: handleDeleteNode
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
       "div",
       {
         ref: containerRef,
@@ -30491,7 +30534,7 @@ function MindmapReactView({
         onClick: handleCanvasClick,
         style: { touchAction: "none" },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
             "div",
             {
               className: "mindmap-canvas",
@@ -30503,30 +30546,17 @@ function MindmapReactView({
               },
               onClick: (e) => e.stopPropagation(),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { className: "mindmap-edges", width: graph.width, height: graph.height, children: busEdgeGroups(graph.edges).map((g, gi) => {
-                  const { source, children, turnX, sourceY } = g;
-                  const childYs = children.map((c) => c.childY);
-                  const childX = children.length > 0 ? children[0].child.x : turnX;
-                  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "path",
-                      {
-                        d: `M ${source.x + NODE_W} ${sourceY} L ${turnX} ${sourceY}`
-                      }
-                    ),
-                    children.length === 1 && Math.abs(children[0].childY - sourceY) < 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: `M ${turnX} ${sourceY} L ${childX} ${sourceY}` }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: busEdgePath(childYs, turnX, childX) }) })
-                  ] }, `bus-${gi}`);
-                }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapEdges, { edges: graph.edges, width: graph.width, height: graph.height }),
                 graph.nodes.map((node2) => {
                   const isEditing = editingNodeId === node2.id;
                   const isDragging = draggingNodeId === node2.id;
                   const dropPosition = dropTarget?.nodeId === node2.id && draggingNodeId !== null && draggingNodeId !== node2.id ? dropTarget.position : null;
-                  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  const headingMarker = parseHeadingMarker(node2.label);
+                  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                     "div",
                     {
                       "data-node-id": node2.id,
-                      "data-node-kind": node2.kind || "heading",
-                      className: `mm-node depth-${Math.min(node2.depth, 5)}${node2.kind === "content" ? " kind-content" : ""}${isDragging ? " dragging" : ""}${dropPosition ? ` drop-target drop-${dropPosition}` : ""}${node2.id === selectedNodeId ? " selected" : ""}`,
+                      className: `mm-node depth-${Math.min(node2.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ""}${isDragging ? " dragging" : ""}${dropPosition ? ` drop-target drop-${dropPosition}` : ""}${node2.id === selectedNodeId ? " selected" : ""}`,
                       style: {
                         left: `${node2.x}px`,
                         top: `${node2.y}px`,
@@ -30536,17 +30566,14 @@ function MindmapReactView({
                       title: node2.content ? `${node2.label}
 
 ${node2.content}` : node2.label,
-                      onDoubleClick: () => {
-                        const text3 = node2.kind === "content" ? node2.content || node2.label : node2.label;
-                        handleDoubleClick(node2.id, text3, node2.kind);
-                      },
+                      onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
                       onPointerDown: (e) => {
                         setSelectedNodeId(node2.id);
                         handleNodePointerDown(e, node2.id);
                       },
-                      children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-edit-wrap", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mm-edit-wrap", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                           "textarea",
                           {
                             className: "mm-edit-input",
@@ -30578,13 +30605,19 @@ ${node2.content}` : node2.label,
                             onPointerDown: (e) => e.stopPropagation()
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-edit-hint", children: "Enter \u65B0\u5EFA\u540C\u7EA7 \xB7 Tab \u65B0\u5EFA\u5B50\u7EA7 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
-                      ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-body", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", dangerouslySetInnerHTML: { __html: renderInlineMarkdown(node2.label) } }),
-                          node2.content && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-content", children: node2.content })
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mm-edit-hint", children: "Enter \u65B0\u5EFA\u540C\u7EA7 \xB7 Tab \u65B0\u5EFA\u5B50\u7EA7 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
+                      ] }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mm-body", children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "mm-title", children: [
+                            headingMarker.level && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "mm-heading-badge", children: [
+                              "H",
+                              headingMarker.level
+                            ] }),
+                            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { dangerouslySetInnerHTML: { __html: renderInlineMarkdown(headingMarker.label) } })
+                          ] }),
+                          node2.content && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mm-content", children: node2.content })
                         ] }),
-                        node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
                           "span",
                           {
                             className: `mm-collapse-btn${node2.collapsed ? " collapsed" : ""}`,
@@ -30594,12 +30627,12 @@ ${node2.content}` : node2.label,
                             },
                             title: node2.collapsed ? `\u5C55\u5F00 (${node2.childCount}\u4E2A\u5B50\u8282\u70B9)` : `\u6536\u8D77 (${node2.childCount}\u4E2A\u5B50\u8282\u70B9)`,
                             children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-collapse-icon", children: node2.collapsed ? "\u25B6" : "\u25BC" }),
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-collapse-count", children: node2.childCount })
+                              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "mm-collapse-icon", children: node2.collapsed ? "\u25B6" : "\u25BC" }),
+                              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "mm-collapse-count", children: node2.childCount })
                             ]
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                           "span",
                           {
                             className: "mm-drag-handle",
@@ -30635,44 +30668,8 @@ ${node2.content}` : node2.label,
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-toolbar", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: () => {
-              const newZoom = Math.min(3, +(zoom + 0.1).toFixed(2));
-              const container = containerRef.current;
-              if (container) {
-                const rect = container.getBoundingClientRect();
-                const cx = rect.width / 2;
-                const cy = rect.height / 2;
-                const scale = newZoom / zoom;
-                setZoom(newZoom);
-                setPan((prev) => ({
-                  x: cx - (cx - prev.x) * scale,
-                  y: cy - (cy - prev.y) * scale
-                }));
-              }
-            }, title: "\u653E\u5927", children: "+" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "mindmap-toolbar-label", children: [
-              Math.round(zoom * 100),
-              "%"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: () => {
-              const newZoom = Math.max(0.1, +(zoom - 0.1).toFixed(2));
-              const container = containerRef.current;
-              if (container) {
-                const rect = container.getBoundingClientRect();
-                const cx = rect.width / 2;
-                const cy = rect.height / 2;
-                const scale = newZoom / zoom;
-                setZoom(newZoom);
-                setPan((prev) => ({
-                  x: cx - (cx - prev.x) * scale,
-                  y: cy - (cy - prev.y) * scale
-                }));
-              }
-            }, title: "\u7F29\u5C0F", children: "\u2212" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: fitToView, title: "\u9002\u5E94\u753B\u5E03", children: "\u22A1" })
-          ] }),
-          draggingNodeId && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-drag-hint", children: dropTarget ? dropTarget.position === "before" ? "\u91CA\u653E\u540E\u63D2\u5165\u5230\u76EE\u6807\u4E0A\u65B9" : dropTarget.position === "after" ? "\u91CA\u653E\u540E\u63D2\u5165\u5230\u76EE\u6807\u4E0B\u65B9" : "\u91CA\u653E\u540E\u6210\u4E3A\u76EE\u6807\u5B50\u8282\u70B9" : "\u62D6\u5230\u8282\u70B9\u4E0A\u65B9/\u4E2D\u95F4/\u4E0B\u65B9\u9009\u62E9\u63D2\u5165\u4F4D\u7F6E" })
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MindmapToolbar, { zoom, onZoomIn: handleZoomIn, onZoomOut: handleZoomOut, onFitToView: fitToView }),
+          draggingNodeId && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mindmap-drag-hint", children: dropTarget ? dropTarget.position === "before" ? "\u91CA\u653E\u540E\u63D2\u5165\u5230\u76EE\u6807\u4E0A\u65B9" : dropTarget.position === "after" ? "\u91CA\u653E\u540E\u63D2\u5165\u5230\u76EE\u6807\u4E0B\u65B9" : "\u91CA\u653E\u540E\u6210\u4E3A\u76EE\u6807\u5B50\u8282\u70B9" : "\u62D6\u5230\u8282\u70B9\u4E0A\u65B9/\u4E2D\u95F4/\u4E0B\u65B9\u9009\u62E9\u63D2\u5165\u4F4D\u7F6E" })
         ]
       }
     )
@@ -30680,7 +30677,7 @@ ${node2.content}` : node2.label,
 }
 
 // src/view/MindmapView.tsx
-var import_jsx_runtime2 = __toESM(require_jsx_runtime());
+var import_jsx_runtime7 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_MINDMAP = "mindmap-view";
 var MindmapView = class extends import_obsidian.ItemView {
   constructor(leaf) {
@@ -30852,7 +30849,7 @@ var MindmapView = class extends import_obsidian.ItemView {
       fileName: this.fileName
     });
     this.root.render(
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_react2.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(import_react3.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
         MindmapReactView,
         {
           filePath: this.filePath,
@@ -30890,19 +30887,19 @@ var MindMapPlugin = class extends import_obsidian2.Plugin {
     this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf));
     for (const icon of ["brain", "brain-circuit", "git-branch", "file-text"]) {
       try {
-        this.addRibbonIcon(icon, "Toggle MindMap View", () => this.toggleMindMapView());
+        this.addRibbonIcon(icon, "Toggle Mindline", () => this.toggleMindMapView());
         break;
       } catch (_) {
       }
     }
     this.addCommand({
       id: "toggle-mindmap-view",
-      name: "Toggle MindMap View",
+      name: "Toggle Mindline",
       callback: () => this.toggleMindMapView()
     });
     const sb = this.addStatusBarItem();
     sb.setText("\u{1F9E0}");
-    sb.title = "Toggle MindMap View";
+    sb.title = "Toggle Mindline";
     sb.style.cursor = "pointer";
     sb.addEventListener("click", () => this.toggleMindMapView());
     console.log("[MindMap] Plugin loaded!");

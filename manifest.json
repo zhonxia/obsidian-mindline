@@ -1,11 +1,11 @@
 {
-  "id": "obsidian-mindmap-plugin",
-  "name": "MindMap View",
-  "version": "0.1.0",
+  "id": "mindline",
+  "name": "Mindline",
+  "version": "0.2.0",
   "minAppVersion": "1.0.0",
-  "description": "Markdown 大纲脑图可视化与编辑 - 将笔记的 Heading 结构渲染为可编辑的脑图",
+  "description": "A Mubu-style Markdown outline mind map plugin for Obsidian.",
   "author": "Qin Bai",
-  "authorUrl": "",
+  "authorUrl": "https://github.com/zhonxia",
   "isDesktopOnly": false,
   "isMobileSupported": true
 }

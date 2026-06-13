@@ -121,8 +121,44 @@
 .mm-title {
   min-width: 0;
   flex: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   word-break: break-word;
   white-space: normal;
+}
+
+.mm-heading-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mm-node.heading-mark {
+  border-color: #3b82f6;
+  background: #f8fbff;
+}
+
+.mm-node.heading-mark-1 {
+  border-width: 2px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.mm-node.heading-mark-2 {
+  border-width: 1.5px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .mm-body {
@@ -424,18 +460,4 @@
   pointer-events: none;
   z-index: 20;
   white-space: nowrap;
-}
-
-/* ── 内容节点（非标题节点）─────── */
-.mm-node.kind-content {
-  border-style: dashed;
-  border-color: #cbd5e1;
-  background: #fafafa;
-  padding-top: 3px;
-  padding-bottom: 3px;
-}
-
-.mm-node.kind-content .mm-title {
-  font-weight: 400;
-  font-size: 12px;
 }

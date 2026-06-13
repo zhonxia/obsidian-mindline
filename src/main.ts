@@ -29,7 +29,7 @@ export default class MindMapPlugin extends Plugin {
     // Ribbon Icon
     for (const icon of ['brain', 'brain-circuit', 'git-branch', 'file-text']) {
       try {
-        this.addRibbonIcon(icon, 'Toggle MindMap View', () => this.toggleMindMapView())
+        this.addRibbonIcon(icon, 'Toggle Mindline', () => this.toggleMindMapView())
         break
       } catch (_) {}
     }
@@ -37,14 +37,14 @@ export default class MindMapPlugin extends Plugin {
     // Command
     this.addCommand({
       id: 'toggle-mindmap-view',
-      name: 'Toggle MindMap View',
+      name: 'Toggle Mindline',
       callback: () => this.toggleMindMapView(),
     })
 
     // Status bar
     const sb = this.addStatusBarItem()
     sb.setText('🧠')
-    sb.title = 'Toggle MindMap View'
+    sb.title = 'Toggle Mindline'
     sb.style.cursor = 'pointer'
     sb.addEventListener('click', () => this.toggleMindMapView())
 

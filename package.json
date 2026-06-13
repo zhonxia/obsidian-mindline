@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-mindmap-plugin",
+  "name": "obsidian-mindline",
   "version": "0.2.0",
-  "description": "Markdown 大纲脑图视图（只读预览）",
+  "description": "A Mubu-style Markdown outline mind map plugin for Obsidian.",
   "main": "main.js",
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -9,16 +9,12 @@
     "dev": "node esbuild.config.mjs --watch"
   },
   "dependencies": {
-    "d3": "^7.9.0",
-    "d3-hierarchy": "^3.1.2",
     "mdast-util-from-markdown": "^2.0.0",
-    "mdast-util-to-markdown": "^2.1.0",
     "nanoid": "^5.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/d3-hierarchy": "^3.1.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "obsidian": "^1.0.0",

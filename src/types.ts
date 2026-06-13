@@ -6,7 +6,7 @@ export interface TreeNode {
   parentId: string | null
   collapsed: boolean
   depth: number
-  /** 节点来源：heading = 标题创建的节点；content = 从标题内容拆出的文本节点 */
+  /** 旧数据兼容字段；新模型中节点统一视为大纲项 */
   kind?: 'heading' | 'content'
   createdAt: number
   updatedAt: number

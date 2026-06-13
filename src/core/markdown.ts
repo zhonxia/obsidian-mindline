@@ -7,13 +7,10 @@ import type { TreeNode } from '../types'
  * Markdown → Document Tree
  *
  * 核心规则：
- *   Heading → TreeNode (kind='heading')
- *   标题内容 → 智能拆分：
- *     - 单段落、单行 → TreeNode.content 内联文本
- *     - 多段落 → 每段一个子节点 (kind='content')
- *     - 列表 → 每项一个子节点 (kind='content')
- *     - 单段多行（有软换行）→ 每行一个子节点 (kind='content')
- *     - 代码块/引用/分隔线 → 序列化到 TreeNode.content
+ *   - 内部统一使用幕布式大纲节点，所有节点都可以有子节点。
+ *   - Markdown 标题会转为带 "# " 前缀的节点文本，用于显示 H1/H2 样式。
+ *   - Markdown 列表会保留为大纲层级。
+ *   - 普通段落和复杂块会作为当前节点下的普通大纲项。
  *
  * 算法：栈式解析，O(n)
  */
@@ -21,129 +18,99 @@ export function parseMarkdown(md: string): TreeNode {
   const ast = fromMarkdown(md) as Root
   const root = createNode('__root__')
 
-  const stack: { node: TreeNode; level: number }[] = [{ node: root, level: 0 }]
-  let bodyNodes: Content[] = []
-  let pendingTarget: TreeNode | null = null
-
-  const flushBody = () => {
-    if (!pendingTarget || bodyNodes.length === 0) {
-      bodyNodes = []
-      pendingTarget = null
-      return
-    }
-
-    // 分析 bodyNodes 结构，决定是内联还是拆子节点
-    const decision = analyzeBody(bodyNodes)
-
-    if (decision.type === 'inline') {
-      pendingTarget.content = decision.value
-    } else {
-      for (const childNode of decision.children) {
-        addChild(pendingTarget, childNode)
-      }
-    }
-
-    bodyNodes = []
-    pendingTarget = null
-  }
+  const headingStack: { node: TreeNode; level: number }[] = [{ node: root, level: 0 }]
+  let currentParent: TreeNode = root
 
   for (const node of ast.children) {
     if (node.type === 'heading') {
-      flushBody()
-
       const level = (node as Heading).depth
-      const title = extractText(node as Heading)
-      const newNode = createNode(title, '', null, 0, 'heading')
+      const title = `${'#'.repeat(level)} ${extractText(node as Heading)}`.trim()
+      const newNode = createNode(title)
 
-      // 弹出栈中 level >= 当前 level 的节点
-      while (stack.length > 1 && stack[stack.length - 1].level >= level) {
-        stack.pop()
+      while (headingStack.length > 1 && headingStack[headingStack.length - 1].level >= level) {
+        headingStack.pop()
       }
 
-      const parent = stack[stack.length - 1].node
+      const parent = headingStack[headingStack.length - 1].node
       addChild(parent, newNode)
-      pendingTarget = newNode
-      stack.push({ node: newNode, level })
+      headingStack.push({ node: newNode, level })
+      currentParent = newNode
+    } else if (node.type === 'list') {
+      appendList(currentParent, node as List)
+    } else if (node.type === 'paragraph') {
+      for (const line of paragraphToOutlineLines(node as Paragraph)) {
+        addChild(currentParent, createNode(line))
+      }
     } else {
-      bodyNodes.push(node as Content)
+      const text = serializeNode(node as Content)
+      if (text) addChild(currentParent, createNode(text))
     }
   }
 
-  flushBody()
+  updateDepths(root, -1)
 
   return root
 }
 
-/**
- * 分析 body 内容，返回"内联"或"子节点数组"
- */
-type BodyDecision =
-  | { type: 'inline'; value: string }
-  | { type: 'children'; children: TreeNode[] }
-
-function analyzeBody(nodes: Content[]): BodyDecision {
-  if (nodes.length === 0) return { type: 'inline', value: '' }
-
-  // 如果包含非文本内容（代码块、引用、分隔线），全部序列化为 content
-  const hasComplex = nodes.some(n =>
-    n.type === 'code' || n.type === 'blockquote' || n.type === 'thematicBreak' || n.type === 'table'
-  )
-  if (hasComplex) {
-    return { type: 'inline', value: serializeBody(nodes) }
+function appendList(parent: TreeNode, list: List): void {
+  for (const item of (list.children || []) as ListItem[]) {
+    const node = listItemToNode(item)
+    if (node) addChild(parent, node)
   }
+}
 
-  // 列表 → 每一项拆为子节点
-  if (nodes.length === 1 && nodes[0].type === 'list') {
-    const list = nodes[0] as List
-    const children: TreeNode[] = []
-    for (const item of (list.children || []) as ListItem[]) {
-      const text = extractListItemText(item)
-      if (text) {
-        children.push(createNode(text, '', null, 0, 'content'))
+function listItemToNode(item: ListItem): TreeNode | null {
+  let title = ''
+  const nestedLists: List[] = []
+  const extraNodes: TreeNode[] = []
+
+  for (const child of item.children || []) {
+    if (child.type === 'paragraph') {
+      const text = extractParagraphText(child as Paragraph)
+      if (!title) {
+        title = text
+      } else if (text) {
+        extraNodes.push(createNode(text))
+      }
+    } else if (child.type === 'list') {
+      nestedLists.push(child as List)
+    } else if (child.type === 'heading') {
+      const h = child as Heading
+      const text = `${'#'.repeat(h.depth)} ${extractText(h)}`.trim()
+      if (!title) {
+        title = text
+      } else {
+        extraNodes.push(createNode(text))
+      }
+    } else {
+      const text = serializeNode(child as Content)
+      if (!title) {
+        title = text
+      } else if (text) {
+        extraNodes.push(createNode(text))
       }
     }
-    if (children.length > 0) return { type: 'children', children }
-    return { type: 'inline', value: '' }
   }
 
-  // 多个段落 → 每段拆为子节点
-  if (nodes.length > 1) {
-    const children: TreeNode[] = []
-    for (const n of nodes) {
-      if (n.type === 'paragraph') {
-        const text = extractParagraphText(n as Paragraph)
-        if (text) children.push(createNode(text, '', null, 0, 'content'))
-      }
-      // 跳过非段落内容（已在 hasComplex 处理）
-    }
-    if (children.length > 0) return { type: 'children', children }
-    return { type: 'inline', value: serializeBody(nodes) }
-  }
+  if (!title && nestedLists.length === 0 && extraNodes.length === 0) return null
 
-  // 单个段落 → 检查是否多行（按 \n 分割）
-  if (nodes.length === 1 && nodes[0].type === 'paragraph') {
-    const para = nodes[0] as Paragraph
-    // 先用 soft break 分割
-    let lines = splitBySoftBreaks(para)
-    // 如果 soft break 只有 1 行，再按 \n 分割（无换行的纯文本）
-    if (lines.length <= 1) {
-      const rawText = extractParagraphText(para)
-      const newlineLines = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0)
-      if (newlineLines.length > 1) {
-        lines = newlineLines
-      }
-    }
-    if (lines.length > 1) {
-      const children = lines.map(line => createNode(line, '', null, 0, 'content'))
-      return { type: 'children', children }
-    }
-    // 单行 → 内联文本
-    const text = extractParagraphText(para)
-    return { type: 'inline', value: text }
-  }
+  const node = createNode(title || '(empty)')
+  for (const extra of extraNodes) addChild(node, extra)
+  for (const nested of nestedLists) appendList(node, nested)
+  return node
+}
 
-  // fallback
-  return { type: 'inline', value: serializeBody(nodes) }
+function paragraphToOutlineLines(para: Paragraph): string[] {
+  const byBreak = splitBySoftBreaks(para)
+  if (byBreak.length > 1) return byBreak
+
+  const text = extractParagraphText(para)
+  return text.split('\n').map(line => line.trim()).filter(Boolean)
+}
+
+function updateDepths(node: TreeNode, depth: number): void {
+  node.depth = depth
+  for (const child of node.children) updateDepths(child, depth + 1)
 }
 
 /** 提取段落纯文本 */
@@ -207,63 +174,39 @@ function inlineChildrenText(children: any[]): string {
   }).join('')
 }
 
-/** 提取列表项的纯文本 */
-function extractListItemText(item: ListItem): string {
-  const firstChild = item.children?.[0]
-  if (!firstChild) return ''
-  if (firstChild.type === 'paragraph') {
-    return extractParagraphText(firstChild as Paragraph)
-  }
-  return ''
-}
-
 /**
  * Document Tree → Markdown
  *
  * 规则：
- *   kind='heading' (默认) → # 标题
- *   kind='content' → 纯文本行（不加 #）
- *   content 字段 → 在标题后的空行输出
+ *   内部统一按幕布式大纲节点保存。
+ *   如果想显示 Markdown 标题样式，直接把 "# " / "## " 写进节点标题。
  */
 export function serializeMarkdown(root: TreeNode): string {
   const lines: string[] = []
 
-  // 返回：最后一个输出的节点是否是 content 类型
-  const walkChildren = (children: TreeNode[], depth: number): boolean => {
-    let prevWasContent = false
-
+  const walkChildren = (children: TreeNode[], depth: number): void => {
+    const indent = '  '.repeat(depth)
     for (const node of children) {
-      if (node.kind === 'content') {
-        lines.push(node.title)
-        prevWasContent = true
-      } else {
-        if (prevWasContent) {
-          lines.push('')
-        }
-        const prefix = '#'.repeat(depth)
-        lines.push(`${prefix} ${node.title}`)
-        if (node.content && node.content.trim()) {
-          lines.push('', node.content)
-        }
-        lines.push('')
-        prevWasContent = false
-      }
-
-      if (node.children.length > 0 && node.kind !== 'content') {
-        // 递归处理子节点，子节点的 prevWasContent 可能影响外层
-        const childEndsWithContent = walkChildren(node.children, depth + 1)
-        if (childEndsWithContent) {
-          prevWasContent = true
+      const title = normalizeOutlineLine(node.title)
+      lines.push(`${indent}- ${title}`)
+      if (node.content && node.content.trim()) {
+        for (const line of node.content.split('\n').map(s => s.trim()).filter(Boolean)) {
+          lines.push(`${indent}  - ${line}`)
         }
       }
+      if (node.children.length > 0) walkChildren(node.children, depth + 1)
     }
-
-    return prevWasContent
   }
 
-  walkChildren(root.children, 1)
+  walkChildren(root.children, 0)
 
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
+  const md = lines.join('\n').trim()
+  return md ? md + '\n' : ''
+}
+
+function normalizeOutlineLine(text: string): string {
+  const oneLine = (text || '').replace(/\s*\n\s*/g, ' ').trim()
+  return oneLine || '(empty)'
 }
 
 /* ── 内部工具 ──────────────────────────────────── */
