@@ -23,6 +23,12 @@
 
 ---
 
+## 预览
+
+![Mindline Overview](assets/mindline-overview.png)
+
+*层级脑图：H1-H5 自动着色，总线式连线，底部缩放工具栏*
+
 ## 安装
 
 ### 从 Obsidian 社区插件市场安装（即将上架）
@@ -66,6 +72,10 @@ npm run build
 | 删除节点 | 右键 → 删除节点 / `Delete` / `Backspace` |
 | 拖拽移动 | 按住节点拖拽到目标位置 |
 | 折叠子节点 | 点击节点上的折叠按钮 |
+
+![Context Menu](assets/mindline-context.png)
+
+*右键菜单：添加子节点 (Tab)、添加同级 (Enter)、删除 (Del)*
 
 ### 快捷键
 

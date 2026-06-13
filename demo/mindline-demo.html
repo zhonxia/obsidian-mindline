@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Mindline - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e2e;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+}
+.canvas {
+  position: relative;
+  width: 1280px; height: 720px;
+  background: #1e1e2e;
+}
+/* Nodes */
+.node {
+  position: absolute;
+  background: #2d2d3f;
+  border: 1.5px solid #4a4a6a;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #cdd6f4;
+  white-space: nowrap;
+  cursor: default;
+  transition: box-shadow 0.15s;
+  user-select: none;
+}
+.node:hover { box-shadow: 0 0 0 2px rgba(137,180,250,0.3); }
+/* H1 */
+.node.h1 { background: #313244; border-color: #6c7086; font-size: 16px; font-weight: 700; color: #f5f5f5; }
+/* H2 */
+.node.h2 { border-color: #89b4fa; font-weight: 600; }
+/* H3 */
+.node.h3 { border-color: #a6e3a1; font-weight: 600; }
+/* H4 */
+.node.h4 { border-color: #94e2d5; }
+/* H5 */
+.node.h5 { border-color: #fab387; border-style: dashed; }
+/* Normal */
+.node.normal { border-color: #585b70; }
+
+/* SVG edges */
+.edges {
+  position: absolute; top: 0; left: 0;
+  pointer-events: none;
+}
+.edge-line {
+  stroke: #585b70;
+  stroke-width: 1.5;
+  fill: none;
+}
+/* Toolbar */
+.toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(49,50,68,0.95);
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.toolbar button {
+  background: transparent; border: none; color: #cdd6f4;
+  width: 28px; height: 28px; font-size: 16px; cursor: pointer;
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+}
+.toolbar button:hover { background: #45475a; }
+.toolbar .label { color: #a6adc8; font-size: 12px; min-width: 36px; text-align: center; }
+/* Title bar */
+.title-bar {
+  position: absolute; top: 12px; left: 16px;
+  color: #a6adc8; font-size: 12px;
+}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <!-- Title bar like Obsidian -->
+  <div class="title-bar">🧠 Mindline — project-plan.md</div>
+
+  <!-- SVG edges -->
+  <svg class="edges" width="1280" height="720">
+    <!-- Root → H1 nodes (vertical bus + horizontal branches) -->
+    <line class="edge-line" x1="640" y1="55" x2="640" y2="110"/>
+    <line class="edge-line" x1="640" y1="110" x2="640" y2="130"/>
+    <line class="edge-line" x1="640" y1="110" x2="455" y2="110"/>
+    <line class="edge-line" x1="640" y1="110" x2="830" y2="110"/>
+    <!-- Product → children -->
+    <line class="edge-line" x1="455" y1="140" x2="455" y2="220"/>
+    <line class="edge-line" x1="455" y1="220" x2="455" y2="260"/>
+    <line class="edge-line" x1="455" y1="220" x2="310" y2="220"/>
+    <line class="edge-line" x1="455" y1="220" x2="600" y2="220"/>
+    <!-- Engineering → children -->
+    <line class="edge-line" x1="830" y1="140" x2="830" y2="220"/>
+    <line class="edge-line" x1="830" y1="220" x2="830" y2="260"/>
+    <line class="edge-line" x1="830" y1="220" x2="730" y2="220"/>
+    <line class="edge-line" x1="830" y1="220" x2="930" y2="220"/>
+    <!-- Design → children -->
+    <line class="edge-line" x1="310" y1="250" x2="310" y2="260"/>
+    <line class="edge-line" x1="310" y1="260" x2="310" y2="280"/>
+    <line class="edge-line" x1="310" y1="260" x2="220" y2="260"/>
+    <line class="edge-line" x1="310" y1="260" x2="400" y2="260"/>
+    <!-- Markdown Engine → children -->
+    <line class="edge-line" x1="600" y1="250" x2="600" y2="260"/>
+    <line class="edge-line" x1="600" y1="260" x2="600" y2="280"/>
+    <line class="edge-line" x1="600" y1="260" x2="520" y2="260"/>
+    <line class="edge-line" x1="600" y1="260" x2="690" y2="260"/>
+    <!-- Frontend → children -->
+    <line class="edge-line" x1="730" y1="250" x2="730" y2="260"/>
+    <line class="edge-line" x1="730" y1="260" x2="680" y2="260"/>
+    <!-- Backend → children -->
+    <line class="edge-line" x1="930" y1="250" x2="930" y2="260"/>
+    <line class="edge-line" x1="930" y1="260" x2="880" y2="260"/>
+  </svg>
+
+  <!-- Root node -->
+  <div class="node h1" style="left:596px; top:24px;"># 🔥 Mindline v0.2.0</div>
+
+  <!-- H2 nodes -->
+  <div class="node h2" style="left:370px; top:96px;">## Product</div>
+  <div class="node h2" style="left:750px; top:96px;">## Engineering</div>
+
+  <!-- H3 under Product -->
+  <div class="node h3" style="left:228px; top:208px;">### Design</div>
+  <div class="node h3" style="left:510px; top:208px;">### Markdown Engine</div>
+
+  <!-- H3 under Engineering -->
+  <div class="node h3" style="left:650px; top:208px;">### Frontend</div>
+  <div class="node h3" style="left:850px; top:208px;">### Backend</div>
+
+  <!-- H4 under Design -->
+  <div class="node h4" style="left:160px; top:280px;">#### UI Components</div>
+  <div class="node h4" style="left:330px; top:280px;">#### Color System</div>
+
+  <!-- H4 under Markdown Engine -->
+  <div class="node h4" style="left:440px; top:280px;">#### AST Parser</div>
+  <div class="node h4" style="left:610px; top:280px;">#### Serializer</div>
+
+  <!-- H4 under Frontend -->
+  <div class="node h4" style="left:600px; top:280px;">#### React View</div>
+
+  <!-- H4 under Backend -->
+  <div class="node h4" style="left:808px; top:280px;">#### File I/O</div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button>+</button>
+    <span class="label">100%</span>
+    <button>−</button>
+    <button>⊡</button>
+  </div>
+</div>
+</body>
+</html>

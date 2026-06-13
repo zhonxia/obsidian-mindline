@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Mindline - Context Menu Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e2e;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+}
+.canvas {
+  position: relative;
+  width: 1280px; height: 720px;
+  background: #1e1e2e;
+}
+.node {
+  position: absolute;
+  background: #2d2d3f;
+  border: 1.5px solid #4a4a6a;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #cdd6f4;
+  white-space: nowrap;
+  user-select: none;
+}
+.node:hover { box-shadow: 0 0 0 2px rgba(137,180,250,0.3); }
+.node.h1 { background: #313244; border-color: #6c7086; font-size: 16px; font-weight: 700; color: #f5f5f5; }
+.node.h2 { border-color: #89b4fa; font-weight: 600; }
+.node.h3 { border-color: #a6e3a1; font-weight: 600; }
+.node.h4 { border-color: #94e2d5; }
+.node.h5 { border-color: #fab387; border-style: dashed; }
+.node.selected { box-shadow: 0 0 0 2px #89b4fa; }
+
+/* Context menu */
+.context-menu {
+  position: absolute;
+  background: #313244;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 160px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.context-item {
+  padding: 6px 12px;
+  color: #cdd6f4;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.context-item:hover { background: #45475a; }
+.context-item .key { color: #a6adc8; font-size: 11px; margin-left: auto; }
+
+/* Editing input */
+.edit-input {
+  background: #45475a;
+  border: 1.5px solid #89b4fa;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #cdd6f4;
+  font-size: 14px;
+  outline: none;
+  min-width: 180px;
+}
+
+/* Edges */
+.edges { position: absolute; top: 0; left: 0; pointer-events: none; }
+.edge-line { stroke: #585b70; stroke-width: 1.5; fill: none; }
+
+.toolbar {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(49,50,68,0.95); border: 1px solid #45475a;
+  border-radius: 8px; padding: 4px 8px;
+}
+.toolbar button {
+  background: transparent; border: none; color: #cdd6f4;
+  width: 28px; height: 28px; font-size: 16px; cursor: pointer;
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+}
+.toolbar .label { color: #a6adc8; font-size: 12px; min-width: 36px; text-align: center; }
+
+.title-bar { position: absolute; top: 12px; left: 16px; color: #a6adc8; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title-bar">🧠 Mindline — 右键编辑 & 快捷键操作</div>
+
+  <svg class="edges" width="1280" height="720">
+    <line class="edge-line" x1="480" y1="55" x2="480" y2="110"/>
+    <line class="edge-line" x1="480" y1="110" x2="480" y2="130"/>
+    <line class="edge-line" x1="480" y1="110" x2="400" y2="110"/>
+    <line class="edge-line" x1="480" y1="110" x2="560" y2="110"/>
+    <line class="edge-line" x1="400" y1="140" x2="400" y2="220"/>
+    <line class="edge-line" x1="400" y1="220" x2="300" y2="220"/>
+    <line class="edge-line" x1="400" y1="220" x2="500" y2="220"/>
+  </svg>
+
+  <!-- Root -->
+  <div class="node h1" style="left:408px; top:24px;"># 🔧 Getting Started</div>
+
+  <!-- H2 nodes -->
+  <div class="node h2" style="left:330px; top:96px;">## Installation</div>
+  <div class="node h2" style="left:490px; top:96px;">## Usage</div>
+
+  <!-- H3 nodes -->
+  <div class="node h3" style="left:236px; top:208px;">### From Community</div>
+  <div class="node h3" style="left:432px; top:208px;">### Manual Build</div>
+
+  <!-- Context Menu on selected node -->
+  <div class="context-menu" style="left:450px; top:192px;">
+    <div class="context-item">➕ 添加子节点 <span class="key">Tab</span></div>
+    <div class="context-item">↩ 添加同级节点 <span class="key">Enter</span></div>
+    <div class="context-item" style="color: #f38ba8;">🗑 删除节点 <span class="key">Del</span></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button>+</button>
+    <span class="label">100%</span>
+    <button>−</button>
+    <button>⊡</button>
+  </div>
+</div>
+</body>
+</html>
