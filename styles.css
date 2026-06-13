@@ -96,16 +96,16 @@
 }
 
 .mm-node.depth-3 {
-  border-color: #a78bfa;
+  border-color: #2dd4bf;
   border-width: 1px;
-  color: #4c1d95;
+  color: #115e59;
   font-weight: 500;
 }
 
 .mm-node.depth-4 {
-  border-color: #f472b6;
+  border-color: #f97316;
   border-width: 1px;
-  color: #831843;
+  color: #7c2d12;
   font-weight: 500;
   border-style: dashed;
 }

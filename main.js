@@ -29812,6 +29812,7 @@ function MindmapReactView({
 }) {
   const [tree, setTree] = (0, import_react.useState)(null);
   const [editingNodeId, setEditingNodeId] = (0, import_react.useState)(null);
+  const [editingNodeKind, setEditingNodeKind] = (0, import_react.useState)("heading");
   const [editValue, setEditValue] = (0, import_react.useState)("");
   const [contextMenu, setContextMenu] = (0, import_react.useState)(null);
   const [selectedNodeId, setSelectedNodeId] = (0, import_react.useState)(null);
@@ -29910,28 +29911,36 @@ function MindmapReactView({
       updateDepth(draggedNode, targetNode.depth + 1);
     });
   }, [saveTree, isAncestor]);
-  const handleDoubleClick = (0, import_react.useCallback)((nodeId, currentTitle) => {
+  const handleDoubleClick = (0, import_react.useCallback)((nodeId, text3, kind) => {
     setEditingNodeId(nodeId);
-    setEditValue(currentTitle);
+    setEditingNodeKind(kind || "heading");
+    setEditValue(text3);
     setContextMenu(null);
   }, []);
   const handleEditSave = (0, import_react.useCallback)(() => {
-    const newTitle = editValue.trim();
-    if (!newTitle || !editingNodeId)
+    const newText = editValue.trim();
+    if (!newText || !editingNodeId)
       return;
     saveTree((newTree) => {
       const node2 = findById(newTree, editingNodeId);
       if (!node2)
         return;
-      if (newTitle === node2.title)
-        return;
-      node2.title = newTitle;
+      if (editingNodeKind === "content") {
+        if (newText === node2.content)
+          return;
+        node2.content = newText;
+      } else {
+        if (newText === node2.title)
+          return;
+        node2.title = newText;
+      }
     });
     setEditingNodeId(null);
     setEditValue("");
-  }, [editingNodeId, editValue, saveTree]);
+  }, [editingNodeId, editValue, editingNodeKind, saveTree]);
   const handleEditCancel = (0, import_react.useCallback)(() => {
     setEditingNodeId(null);
+    setEditingNodeKind("heading");
     setEditValue("");
   }, []);
   const handleAddChild = (0, import_react.useCallback)((nodeId) => {
@@ -30051,14 +30060,21 @@ function MindmapReactView({
     const container = containerRef.current;
     if (!container)
       return;
-    const timer = requestAnimationFrame(() => fitToView());
-    const ro = new ResizeObserver(() => fitToView());
+    const timer = requestAnimationFrame(() => {
+      if (!editingNodeId)
+        fitToView();
+    });
+    const ro = new ResizeObserver(() => {
+      if (editingNodeId)
+        return;
+      fitToView();
+    });
     ro.observe(container);
     return () => {
       cancelAnimationFrame(timer);
       ro.disconnect();
     };
-  }, [graph, fitToView]);
+  }, [graph, fitToView, editingNodeId]);
   (0, import_react.useEffect)(() => {
     const onWheel = (e) => {
       const container = containerRef.current;
@@ -30175,8 +30191,10 @@ function MindmapReactView({
       const sid = selectedNodeId;
       if (!sid)
         return;
-      if (e.key === "Tab") {
+      if (e.key === "Tab" || e.code === "Tab") {
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         if (e.shiftKey) {
           handleOutdent(sid);
         } else {
@@ -30184,6 +30202,7 @@ function MindmapReactView({
         }
       } else if (e.key === "Enter" && !contextMenu) {
         e.preventDefault();
+        e.stopPropagation();
         saveTree((newTree) => {
           const parent = findParent(newTree, sid);
           if (!parent)
@@ -30198,17 +30217,20 @@ function MindmapReactView({
         });
       } else if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
+        e.stopPropagation();
         handleDeleteNode(sid);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
+        e.stopPropagation();
         navigateSelection("up");
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
+        e.stopPropagation();
         navigateSelection("down");
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [
     editingNodeId,
     selectedNodeId,
@@ -30311,7 +30333,10 @@ function MindmapReactView({
                       title: node2.content ? `${node2.label}
 
 ${node2.content}` : node2.label,
-                      onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
+                      onDoubleClick: () => {
+                        const text3 = node2.kind === "content" ? node2.content || node2.label : node2.label;
+                        handleDoubleClick(node2.id, text3, node2.kind);
+                      },
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
                       onPointerDown: (e) => {
                         setSelectedNodeId(node2.id);

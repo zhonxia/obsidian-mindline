@@ -284,6 +284,7 @@ export default function MindmapReactView({
 }: Props) {
   const [tree, setTree] = useState<TreeNode | null>(null)
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
+  const [editingNodeKind, setEditingNodeKind] = useState<'heading' | 'content'>('heading')
   const [editValue, setEditValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{
     nodeId: string; x: number; y: number
@@ -401,27 +402,34 @@ export default function MindmapReactView({
   }, [saveTree, isAncestor])
 
   // ── 节点编辑 ─────────────────────────────────
-  const handleDoubleClick = useCallback((nodeId: string, currentTitle: string) => {
+  const handleDoubleClick = useCallback((nodeId: string, text: string, kind?: 'heading' | 'content') => {
     setEditingNodeId(nodeId)
-    setEditValue(currentTitle)
+    setEditingNodeKind(kind || 'heading')
+    setEditValue(text)
     setContextMenu(null)
   }, [])
 
   const handleEditSave = useCallback(() => {
-    const newTitle = editValue.trim()
-    if (!newTitle || !editingNodeId) return
+    const newText = editValue.trim()
+    if (!newText || !editingNodeId) return
     saveTree((newTree) => {
       const node = findById(newTree, editingNodeId!)
       if (!node) return
-      if (newTitle === node.title) return
-      node.title = newTitle
+      if (editingNodeKind === 'content') {
+        if (newText === node.content) return
+        node.content = newText
+      } else {
+        if (newText === node.title) return
+        node.title = newText
+      }
     })
     setEditingNodeId(null)
     setEditValue('')
-  }, [editingNodeId, editValue, saveTree])
+  }, [editingNodeId, editValue, editingNodeKind, saveTree])
 
   const handleEditCancel = useCallback(() => {
     setEditingNodeId(null)
+    setEditingNodeKind('heading')
     setEditValue('')
   }, [])
 
@@ -540,11 +548,16 @@ export default function MindmapReactView({
     if (!graph || graph.nodes.length === 0) return
     const container = containerRef.current
     if (!container) return
-    const timer = requestAnimationFrame(() => fitToView())
-    const ro = new ResizeObserver(() => fitToView())
+    const timer = requestAnimationFrame(() => {
+      if (!editingNodeId) fitToView()
+    })
+    const ro = new ResizeObserver(() => {
+      if (editingNodeId) return  // 编辑时跳过自动缩放
+      fitToView()
+    })
     ro.observe(container)
     return () => { cancelAnimationFrame(timer); ro.disconnect() }
-  }, [graph, fitToView])
+  }, [graph, fitToView, editingNodeId])
 
   // ── 滚轮 / 触控板（原生事件，非 passive）───
   // Mac 触控板：双指滑动 → wheel 事件（deltaMode=0, 小数值）→ 平移
@@ -685,8 +698,10 @@ export default function MindmapReactView({
       const sid = selectedNodeId
       if (!sid) return
 
-      if (e.key === 'Tab') {
+      if (e.key === 'Tab' || e.code === 'Tab') {
         e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
         if (e.shiftKey) {
           handleOutdent(sid)
         } else {
@@ -694,6 +709,7 @@ export default function MindmapReactView({
         }
       } else if (e.key === 'Enter' && !contextMenu) {
         e.preventDefault()
+        e.stopPropagation()
         saveTree((newTree) => {
           const parent = findParent(newTree, sid)
           if (!parent) return
@@ -707,17 +723,20 @@ export default function MindmapReactView({
         })
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
+        e.stopPropagation()
         handleDeleteNode(sid)
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
+        e.stopPropagation()
         navigateSelection('up')
       } else if (e.key === 'ArrowDown') {
         e.preventDefault()
+        e.stopPropagation()
         navigateSelection('down')
       }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [editingNodeId, selectedNodeId, contextMenu,
       handleIndent, handleOutdent, handleDeleteNode, navigateSelection,
       handleEditCancel, saveTree])
@@ -832,7 +851,10 @@ export default function MindmapReactView({
                   minHeight: `${node.nodeH ?? NODE_H}px`,
                 }}
                 title={node.content ? `${node.label}\n\n${node.content}` : node.label}
-                onDoubleClick={() => handleDoubleClick(node.id, node.label)}
+                onDoubleClick={() => {
+                  const text = node.kind === 'content' ? (node.content || node.label) : node.label
+                  handleDoubleClick(node.id, text, node.kind)
+                }}
                 onContextMenu={e => handleContextMenu(e, node.id)}
                 onPointerDown={e => {
                   setSelectedNodeId(node.id)
