@@ -46,6 +46,22 @@ export class MindmapView extends ItemView {
     return Promise.resolve()
   }
 
+  /** 将编辑后的 Markdown 内容写回文件 */
+  private async handleSaveContent(newContent: string): Promise<void> {
+    try {
+      const file = this.app.vault.getAbstractFileByPath(this.filePath)
+      if (!(file instanceof TFile)) {
+        console.warn('[MindMap-View] handleSaveContent: file not found', this.filePath)
+        return
+      }
+      await this.app.vault.modify(file, newContent)
+      this.fileContent = newContent
+      console.log('[MindMap-View] handleSaveContent: saved', { length: newContent.length })
+    } catch (e) {
+      console.error('[MindMap-View] handleSaveContent error:', e)
+    }
+  }
+
   private async loadFile(): Promise<void> {
     if (!this.filePath) {
       this.fileLoaded = true
@@ -169,6 +185,10 @@ export class MindmapView extends ItemView {
       return
     }
 
+    const saveContent = (newContent: string) => {
+      this.handleSaveContent(newContent)
+    }
+
     console.log('[MindMap-View] doRender:', {
       filePath: this.filePath,
       fileLoaded: this.fileLoaded,
@@ -184,6 +204,7 @@ export class MindmapView extends ItemView {
           fileName={this.fileName}
           fileLoaded={this.fileLoaded}
           fileError={this.fileError}
+          onSaveContent={saveContent}
         />
       </StrictMode>
     )

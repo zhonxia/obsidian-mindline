@@ -152,3 +152,50 @@
   user-select: none;
   z-index: 10;
 }
+
+/* ── 右键菜单 ─────────────────────── */
+.mindmap-context-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(15,23,42,0.12);
+  padding: 4px 0;
+  font-size: 13px;
+  color: #334155;
+  user-select: none;
+}
+
+.mindmap-context-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mindmap-context-item:hover {
+  background: #f1f5f9;
+}
+
+.mindmap-context-item.danger {
+  color: #dc2626;
+}
+
+.mindmap-context-item.danger:hover {
+  background: #fef2f2;
+}
+
+/* ── 节点内联编辑 ─────────────────── */
+.mm-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+}
