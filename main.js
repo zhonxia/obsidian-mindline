@@ -30109,9 +30109,16 @@ function estimateNodeHeight(node2) {
   if (node2.kind === "content")
     return 24;
   let h = 34;
+  const titleChars = node2.title ? node2.title.length : 0;
+  if (titleChars > 17) {
+    const titleLines = Math.ceil(titleChars / 17);
+    h += (titleLines - 1) * 18;
+  }
   if (node2.content && node2.content.trim()) {
-    const lines = Math.min(node2.content.split("\n").length, 4);
-    h += lines * 15;
+    const contentLines = node2.content.split("\n").reduce((total, line) => {
+      return total + Math.max(1, Math.ceil(line.length / 25));
+    }, 0);
+    h += contentLines * 15;
   }
   return h;
 }

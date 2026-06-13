@@ -89,9 +89,8 @@
 .mm-title {
   min-width: 0;
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .mm-body {
@@ -109,10 +108,6 @@
   line-height: 1.4;
   word-break: break-word;
   white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .mm-badge {

@@ -166,13 +166,23 @@ function busEdgePath(children: number[], turnX: number, childX: number): string 
   return `M ${turnX} ${minTy} L ${turnX} ${maxTy} ${branches}`
 }
 
-/** 估算节点实际渲染高度 */
+/** 估算节点实际渲染高度（含标题换行和内容行） */
 function estimateNodeHeight(node: TreeNode): number {
   if (node.kind === 'content') return 24
+  // 基础高度：padding + 1行标题
   let h = 34
+  // 标题换行（NODE_W ≈ 220px，padding 20px → 200px 可用宽度，~17个中文字/行）
+  const titleChars = node.title ? node.title.length : 0
+  if (titleChars > 17) {
+    const titleLines = Math.ceil(titleChars / 17)
+    h += (titleLines - 1) * 18
+  }
   if (node.content && node.content.trim()) {
-    const lines = Math.min(node.content.split('\n').length, 4)
-    h += lines * 15
+    // 计算每行文字需要多少行（~25个混合字符/行，11px字号）
+    const contentLines = node.content.split('\n').reduce((total, line) => {
+      return total + Math.max(1, Math.ceil(line.length / 25))
+    }, 0)
+    h += contentLines * 15
   }
   return h
 }
