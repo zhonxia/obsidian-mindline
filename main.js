@@ -30157,6 +30157,8 @@ function MindmapReactView({
   const [contextMenu, setContextMenu] = (0, import_react.useState)(null);
   const [pan, setPan] = (0, import_react.useState)({ x: 0, y: 0 });
   const [zoom, setZoom] = (0, import_react.useState)(1);
+  const zoomRef = (0, import_react.useRef)(1);
+  const panRef = (0, import_react.useRef)({ x: 0, y: 0 });
   const [draggingNodeId, setDraggingNodeId] = (0, import_react.useState)(null);
   const [dropTargetId, setDropTargetId] = (0, import_react.useState)(null);
   const draggingNodeIdRef = (0, import_react.useRef)(null);
@@ -30165,6 +30167,12 @@ function MindmapReactView({
   const justSavedRef = (0, import_react.useRef)(false);
   const panDragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
   const dragCleanupRef = (0, import_react.useRef)(null);
+  (0, import_react.useEffect)(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  (0, import_react.useEffect)(() => {
+    panRef.current = pan;
+  }, [pan]);
   (0, import_react.useEffect)(() => {
     if (justSavedRef.current) {
       justSavedRef.current = false;
@@ -30339,25 +30347,39 @@ function MindmapReactView({
     };
   }, [graph, fitToView]);
   (0, import_react.useEffect)(() => {
-    const container = containerRef.current;
-    if (!container)
-      return;
     const onWheel = (e) => {
+      const container = containerRef.current;
+      if (!container)
+        return;
+      const rect = container.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom)
+        return;
       e.preventDefault();
+      e.stopPropagation();
       const absDY = Math.abs(e.deltaY);
-      const isTrackpad = e.deltaMode === 0 && absDY < 30;
+      const isTrackpad = e.deltaMode === 0 && absDY < 5;
       if (isTrackpad && !e.ctrlKey) {
         setPan((prev) => ({
           x: prev.x - (e.deltaX || 0),
           y: prev.y - e.deltaY
         }));
       } else {
-        const factor = e.deltaY > 0 ? -0.08 : 0.08;
-        setZoom((prev) => Math.min(3, Math.max(0.1, +(prev + factor).toFixed(2))));
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const oldZoom = zoomRef.current;
+        const oldPan = panRef.current;
+        const factor = e.deltaY > 0 ? -1 : 1;
+        const newZoom = Math.min(3, Math.max(0.1, +(oldZoom + factor * 0.1).toFixed(2)));
+        const scale = newZoom / oldZoom;
+        setZoom(newZoom);
+        setPan({
+          x: cx - (cx - oldPan.x) * scale,
+          y: cy - (cy - oldPan.y) * scale
+        });
       }
     };
-    container.addEventListener("wheel", onWheel, { passive: false });
-    return () => container.removeEventListener("wheel", onWheel);
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => window.removeEventListener("wheel", onWheel);
   }, []);
   const handleCanvasPointerDown = (0, import_react.useCallback)((e) => {
     if (e.pointerType === "touch")

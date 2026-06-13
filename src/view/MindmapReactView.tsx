@@ -229,6 +229,8 @@ export default function MindmapReactView({
 
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  const zoomRef = useRef(1)
+  const panRef = useRef({ x: 0, y: 0 })
 
   // 节点拖拽状态（Pointer Events 驱动）
   // 注意：事件回调里需要同步读取值，所以同时维护 state（驱动渲染）和 ref（驱动逻辑）
@@ -247,6 +249,10 @@ export default function MindmapReactView({
 
   // 节点拖拽用的全局 pointer 事件清理函数 ref
   const dragCleanupRef = useRef<(() => void) | null>(null)
+
+  // 同步 zoom/pan 到 ref（供 wheel 事件回调读取最新值）
+  useEffect(() => { zoomRef.current = zoom }, [zoom])
+  useEffect(() => { panRef.current = pan }, [pan])
 
   // ── 文件内容同步 ─────────────────────────────
   useEffect(() => {
@@ -427,15 +433,23 @@ export default function MindmapReactView({
   // ── 滚轮 / 触控板（原生事件，非 passive）───
   // Mac 触控板：双指滑动 → wheel 事件（deltaMode=0, 小数值）→ 平移
   // Mac 触控板：捏合 → wheel 事件（ctrlKey=true）→ 缩放
-  // 鼠标滚轮：deltaY 为大整数（≥50）→ 缩放
+  // 鼠标滚轮：deltaY 为大整数（≥50）→ 缩放（以光标为中心）
+  // 用 window + capture 确保在 Obsidian 父级滚动容器之前拦截事件
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
     const onWheel = (e: WheelEvent) => {
+      const container = containerRef.current
+      if (!container) return
+      // 只处理在 mindmap 容器内的事件
+      const rect = container.getBoundingClientRect()
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top || e.clientY > rect.bottom) return
+
       e.preventDefault()
+      e.stopPropagation()
       const absDY = Math.abs(e.deltaY)
-      // 触控板判定：像素模式 且 数值较小
-      const isTrackpad = e.deltaMode === 0 && absDY < 30
+      // 触控板判定：deltaMode=0(像素) + deltaY 极小（触控板典型值 0.5~3，鼠标 ≥8）
+      const isTrackpad = e.deltaMode === 0 && absDY < 5
+
       if (isTrackpad && !e.ctrlKey) {
         // 触控板双指滑动 → 平移画布
         setPan(prev => ({
@@ -443,13 +457,25 @@ export default function MindmapReactView({
           y: prev.y - e.deltaY,
         }))
       } else {
-        // 鼠标滚轮 或 触控板捏合 → 缩放
-        const factor = e.deltaY > 0 ? -0.08 : 0.08
-        setZoom(prev => Math.min(3, Math.max(0.1, +(prev + factor).toFixed(2))))
+        // 鼠标滚轮 或 触控板捏合 → 以光标为中心缩放
+        const cx = e.clientX - rect.left
+        const cy = e.clientY - rect.top
+        const oldZoom = zoomRef.current
+        const oldPan = panRef.current
+
+        const factor = e.deltaY > 0 ? -1 : 1
+        const newZoom = Math.min(3, Math.max(0.1, +(oldZoom + factor * 0.1).toFixed(2)))
+        const scale = newZoom / oldZoom
+
+        setZoom(newZoom)
+        setPan({
+          x: cx - (cx - oldPan.x) * scale,
+          y: cy - (cy - oldPan.y) * scale,
+        })
       }
     }
-    container.addEventListener('wheel', onWheel, { passive: false })
-    return () => container.removeEventListener('wheel', onWheel)
+    window.addEventListener('wheel', onWheel, { passive: false, capture: true })
+    return () => window.removeEventListener('wheel', onWheel)
   }, [])
 
   // ── 画布拖拽（鼠标中键/左键拖拽，触控板不用此方式）──
