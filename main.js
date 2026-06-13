@@ -29822,12 +29822,14 @@ function MindmapReactView({
   const zoomRef = (0, import_react.useRef)(1);
   const panRef = (0, import_react.useRef)({ x: 0, y: 0 });
   const graphRef = (0, import_react.useRef)(null);
+  const treeRef = (0, import_react.useRef)(null);
   const editingNodeIdRef = (0, import_react.useRef)(null);
+  const editValueRef = (0, import_react.useRef)("");
   const initialFitDone = (0, import_react.useRef)(false);
   const [draggingNodeId, setDraggingNodeId] = (0, import_react.useState)(null);
-  const [dropTargetId, setDropTargetId] = (0, import_react.useState)(null);
+  const [dropTarget, setDropTarget] = (0, import_react.useState)(null);
   const draggingNodeIdRef = (0, import_react.useRef)(null);
-  const dropTargetIdRef = (0, import_react.useRef)(null);
+  const dropTargetRef = (0, import_react.useRef)(null);
   const containerRef = (0, import_react.useRef)(null);
   const saveCounterRef = (0, import_react.useRef)(0);
   const panDragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
@@ -29841,6 +29843,9 @@ function MindmapReactView({
   (0, import_react.useEffect)(() => {
     editingNodeIdRef.current = editingNodeId;
   }, [editingNodeId]);
+  (0, import_react.useEffect)(() => {
+    editValueRef.current = editValue;
+  }, [editValue]);
   (0, import_react.useEffect)(() => {
     initialFitDone.current = false;
   }, [filePath]);
@@ -29868,6 +29873,9 @@ function MindmapReactView({
   (0, import_react.useEffect)(() => {
     graphRef.current = graph;
   }, [graph]);
+  (0, import_react.useEffect)(() => {
+    treeRef.current = tree;
+  }, [tree]);
   const cloneTree = (t) => JSON.parse(JSON.stringify(t));
   const saveTree = (0, import_react.useCallback)((modify) => {
     setTree((prev) => {
@@ -29900,7 +29908,7 @@ function MindmapReactView({
     }
     return false;
   }, []);
-  const handleDrop = (0, import_react.useCallback)((draggedNodeId, targetNodeId) => {
+  const handleDrop = (0, import_react.useCallback)((draggedNodeId, targetNodeId, position2) => {
     if (draggedNodeId === targetNodeId)
       return;
     saveTree((newTree) => {
@@ -29916,13 +29924,27 @@ function MindmapReactView({
       const idx = oldParent.children.findIndex((c) => c.id === draggedNodeId);
       if (idx >= 0)
         oldParent.children.splice(idx, 1);
-      targetNode.children.push(draggedNode);
       const updateDepth = (node2, depth) => {
         node2.depth = depth;
         node2.children.forEach((c) => updateDepth(c, depth + 1));
       };
-      updateDepth(draggedNode, targetNode.depth + 1);
+      if (position2 === "inside" && targetNode.kind !== "content") {
+        targetNode.children.push(draggedNode);
+        targetNode.collapsed = false;
+        updateDepth(draggedNode, targetNode.depth + 1);
+        return;
+      }
+      const targetParent = findParent(newTree, targetNodeId);
+      if (!targetParent)
+        return;
+      const targetIdx = targetParent.children.findIndex((c) => c.id === targetNodeId);
+      if (targetIdx < 0)
+        return;
+      const insertIdx = position2 === "before" ? targetIdx : targetIdx + 1;
+      targetParent.children.splice(insertIdx, 0, draggedNode);
+      updateDepth(draggedNode, targetNode.depth);
     });
+    setSelectedNodeId(draggedNodeId);
   }, [saveTree, isAncestor]);
   const handleDoubleClick = (0, import_react.useCallback)((nodeId, text3, kind) => {
     setEditingNodeId(nodeId);
@@ -29932,7 +29954,7 @@ function MindmapReactView({
   }, []);
   const handleEditSave = (0, import_react.useCallback)(() => {
     const newText = editValue.trim();
-    if (!newText || !editingNodeId)
+    if (!editingNodeId)
       return;
     saveTree((newTree) => {
       const node2 = findById(newTree, editingNodeId);
@@ -29951,36 +29973,129 @@ function MindmapReactView({
     setEditingNodeId(null);
     setEditValue("");
   }, [editingNodeId, editValue, editingNodeKind, saveTree]);
+  const insertSiblingAfter = (0, import_react.useCallback)((nodeId) => {
+    const currentTree = treeRef.current;
+    if (!currentTree || !findParent(currentTree, nodeId))
+      return null;
+    const sibling = createNode("");
+    saveTree((newTree) => {
+      const parent = findParent(newTree, nodeId);
+      const refNode = findById(newTree, nodeId);
+      if (!parent || !refNode)
+        return;
+      sibling.depth = refNode.depth;
+      const idx = parent.children.indexOf(refNode);
+      parent.children.splice(idx + 1, 0, sibling);
+    });
+    setSelectedNodeId(sibling.id);
+    setEditingNodeId(sibling.id);
+    setEditingNodeKind("heading");
+    setEditValue("");
+    editValueRef.current = "";
+    return sibling.id;
+  }, [saveTree]);
+  const insertChildFor = (0, import_react.useCallback)((nodeId) => {
+    const currentTree = treeRef.current;
+    const parentNode = currentTree ? findById(currentTree, nodeId) : null;
+    if (!parentNode || parentNode.kind === "content")
+      return null;
+    const child = createNode("");
+    saveTree((newTree) => {
+      const parent = findById(newTree, nodeId);
+      if (!parent || parent.kind === "content")
+        return;
+      child.depth = parent.depth + 1;
+      parent.children.push(child);
+      parent.collapsed = false;
+    });
+    setSelectedNodeId(child.id);
+    setEditingNodeId(child.id);
+    setEditingNodeKind("heading");
+    setEditValue("");
+    editValueRef.current = "";
+    return child.id;
+  }, [saveTree]);
+  const commitEditingAndInsertSibling = (0, import_react.useCallback)((nodeId) => {
+    const currentTree = treeRef.current;
+    if (!currentTree || !findParent(currentTree, nodeId))
+      return null;
+    const currentKind = editingNodeKind;
+    const currentText = editValueRef.current.trim();
+    const sibling = createNode("");
+    saveTree((newTree) => {
+      const node2 = findById(newTree, nodeId);
+      if (!node2)
+        return;
+      if (currentKind === "content") {
+        node2.content = currentText;
+      } else {
+        node2.title = currentText;
+      }
+      const parent = findParent(newTree, nodeId);
+      if (!parent)
+        return;
+      sibling.depth = node2.depth;
+      const idx = parent.children.indexOf(node2);
+      parent.children.splice(idx + 1, 0, sibling);
+    });
+    setSelectedNodeId(sibling.id);
+    setEditingNodeId(sibling.id);
+    setEditingNodeKind("heading");
+    setEditValue("");
+    editValueRef.current = "";
+    return sibling.id;
+  }, [editingNodeKind, saveTree]);
   const handleEditCancel = (0, import_react.useCallback)(() => {
     setEditingNodeId(null);
     setEditingNodeKind("heading");
     setEditValue("");
   }, []);
   const handleAddChild = (0, import_react.useCallback)((nodeId) => {
+    const parent = tree ? findById(tree, nodeId) : null;
+    if (!parent || parent.kind === "content") {
+      setContextMenu(null);
+      return;
+    }
+    const child = createNode("\u65B0\u8282\u70B9");
     saveTree((newTree) => {
-      const parent = findById(newTree, nodeId);
-      if (!parent)
+      const newParent = findById(newTree, nodeId);
+      if (!newParent)
         return;
-      const child = createNode("\u65B0\u8282\u70B9");
-      child.depth = parent.depth + 1;
-      parent.children.push(child);
+      child.depth = newParent.depth + 1;
+      newParent.children.push(child);
+      newParent.collapsed = false;
     });
+    setSelectedNodeId(child.id);
     setContextMenu(null);
-  }, [saveTree]);
+  }, [tree, saveTree]);
   const handleAddSibling = (0, import_react.useCallback)((nodeId) => {
+    const parent = tree ? findParent(tree, nodeId) : null;
+    if (!parent) {
+      setContextMenu(null);
+      return;
+    }
+    const sibling = createNode("\u65B0\u8282\u70B9");
     saveTree((newTree) => {
-      const parent = findParent(newTree, nodeId);
-      if (!parent)
+      const newParent = findParent(newTree, nodeId);
+      if (!newParent)
         return;
       const refNode = findById(newTree, nodeId);
-      const sibling = createNode("\u65B0\u8282\u70B9");
       sibling.depth = refNode.depth;
-      const idx = parent.children.indexOf(refNode);
-      parent.children.splice(idx + 1, 0, sibling);
+      const idx = newParent.children.indexOf(refNode);
+      newParent.children.splice(idx + 1, 0, sibling);
     });
+    setSelectedNodeId(sibling.id);
     setContextMenu(null);
-  }, [saveTree]);
+  }, [tree, saveTree]);
   const handleDeleteNode = (0, import_react.useCallback)((nodeId) => {
+    let nextSelection = null;
+    if (tree) {
+      const parent = findParent(tree, nodeId);
+      if (parent) {
+        const idx = parent.children.findIndex((c) => c.id === nodeId);
+        nextSelection = parent.children[idx + 1]?.id || parent.children[idx - 1]?.id || parent.id;
+      }
+    }
     saveTree((newTree) => {
       const parent = findParent(newTree, nodeId);
       if (!parent)
@@ -29991,8 +30106,8 @@ function MindmapReactView({
     });
     setContextMenu(null);
     if (selectedNodeId === nodeId)
-      setSelectedNodeId(null);
-  }, [saveTree, selectedNodeId]);
+      setSelectedNodeId(nextSelection === tree?.id ? null : nextSelection);
+  }, [tree, saveTree, selectedNodeId]);
   const handleIndent = (0, import_react.useCallback)((nodeId) => {
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
@@ -30003,8 +30118,11 @@ function MindmapReactView({
       if (idx <= 0)
         return;
       const newParent = oldParent.children[idx - 1];
+      if (newParent.kind === "content")
+        return;
       oldParent.children.splice(idx, 1);
       newParent.children.push(node2);
+      newParent.collapsed = false;
     });
   }, [saveTree]);
   const handleOutdent = (0, import_react.useCallback)((nodeId) => {
@@ -30171,32 +30289,38 @@ function MindmapReactView({
     if (!container)
       return;
     draggingNodeIdRef.current = nodeId;
-    dropTargetIdRef.current = null;
+    dropTargetRef.current = null;
     setDraggingNodeId(nodeId);
-    setDropTargetId(null);
+    setDropTarget(null);
     const handlePointerMove = (ev) => {
       const elements = document.elementsFromPoint(ev.clientX, ev.clientY);
-      let foundId = null;
+      let foundTarget = null;
       for (const el of elements) {
         const nodeEl = el.closest?.("[data-node-id]");
         if (nodeEl && nodeEl.dataset.nodeId && nodeEl.dataset.nodeId !== draggingNodeIdRef.current) {
-          foundId = nodeEl.dataset.nodeId;
+          const rect = nodeEl.getBoundingClientRect();
+          const localY = ev.clientY - rect.top;
+          const band = rect.height * 0.28;
+          let position2 = localY < band ? "before" : localY > rect.height - band ? "after" : "inside";
+          if (position2 === "inside" && nodeEl.dataset.nodeKind === "content")
+            position2 = "after";
+          foundTarget = { nodeId: nodeEl.dataset.nodeId, position: position2 };
           break;
         }
       }
-      dropTargetIdRef.current = foundId;
-      setDropTargetId(foundId);
+      dropTargetRef.current = foundTarget;
+      setDropTarget(foundTarget);
     };
     const handlePointerUp = (ev) => {
       const dragId = draggingNodeIdRef.current;
-      const tgtId = dropTargetIdRef.current;
-      if (dragId && tgtId && dragId !== tgtId) {
-        handleDrop(dragId, tgtId);
+      const target = dropTargetRef.current;
+      if (dragId && target && dragId !== target.nodeId) {
+        handleDrop(dragId, target.nodeId, target.position);
       }
       draggingNodeIdRef.current = null;
-      dropTargetIdRef.current = null;
+      dropTargetRef.current = null;
       setDraggingNodeId(null);
-      setDropTargetId(null);
+      setDropTarget(null);
       container.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerup", handlePointerUp);
     };
@@ -30233,18 +30357,11 @@ function MindmapReactView({
       } else if (e.key === "Enter" && !contextMenu) {
         e.preventDefault();
         e.stopPropagation();
-        saveTree((newTree) => {
-          const parent = findParent(newTree, sid);
-          if (!parent)
-            return;
-          const refNode = findById(newTree, sid);
-          const sibling = createNode("");
-          sibling.depth = refNode.depth;
-          const idx = parent.children.indexOf(refNode);
-          parent.children.splice(idx + 1, 0, sibling);
-          setEditingNodeId(sibling.id);
-          setEditValue("");
-        });
+        if (e.shiftKey) {
+          insertChildFor(sid);
+        } else {
+          insertSiblingAfter(sid);
+        }
       } else if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         e.stopPropagation();
@@ -30270,7 +30387,8 @@ function MindmapReactView({
     handleDeleteNode,
     navigateSelection,
     handleEditCancel,
-    saveTree
+    insertChildFor,
+    insertSiblingAfter
   ]);
   (0, import_react.useEffect)(() => {
     return () => {
@@ -30348,12 +30466,13 @@ function MindmapReactView({
                 graph.nodes.map((node2) => {
                   const isEditing = editingNodeId === node2.id;
                   const isDragging = draggingNodeId === node2.id;
-                  const isDropTarget = dropTargetId === node2.id && draggingNodeId !== null && draggingNodeId !== node2.id;
+                  const dropPosition = dropTarget?.nodeId === node2.id && draggingNodeId !== null && draggingNodeId !== node2.id ? dropTarget.position : null;
                   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "div",
                     {
                       "data-node-id": node2.id,
-                      className: `mm-node depth-${Math.min(node2.depth, 5)}${node2.kind === "content" ? " kind-content" : ""}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}${node2.id === selectedNodeId ? " selected" : ""}`,
+                      "data-node-kind": node2.kind || "heading",
+                      className: `mm-node depth-${Math.min(node2.depth, 5)}${node2.kind === "content" ? " kind-content" : ""}${isDragging ? " dragging" : ""}${dropPosition ? ` drop-target drop-${dropPosition}` : ""}${node2.id === selectedNodeId ? " selected" : ""}`,
                       style: {
                         left: `${node2.x}px`,
                         top: `${node2.y}px`,
@@ -30378,14 +30497,20 @@ ${node2.content}` : node2.label,
                           {
                             className: "mm-edit-input",
                             value: editValue,
-                            onChange: (e) => setEditValue(e.target.value),
+                            onChange: (e) => {
+                              editValueRef.current = e.target.value;
+                              setEditValue(e.target.value);
+                            },
                             onKeyDown: (e) => {
                               if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
-                                handleEditSave();
+                                e.stopPropagation();
+                                commitEditingAndInsertSibling(node2.id);
                               }
-                              if (e.key === "Escape")
+                              if (e.key === "Escape") {
+                                e.stopPropagation();
                                 handleEditCancel();
+                              }
                             },
                             onBlur: handleEditSave,
                             autoFocus: true,
@@ -30394,7 +30519,7 @@ ${node2.content}` : node2.label,
                             onPointerDown: (e) => e.stopPropagation()
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-edit-hint", children: "Enter \u4FDD\u5B58 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-edit-hint", children: "Enter \u65B0\u5EFA\u540C\u7EA7 \xB7 Shift+Enter \u6362\u884C \xB7 Esc \u53D6\u6D88" })
                       ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-body", children: [
                           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", dangerouslySetInnerHTML: { __html: renderInlineMarkdown(node2.label) } }),
@@ -30488,7 +30613,7 @@ ${node2.content}` : node2.label,
             }, title: "\u7F29\u5C0F", children: "\u2212" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: fitToView, title: "\u9002\u5E94\u753B\u5E03", children: "\u22A1" })
           ] }),
-          draggingNodeId && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-drag-hint", children: "\u62D6\u62FD\u5230\u76EE\u6807\u8282\u70B9\u4E0A\u91CA\u653E\u4EE5\u6539\u53D8\u5C42\u7EA7\u5173\u7CFB" })
+          draggingNodeId && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-drag-hint", children: dropTarget ? dropTarget.position === "before" ? "\u91CA\u653E\u540E\u63D2\u5165\u5230\u76EE\u6807\u4E0A\u65B9" : dropTarget.position === "after" ? "\u91CA\u653E\u540E\u63D2\u5165\u5230\u76EE\u6807\u4E0B\u65B9" : "\u91CA\u653E\u540E\u6210\u4E3A\u76EE\u6807\u5B50\u8282\u70B9" : "\u62D6\u5230\u8282\u70B9\u4E0A\u65B9/\u4E2D\u95F4/\u4E0B\u65B9\u9009\u62E9\u63D2\u5165\u4F4D\u7F6E" })
         ]
       }
     )

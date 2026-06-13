@@ -347,8 +347,31 @@
 }
 
 .mm-node.drop-target {
-  box-shadow: 0 0 0 2px #3b82f6;
   background-color: #eff6ff;
+}
+
+.mm-node.drop-inside {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.mm-node.drop-before::before,
+.mm-node.drop-after::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  height: 3px;
+  border-radius: 999px;
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14);
+}
+
+.mm-node.drop-before::before {
+  top: -9px;
+}
+
+.mm-node.drop-after::after {
+  bottom: -9px;
 }
 
 .mm-node.selected {

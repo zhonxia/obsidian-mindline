@@ -1,5 +1,4 @@
 import React, { useMemo, useRef, useCallback, useState, useEffect, ReactNode } from 'react'
-import { nanoid } from 'nanoid'
 
 import { parseMarkdown, serializeMarkdown } from '../core/markdown'
 import { createNode, findById, findParent } from '../core/tree'
@@ -126,6 +125,13 @@ interface MindmapRenderEdge {
   id: string
   source: MindmapRenderNode
   target: MindmapRenderNode
+}
+
+type DropPosition = 'before' | 'inside' | 'after'
+
+interface DropTarget {
+  nodeId: string
+  position: DropPosition
 }
 
 /** 渲染标题中的基本 Markdown 内联语法（**粗体** *斜体* `代码` ~~删除线~~） */
@@ -298,15 +304,17 @@ export default function MindmapReactView({
   const zoomRef = useRef(1)
   const panRef = useRef({ x: 0, y: 0 })
   const graphRef = useRef<ReturnType<typeof buildGraphFromTree> | null>(null)
+  const treeRef = useRef<TreeNode | null>(null)
   const editingNodeIdRef = useRef<string | null>(null)
+  const editValueRef = useRef('')
   const initialFitDone = useRef(false)
 
   // 节点拖拽状态（Pointer Events 驱动）
   // 注意：事件回调里需要同步读取值，所以同时维护 state（驱动渲染）和 ref（驱动逻辑）
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
-  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
   const draggingNodeIdRef = useRef<string | null>(null)
-  const dropTargetIdRef = useRef<string | null>(null)
+  const dropTargetRef = useRef<DropTarget | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   /** 保存计数器：每次 saveTree 递增，fileContent 变化时递减。
@@ -325,6 +333,7 @@ export default function MindmapReactView({
   useEffect(() => { zoomRef.current = zoom }, [zoom])
   useEffect(() => { panRef.current = pan }, [pan])
   useEffect(() => { editingNodeIdRef.current = editingNodeId }, [editingNodeId])
+  useEffect(() => { editValueRef.current = editValue }, [editValue])
   useEffect(() => { initialFitDone.current = false }, [filePath])
 
   // ── 文件内容同步 ─────────────────────────────
@@ -353,6 +362,7 @@ export default function MindmapReactView({
   }, [tree])
 
   useEffect(() => { graphRef.current = graph }, [graph])
+  useEffect(() => { treeRef.current = tree }, [tree])
 
   // ── 树操作工具 ───────────────────────────────
   const cloneTree = (t: TreeNode): TreeNode => JSON.parse(JSON.stringify(t))
@@ -386,8 +396,8 @@ export default function MindmapReactView({
     return false
   }, [])
 
-  // ── 拖放：改变节点父子关系 ──────────────────
-  const handleDrop = useCallback((draggedNodeId: string, targetNodeId: string) => {
+  // ── 拖放：改变节点父子关系 / 同级顺序 ────────
+  const handleDrop = useCallback((draggedNodeId: string, targetNodeId: string, position: DropPosition) => {
     if (draggedNodeId === targetNodeId) return
     saveTree((newTree) => {
       const draggedNode = findById(newTree, draggedNodeId)
@@ -400,14 +410,27 @@ export default function MindmapReactView({
       const idx = oldParent.children.findIndex(c => c.id === draggedNodeId)
       if (idx >= 0) oldParent.children.splice(idx, 1)
 
-      targetNode.children.push(draggedNode)
-
       const updateDepth = (node: TreeNode, depth: number) => {
         node.depth = depth
         node.children.forEach(c => updateDepth(c, depth + 1))
       }
-      updateDepth(draggedNode, targetNode.depth + 1)
+
+      if (position === 'inside' && targetNode.kind !== 'content') {
+        targetNode.children.push(draggedNode)
+        targetNode.collapsed = false
+        updateDepth(draggedNode, targetNode.depth + 1)
+        return
+      }
+
+      const targetParent = findParent(newTree, targetNodeId)
+      if (!targetParent) return
+      const targetIdx = targetParent.children.findIndex(c => c.id === targetNodeId)
+      if (targetIdx < 0) return
+      const insertIdx = position === 'before' ? targetIdx : targetIdx + 1
+      targetParent.children.splice(insertIdx, 0, draggedNode)
+      updateDepth(draggedNode, targetNode.depth)
     })
+    setSelectedNodeId(draggedNodeId)
   }, [saveTree, isAncestor])
 
   // ── 节点编辑 ─────────────────────────────────
@@ -420,7 +443,7 @@ export default function MindmapReactView({
 
   const handleEditSave = useCallback(() => {
     const newText = editValue.trim()
-    if (!newText || !editingNodeId) return
+    if (!editingNodeId) return
     saveTree((newTree) => {
       const node = findById(newTree, editingNodeId!)
       if (!node) return
@@ -436,6 +459,81 @@ export default function MindmapReactView({
     setEditValue('')
   }, [editingNodeId, editValue, editingNodeKind, saveTree])
 
+  const insertSiblingAfter = useCallback((nodeId: string): string | null => {
+    const currentTree = treeRef.current
+    if (!currentTree || !findParent(currentTree, nodeId)) return null
+
+    const sibling = createNode('')
+    saveTree((newTree) => {
+      const parent = findParent(newTree, nodeId)
+      const refNode = findById(newTree, nodeId)
+      if (!parent || !refNode) return
+      sibling.depth = refNode.depth
+      const idx = parent.children.indexOf(refNode)
+      parent.children.splice(idx + 1, 0, sibling)
+    })
+    setSelectedNodeId(sibling.id)
+    setEditingNodeId(sibling.id)
+    setEditingNodeKind('heading')
+    setEditValue('')
+    editValueRef.current = ''
+    return sibling.id
+  }, [saveTree])
+
+  const insertChildFor = useCallback((nodeId: string): string | null => {
+    const currentTree = treeRef.current
+    const parentNode = currentTree ? findById(currentTree, nodeId) : null
+    if (!parentNode || parentNode.kind === 'content') return null
+
+    const child = createNode('')
+    saveTree((newTree) => {
+      const parent = findById(newTree, nodeId)
+      if (!parent || parent.kind === 'content') return
+      child.depth = parent.depth + 1
+      parent.children.push(child)
+      parent.collapsed = false
+    })
+    setSelectedNodeId(child.id)
+    setEditingNodeId(child.id)
+    setEditingNodeKind('heading')
+    setEditValue('')
+    editValueRef.current = ''
+    return child.id
+  }, [saveTree])
+
+  const commitEditingAndInsertSibling = useCallback((nodeId: string) => {
+    const currentTree = treeRef.current
+    if (!currentTree || !findParent(currentTree, nodeId)) return null
+
+    const currentKind = editingNodeKind
+    const currentText = editValueRef.current.trim()
+    const sibling = createNode('')
+
+    saveTree((newTree) => {
+      const node = findById(newTree, nodeId)
+      if (!node) return
+
+      if (currentKind === 'content') {
+        node.content = currentText
+      } else {
+        node.title = currentText
+      }
+
+      const parent = findParent(newTree, nodeId)
+      if (!parent) return
+      sibling.depth = node.depth
+      const idx = parent.children.indexOf(node)
+      parent.children.splice(idx + 1, 0, sibling)
+    })
+
+    setSelectedNodeId(sibling.id)
+    setEditingNodeId(sibling.id)
+    setEditingNodeKind('heading')
+    setEditValue('')
+    editValueRef.current = ''
+    return sibling.id
+  }, [editingNodeKind, saveTree])
+
   const handleEditCancel = useCallback(() => {
     setEditingNodeId(null)
     setEditingNodeKind('heading')
@@ -444,30 +542,54 @@ export default function MindmapReactView({
 
   // ── 右键菜单操作 ─────────────────────────────
   const handleAddChild = useCallback((nodeId: string) => {
+    const parent = tree ? findById(tree, nodeId) : null
+    if (!parent || parent.kind === 'content') {
+      setContextMenu(null)
+      return
+    }
+
+    const child = createNode('新节点')
     saveTree((newTree) => {
-      const parent = findById(newTree, nodeId)
-      if (!parent) return
-      const child = createNode('新节点')
-      child.depth = parent.depth + 1
-      parent.children.push(child)
+      const newParent = findById(newTree, nodeId)
+      if (!newParent) return
+      child.depth = newParent.depth + 1
+      newParent.children.push(child)
+      newParent.collapsed = false
     })
+    setSelectedNodeId(child.id)
     setContextMenu(null)
-  }, [saveTree])
+  }, [tree, saveTree])
 
   const handleAddSibling = useCallback((nodeId: string) => {
+    const parent = tree ? findParent(tree, nodeId) : null
+    if (!parent) {
+      setContextMenu(null)
+      return
+    }
+
+    const sibling = createNode('新节点')
     saveTree((newTree) => {
-      const parent = findParent(newTree, nodeId)
-      if (!parent) return
+      const newParent = findParent(newTree, nodeId)
+      if (!newParent) return
       const refNode = findById(newTree, nodeId)!
-      const sibling = createNode('新节点')
       sibling.depth = refNode.depth
-      const idx = parent.children.indexOf(refNode)
-      parent.children.splice(idx + 1, 0, sibling)
+      const idx = newParent.children.indexOf(refNode)
+      newParent.children.splice(idx + 1, 0, sibling)
     })
+    setSelectedNodeId(sibling.id)
     setContextMenu(null)
-  }, [saveTree])
+  }, [tree, saveTree])
 
   const handleDeleteNode = useCallback((nodeId: string) => {
+    let nextSelection: string | null = null
+    if (tree) {
+      const parent = findParent(tree, nodeId)
+      if (parent) {
+        const idx = parent.children.findIndex(c => c.id === nodeId)
+        nextSelection = parent.children[idx + 1]?.id || parent.children[idx - 1]?.id || parent.id
+      }
+    }
+
     saveTree((newTree) => {
       const parent = findParent(newTree, nodeId)
       if (!parent) return
@@ -475,8 +597,8 @@ export default function MindmapReactView({
       if (idx >= 0) parent.children.splice(idx, 1)
     })
     setContextMenu(null)
-    if (selectedNodeId === nodeId) setSelectedNodeId(null)
-  }, [saveTree, selectedNodeId])
+    if (selectedNodeId === nodeId) setSelectedNodeId(nextSelection === tree?.id ? null : nextSelection)
+  }, [tree, saveTree, selectedNodeId])
 
   // ── 缩进 / 反向缩进 ─────────────────────────
   const handleIndent = useCallback((nodeId: string) => {
@@ -487,8 +609,10 @@ export default function MindmapReactView({
       const idx = oldParent.children.indexOf(node)
       if (idx <= 0) return  // 需要前一个兄弟作为新父节点
       const newParent = oldParent.children[idx - 1]
+      if (newParent.kind === 'content') return
       oldParent.children.splice(idx, 1)
       newParent.children.push(node)
+      newParent.collapsed = false
     })
   }, [saveTree])
 
@@ -674,35 +798,40 @@ export default function MindmapReactView({
 
     // 同时更新 state（驱动渲染）和 ref（驱动事件回调逻辑）
     draggingNodeIdRef.current = nodeId
-    dropTargetIdRef.current = null
+    dropTargetRef.current = null
     setDraggingNodeId(nodeId)
-    setDropTargetId(null)
+    setDropTarget(null)
 
     const handlePointerMove = (ev: PointerEvent) => {
       // 用 elementsFromPoint 获取指针下所有元素，跳过拖拽中的节点
       const elements = document.elementsFromPoint(ev.clientX, ev.clientY)
-      let foundId: string | null = null
+      let foundTarget: DropTarget | null = null
       for (const el of elements) {
         const nodeEl = (el as HTMLElement).closest?.('[data-node-id]') as HTMLElement | null
         if (nodeEl && nodeEl.dataset.nodeId && nodeEl.dataset.nodeId !== draggingNodeIdRef.current) {
-          foundId = nodeEl.dataset.nodeId
+          const rect = nodeEl.getBoundingClientRect()
+          const localY = ev.clientY - rect.top
+          const band = rect.height * 0.28
+          let position: DropPosition = localY < band ? 'before' : localY > rect.height - band ? 'after' : 'inside'
+          if (position === 'inside' && nodeEl.dataset.nodeKind === 'content') position = 'after'
+          foundTarget = { nodeId: nodeEl.dataset.nodeId, position }
           break
         }
       }
-      dropTargetIdRef.current = foundId
-      setDropTargetId(foundId)
+      dropTargetRef.current = foundTarget
+      setDropTarget(foundTarget)
     }
 
     const handlePointerUp = (ev: PointerEvent) => {
       const dragId = draggingNodeIdRef.current
-      const tgtId = dropTargetIdRef.current
-      if (dragId && tgtId && dragId !== tgtId) {
-        handleDrop(dragId, tgtId)
+      const target = dropTargetRef.current
+      if (dragId && target && dragId !== target.nodeId) {
+        handleDrop(dragId, target.nodeId, target.position)
       }
       draggingNodeIdRef.current = null
-      dropTargetIdRef.current = null
+      dropTargetRef.current = null
       setDraggingNodeId(null)
-      setDropTargetId(null)
+      setDropTarget(null)
       container.removeEventListener('pointermove', handlePointerMove)
       container.removeEventListener('pointerup', handlePointerUp)
     }
@@ -742,17 +871,11 @@ export default function MindmapReactView({
       } else if (e.key === 'Enter' && !contextMenu) {
         e.preventDefault()
         e.stopPropagation()
-        saveTree((newTree) => {
-          const parent = findParent(newTree, sid)
-          if (!parent) return
-          const refNode = findById(newTree, sid)!
-          const sibling = createNode('')
-          sibling.depth = refNode.depth
-          const idx = parent.children.indexOf(refNode)
-          parent.children.splice(idx + 1, 0, sibling)
-          setEditingNodeId(sibling.id)
-          setEditValue('')
-        })
+        if (e.shiftKey) {
+          insertChildFor(sid)
+        } else {
+          insertSiblingAfter(sid)
+        }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
         e.stopPropagation()
@@ -771,7 +894,7 @@ export default function MindmapReactView({
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [editingNodeId, selectedNodeId, contextMenu,
       handleIndent, handleOutdent, handleDeleteNode, navigateSelection,
-      handleEditCancel, saveTree])
+      handleEditCancel, insertChildFor, insertSiblingAfter])
 
   // 组件卸载时清理拖拽监听
   useEffect(() => {
@@ -869,13 +992,16 @@ export default function MindmapReactView({
           {graph.nodes.map(node => {
             const isEditing = editingNodeId === node.id
             const isDragging = draggingNodeId === node.id
-            const isDropTarget = dropTargetId === node.id && draggingNodeId !== null && draggingNodeId !== node.id
+            const dropPosition = dropTarget?.nodeId === node.id && draggingNodeId !== null && draggingNodeId !== node.id
+              ? dropTarget.position
+              : null
 
             return (
               <div
                 key={node.id}
                 data-node-id={node.id}
-                className={`mm-node depth-${Math.min(node.depth, 5)}${node.kind === 'content' ? ' kind-content' : ''}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${node.id === selectedNodeId ? ' selected' : ''}`}
+                data-node-kind={node.kind || 'heading'}
+                className={`mm-node depth-${Math.min(node.depth, 5)}${node.kind === 'content' ? ' kind-content' : ''}${isDragging ? ' dragging' : ''}${dropPosition ? ` drop-target drop-${dropPosition}` : ''}${node.id === selectedNodeId ? ' selected' : ''}`}
                 style={{
                   left: `${node.x}px`,
                   top: `${node.y}px`,
@@ -898,13 +1024,20 @@ export default function MindmapReactView({
                     <textarea
                       className="mm-edit-input"
                       value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
+                      onChange={e => {
+                        editValueRef.current = e.target.value
+                        setEditValue(e.target.value)
+                      }}
                       onKeyDown={e => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
-                          handleEditSave()
+                          e.stopPropagation()
+                          commitEditingAndInsertSibling(node.id)
                         }
-                        if (e.key === 'Escape') handleEditCancel()
+                        if (e.key === 'Escape') {
+                          e.stopPropagation()
+                          handleEditCancel()
+                        }
                       }}
                       onBlur={handleEditSave}
                       autoFocus
@@ -912,7 +1045,7 @@ export default function MindmapReactView({
                       onClick={e => e.stopPropagation()}
                       onPointerDown={e => e.stopPropagation()}
                     />
-                    <div className="mm-edit-hint">Enter 保存 · Shift+Enter 换行 · Esc 取消</div>
+                    <div className="mm-edit-hint">Enter 新建同级 · Shift+Enter 换行 · Esc 取消</div>
                   </div>
                 ) : (
                   <>
@@ -1003,7 +1136,13 @@ export default function MindmapReactView({
         {/* 拖拽提示 */}
         {draggingNodeId && (
           <div className="mindmap-drag-hint">
-            拖拽到目标节点上释放以改变层级关系
+            {dropTarget
+              ? dropTarget.position === 'before'
+                ? '释放后插入到目标上方'
+                : dropTarget.position === 'after'
+                  ? '释放后插入到目标下方'
+                  : '释放后成为目标子节点'
+              : '拖到节点上方/中间/下方选择插入位置'}
           </div>
         )}
       </div>
