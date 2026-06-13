@@ -51,7 +51,6 @@ export default function MindmapReactView({
   const editingNodeIdRef = useRef<string | null>(null)
   const editValueRef = useRef('')
   const initialFitDone = useRef(false)
-  const editRef = useRef<HTMLSpanElement>(null)
 
   // 节点拖拽状态（Pointer Events 驱动）
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
@@ -207,18 +206,6 @@ export default function MindmapReactView({
     setEditingNodeId(nodeId)
     setEditValue(text)
     setContextMenu(null)
-    // 延迟聚焦以等待 DOM 更新
-    setTimeout(() => {
-      if (editRef.current) {
-        editRef.current.focus()
-        // 选中所有文本
-        const range = document.createRange()
-        range.selectNodeContents(editRef.current)
-        const sel = window.getSelection()
-        sel?.removeAllRanges()
-        sel?.addRange(range)
-      }
-    }, 0)
   }, [])
 
   const handleEditSave = useCallback(() => {
@@ -335,30 +322,6 @@ export default function MindmapReactView({
     setEditingNodeId(null)
     setEditValue('')
   }, [])
-
-  // ── 无缝编辑处理函数 ───────────────────────
-  const handleEditInput = useCallback((e: React.FormEvent<HTMLSpanElement>) => {
-    const newText = e.currentTarget.textContent || ''
-    editValueRef.current = newText
-    setEditValue(newText)
-  }, [])
-
-  const handleEditKeyDown = useCallback((e: React.KeyboardEvent<HTMLSpanElement>, nodeId: string) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      e.stopPropagation()
-      commitEditingAndInsertSibling(nodeId)
-    }
-    if (e.key === 'Tab' && !e.shiftKey) {
-      e.preventDefault()
-      e.stopPropagation()
-      commitEditingAndInsertChild(nodeId)
-    }
-    if (e.key === 'Escape') {
-      e.stopPropagation()
-      handleEditCancel()
-    }
-  }, [commitEditingAndInsertSibling, commitEditingAndInsertChild, handleEditCancel])
 
   // ── 右键菜单操作 ─────────────────────────────
   const handleAddChild = useCallback((nodeId: string) => {
@@ -852,19 +815,15 @@ export default function MindmapReactView({
                 }}
               >
                 {isEditing ? (
-                <div className="mm-body">
-                    <span
-                      ref={isEditing ? editRef : undefined}
-                      className="mm-title"
-                      contentEditable={isEditing ? "plaintext-only" : undefined}
-                      suppressContentEditableWarning={isEditing}
-                      onInput={isEditing ? (e: any) => {
-                        const newText = e.currentTarget.textContent || ''
-                        editValueRef.current = newText
-                        setEditValue(newText)
-                      } : undefined}
-                      onBlur={isEditing ? handleEditSave : undefined}
-                      onKeyDown={isEditing ? (e: any) => {
+                  <div className="mm-edit-wrap">
+                    <textarea
+                      className="mm-edit-input"
+                      value={editValue}
+                      onChange={e => {
+                        editValueRef.current = e.target.value
+                        setEditValue(e.target.value)
+                      }}
+                      onKeyDown={e => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
                           e.stopPropagation()
@@ -879,18 +838,14 @@ export default function MindmapReactView({
                           e.stopPropagation()
                           handleEditCancel()
                         }
-                      } : undefined}
-                    >
-                      {isEditing ? (
-                        <span>{editValue}</span>
-                      ) : (
-                        <>
-                          {headingMarker.level && <span className="mm-heading-badge">H{headingMarker.level}</span>}
-                          <span dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(headingMarker.label) }} />
-                        </>
-                      )}
-                    </span>
-                    {!isEditing && node.content && <div className="mm-content">{node.content}</div>}
+                      }}
+                      onBlur={handleEditSave}
+                      autoFocus
+                      rows={3}
+                      onClick={e => e.stopPropagation()}
+                      onPointerDown={e => e.stopPropagation()}
+                    />
+                    <div className="mm-edit-hint">Enter 新建同级 · Tab 新建子级 · Shift+Enter 换行 · Esc 取消</div>
                   </div>
                 ) : (
                   <>

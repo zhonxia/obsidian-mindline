@@ -345,36 +345,6 @@
   background: #fef2f2;
 }
 
-/* ── 节点内联编辑 ─────────────────── */
-.mm-edit-wrap {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mm-edit-input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #3b82f6;
-  border-radius: 4px;
-  padding: 4px 6px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f172a;
-  background: #fff;
-  outline: none;
-  resize: vertical;
-  line-height: 1.35;
-}
-
-.mm-edit-hint {
-  font-size: 10px;
-  color: #94a3b8;
-  text-align: right;
-}
-
 /* ── 节点拖拽 ─────────────────── */
 .mm-node.dragging {
   opacity: 0.5;
