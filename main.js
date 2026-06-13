@@ -29832,6 +29832,8 @@ function MindmapReactView({
   const dropTargetRef = (0, import_react.useRef)(null);
   const containerRef = (0, import_react.useRef)(null);
   const saveCounterRef = (0, import_react.useRef)(0);
+  const MAX_UNDO = 50;
+  const undoStackRef = (0, import_react.useRef)([]);
   const panDragRef = (0, import_react.useRef)({ dragging: false, startX: 0, startY: 0, panX: 0, panY: 0 });
   const dragCleanupRef = (0, import_react.useRef)(null);
   (0, import_react.useEffect)(() => {
@@ -29881,6 +29883,9 @@ function MindmapReactView({
     setTree((prev) => {
       if (!prev)
         return prev;
+      undoStackRef.current.push(cloneTree(prev));
+      if (undoStackRef.current.length > MAX_UNDO)
+        undoStackRef.current.shift();
       const next = cloneTree(prev);
       modify(next);
       const md = serializeMarkdown(next);
@@ -30370,6 +30375,27 @@ function MindmapReactView({
       }
       if (e.target?.tagName === "INPUT" || e.target?.tagName === "TEXTAREA")
         return;
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        e.stopPropagation();
+        const prev = undoStackRef.current.pop();
+        if (prev) {
+          const md = serializeMarkdown(prev);
+          saveCounterRef.current += 1;
+          onSaveContent(md);
+          setTree(prev);
+          setEditingNodeId(null);
+          setContextMenu(null);
+          if (selectedNodeId) {
+            const restoreSid = selectedNodeId;
+            requestAnimationFrame(() => {
+              if (!findById(prev, restoreSid))
+                setSelectedNodeId(null);
+            });
+          }
+        }
+        return;
+      }
       const sid = selectedNodeId;
       if (!sid)
         return;
@@ -30415,7 +30441,8 @@ function MindmapReactView({
     navigateSelection,
     handleEditCancel,
     insertChildFor,
-    insertSiblingAfter
+    insertSiblingAfter,
+    onSaveContent
   ]);
   (0, import_react.useEffect)(() => {
     return () => {

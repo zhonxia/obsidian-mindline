@@ -320,6 +320,8 @@ export default function MindmapReactView({
   /** 保存计数器：每次 saveTree 递增，fileContent 变化时递减。
    *   防止异步写入期间的陈旧数据覆盖本地状态。 */
   const saveCounterRef = useRef(0)
+  const MAX_UNDO = 50
+  const undoStackRef = useRef<TreeNode[]>([])
 
   // 画布拖拽用 useRef（mousedown 兼容鼠标，触控板用 wheel 平移）
   const panDragRef = useRef<{
@@ -370,6 +372,9 @@ export default function MindmapReactView({
   const saveTree = useCallback((modify: (t: TreeNode) => void) => {
     setTree(prev => {
       if (!prev) return prev
+      // 保存当前快照到撤回栈
+      undoStackRef.current.push(cloneTree(prev))
+      if (undoStackRef.current.length > MAX_UNDO) undoStackRef.current.shift()
       const next = cloneTree(prev)
       modify(next)
       const md = serializeMarkdown(next)
@@ -888,6 +893,29 @@ export default function MindmapReactView({
       if ((e.target as HTMLElement)?.tagName === 'INPUT' ||
           (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
 
+      // Ctrl+Z / Cmd+Z 撤回
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        e.stopPropagation()
+        const prev = undoStackRef.current.pop()
+        if (prev) {
+          const md = serializeMarkdown(prev)
+          saveCounterRef.current += 1
+          onSaveContent(md)
+          setTree(prev)
+          setEditingNodeId(null)
+          setContextMenu(null)
+          // 如果当前选中节点不存在于恢复的树中，清除选中
+          if (selectedNodeId) {
+            const restoreSid = selectedNodeId
+            requestAnimationFrame(() => {
+              if (!findById(prev, restoreSid)) setSelectedNodeId(null)
+            })
+          }
+        }
+        return
+      }
+
       const sid = selectedNodeId
       if (!sid) return
 
@@ -926,7 +954,7 @@ export default function MindmapReactView({
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [editingNodeId, selectedNodeId, contextMenu,
       handleOutdent, handleDeleteNode, navigateSelection,
-      handleEditCancel, insertChildFor, insertSiblingAfter])
+      handleEditCancel, insertChildFor, insertSiblingAfter, onSaveContent])
 
   // 组件卸载时清理拖拽监听
   useEffect(() => {
