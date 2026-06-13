@@ -297,6 +297,9 @@ export default function MindmapReactView({
   const [zoom, setZoom] = useState(1)
   const zoomRef = useRef(1)
   const panRef = useRef({ x: 0, y: 0 })
+  const graphRef = useRef<ReturnType<typeof buildGraphFromTree> | null>(null)
+  const editingNodeIdRef = useRef<string | null>(null)
+  const initialFitDone = useRef(false)
 
   // 节点拖拽状态（Pointer Events 驱动）
   // 注意：事件回调里需要同步读取值，所以同时维护 state（驱动渲染）和 ref（驱动逻辑）
@@ -321,6 +324,8 @@ export default function MindmapReactView({
   // 同步 zoom/pan 到 ref（供 wheel 事件回调读取最新值）
   useEffect(() => { zoomRef.current = zoom }, [zoom])
   useEffect(() => { panRef.current = pan }, [pan])
+  useEffect(() => { editingNodeIdRef.current = editingNodeId }, [editingNodeId])
+  useEffect(() => { initialFitDone.current = false }, [filePath])
 
   // ── 文件内容同步 ─────────────────────────────
   useEffect(() => {
@@ -346,6 +351,8 @@ export default function MindmapReactView({
       return null
     }
   }, [tree])
+
+  useEffect(() => { graphRef.current = graph }, [graph])
 
   // ── 树操作工具 ───────────────────────────────
   const cloneTree = (t: TreeNode): TreeNode => JSON.parse(JSON.stringify(t))
@@ -543,6 +550,7 @@ export default function MindmapReactView({
 
   // ── 自适应 ───────────────────────────────────
   const fitToView = useCallback(() => {
+    const graph = graphRef.current
     const container = containerRef.current
     if (!container || !graph || graph.nodes.length === 0) return
     const rect = container.getBoundingClientRect()
@@ -553,22 +561,35 @@ export default function MindmapReactView({
     const offsetY = (rect.height - graph.height * newZoom) / 2
     setZoom(newZoom)
     setPan({ x: offsetX, y: offsetY })
-  }, [graph])
+  }, [])
 
+  // ── 初始自适应（仅首次加载）──
   useEffect(() => {
     if (!graph || graph.nodes.length === 0) return
+    if (initialFitDone.current) return
     const container = containerRef.current
     if (!container) return
-    const timer = requestAnimationFrame(() => {
-      if (!editingNodeId) fitToView()
-    })
+    const timer = requestAnimationFrame(() => fitToView())
+    initialFitDone.current = true
+    return () => cancelAnimationFrame(timer)
+  }, [graph, fitToView])
+
+  // ── 窗口大小变化自适应（不随 graph / 编辑状态变化重新注册）──
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    let didObserveInitialSize = false
     const ro = new ResizeObserver(() => {
-      if (editingNodeId) return  // 编辑时跳过自动缩放
+      if (!didObserveInitialSize) {
+        didObserveInitialSize = true
+        return
+      }
+      if (editingNodeIdRef.current) return
       fitToView()
     })
     ro.observe(container)
-    return () => { cancelAnimationFrame(timer); ro.disconnect() }
-  }, [graph, fitToView, editingNodeId])
+    return () => ro.disconnect()
+  }, [fitToView])
 
   // ── 滚轮 / 触控板（原生事件，非 passive）───
   // Mac 触控板：双指滑动 → wheel 事件（deltaMode=0, 小数值）→ 平移

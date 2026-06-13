@@ -29821,6 +29821,9 @@ function MindmapReactView({
   const [zoom, setZoom] = (0, import_react.useState)(1);
   const zoomRef = (0, import_react.useRef)(1);
   const panRef = (0, import_react.useRef)({ x: 0, y: 0 });
+  const graphRef = (0, import_react.useRef)(null);
+  const editingNodeIdRef = (0, import_react.useRef)(null);
+  const initialFitDone = (0, import_react.useRef)(false);
   const [draggingNodeId, setDraggingNodeId] = (0, import_react.useState)(null);
   const [dropTargetId, setDropTargetId] = (0, import_react.useState)(null);
   const draggingNodeIdRef = (0, import_react.useRef)(null);
@@ -29835,6 +29838,12 @@ function MindmapReactView({
   (0, import_react.useEffect)(() => {
     panRef.current = pan;
   }, [pan]);
+  (0, import_react.useEffect)(() => {
+    editingNodeIdRef.current = editingNodeId;
+  }, [editingNodeId]);
+  (0, import_react.useEffect)(() => {
+    initialFitDone.current = false;
+  }, [filePath]);
   (0, import_react.useEffect)(() => {
     if (saveCounterRef.current > 0) {
       saveCounterRef.current -= 1;
@@ -29856,6 +29865,9 @@ function MindmapReactView({
       return null;
     }
   }, [tree]);
+  (0, import_react.useEffect)(() => {
+    graphRef.current = graph;
+  }, [graph]);
   const cloneTree = (t) => JSON.parse(JSON.stringify(t));
   const saveTree = (0, import_react.useCallback)((modify) => {
     setTree((prev) => {
@@ -30051,39 +30063,48 @@ function MindmapReactView({
     setEditingNodeId(null);
   }, []);
   const fitToView = (0, import_react.useCallback)(() => {
+    const graph2 = graphRef.current;
     const container = containerRef.current;
-    if (!container || !graph || graph.nodes.length === 0)
+    if (!container || !graph2 || graph2.nodes.length === 0)
       return;
     const rect = container.getBoundingClientRect();
-    const scaleX = (rect.width - 40) / graph.width;
-    const scaleY = (rect.height - 40) / graph.height;
+    const scaleX = (rect.width - 40) / graph2.width;
+    const scaleY = (rect.height - 40) / graph2.height;
     const newZoom = Math.min(scaleX, scaleY, 1.5);
-    const offsetX = (rect.width - graph.width * newZoom) / 2;
-    const offsetY = (rect.height - graph.height * newZoom) / 2;
+    const offsetX = (rect.width - graph2.width * newZoom) / 2;
+    const offsetY = (rect.height - graph2.height * newZoom) / 2;
     setZoom(newZoom);
     setPan({ x: offsetX, y: offsetY });
-  }, [graph]);
+  }, []);
   (0, import_react.useEffect)(() => {
     if (!graph || graph.nodes.length === 0)
+      return;
+    if (initialFitDone.current)
       return;
     const container = containerRef.current;
     if (!container)
       return;
-    const timer = requestAnimationFrame(() => {
-      if (!editingNodeId)
-        fitToView();
-    });
+    const timer = requestAnimationFrame(() => fitToView());
+    initialFitDone.current = true;
+    return () => cancelAnimationFrame(timer);
+  }, [graph, fitToView]);
+  (0, import_react.useEffect)(() => {
+    const container = containerRef.current;
+    if (!container)
+      return;
+    let didObserveInitialSize = false;
     const ro = new ResizeObserver(() => {
-      if (editingNodeId)
+      if (!didObserveInitialSize) {
+        didObserveInitialSize = true;
+        return;
+      }
+      if (editingNodeIdRef.current)
         return;
       fitToView();
     });
     ro.observe(container);
-    return () => {
-      cancelAnimationFrame(timer);
-      ro.disconnect();
-    };
-  }, [graph, fitToView, editingNodeId]);
+    return () => ro.disconnect();
+  }, [fitToView]);
   (0, import_react.useEffect)(() => {
     const onWheel = (e) => {
       const container = containerRef.current;
