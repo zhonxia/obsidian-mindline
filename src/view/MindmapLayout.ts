@@ -23,6 +23,8 @@ export interface MindmapRenderNode {
   childCount: number
   collapsed: boolean
   kind?: 'heading' | 'content'
+  sourceType?: TreeNode['sourceType']
+  headingLevel?: TreeNode['headingLevel']
   nodeH?: number
   x: number
   y: number
@@ -103,6 +105,8 @@ export function placeSubtree(
     childCount: data.children?.length || 0,
     collapsed: data.collapsed,
     kind: data.kind,
+    sourceType: data.sourceType,
+    headingLevel: data.headingLevel,
     nodeH: layoutNode.nodeH,
     x,
     y: nodeY,
@@ -157,7 +161,8 @@ export function estimateTextUnits(text: string): number {
   return units
 }
 
-export function parseHeadingMarker(text: string): { level: number | null; label: string } {
+export function parseHeadingMarker(text: string, headingLevel?: TreeNode['headingLevel']): { level: number | null; label: string } {
+  if (headingLevel) return { level: headingLevel, label: text }
   const match = text.match(/^(#{1,6})\s+(.+)$/)
   if (!match) return { level: null, label: text }
   return { level: match[1].length, label: match[2] }

@@ -29325,7 +29325,7 @@ var nanoid = (size = 21) => {
 };
 
 // src/core/tree.ts
-function createNode(title, content3 = "", parentId = null, depth = 0, kind) {
+function createNode(title, content3 = "", parentId = null, depth = 0, kind, sourceType, headingLevel) {
   return {
     id: nanoid(10),
     title,
@@ -29335,6 +29335,8 @@ function createNode(title, content3 = "", parentId = null, depth = 0, kind) {
     collapsed: false,
     depth,
     kind,
+    sourceType,
+    headingLevel,
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -29373,8 +29375,8 @@ function parseMarkdown(md) {
   for (const node2 of ast.children) {
     if (node2.type === "heading") {
       const level = node2.depth;
-      const title = `${"#".repeat(level)} ${extractText(node2)}`.trim();
-      const newNode = createNode(title);
+      const title = extractText(node2);
+      const newNode = createNode(title, "", null, 0, void 0, "heading", level);
       while (headingStack.length > 1 && headingStack[headingStack.length - 1].level >= level) {
         headingStack.pop();
       }
@@ -29386,12 +29388,12 @@ function parseMarkdown(md) {
       appendList(currentParent, node2);
     } else if (node2.type === "paragraph") {
       for (const line of paragraphToOutlineLines(node2)) {
-        addChild(currentParent, createNode(line));
+        addChild(currentParent, createNode(line, "", null, 0, void 0, "paragraph"));
       }
     } else {
       const text3 = serializeNode(node2);
       if (text3)
-        addChild(currentParent, createNode(text3));
+        addChild(currentParent, createNode(text3, "", null, 0, void 0, node2.type));
     }
   }
   updateDepths(root, -1);
@@ -29414,7 +29416,7 @@ function listItemToNode(item) {
       if (!title) {
         title = text3;
       } else if (text3) {
-        extraNodes.push(createNode(text3));
+        extraNodes.push(createNode(text3, "", null, 0, void 0, "paragraph"));
       }
     } else if (child.type === "list") {
       nestedLists.push(child);
@@ -29424,20 +29426,20 @@ function listItemToNode(item) {
       if (!title) {
         title = text3;
       } else {
-        extraNodes.push(createNode(text3));
+        extraNodes.push(createNode(text3, "", null, 0, void 0, "heading", h.depth));
       }
     } else {
       const text3 = serializeNode(child);
       if (!title) {
         title = text3;
       } else if (text3) {
-        extraNodes.push(createNode(text3));
+        extraNodes.push(createNode(text3, "", null, 0, void 0, child.type));
       }
     }
   }
   if (!title && nestedLists.length === 0 && extraNodes.length === 0)
     return null;
-  const node2 = createNode(title || "(empty)");
+  const node2 = createNode(title || "(empty)", "", null, 0, void 0, "listItem");
   for (const extra of extraNodes)
     addChild(node2, extra);
   for (const nested of nestedLists)
@@ -29516,23 +29518,80 @@ function inlineChildrenText(children) {
 }
 function serializeMarkdown(root) {
   const lines = [];
-  const walkChildren = (children, depth) => {
-    const indent = "  ".repeat(depth);
+  const walkChildren = (children, depth, context) => {
     for (const node2 of children) {
-      const title = normalizeOutlineLine(node2.title);
-      lines.push(`${indent}- ${title}`);
-      if (node2.content && node2.content.trim()) {
-        for (const line of node2.content.split("\n").map((s) => s.trim()).filter(Boolean)) {
-          lines.push(`${indent}  - ${line}`);
-        }
-      }
-      if (node2.children.length > 0)
-        walkChildren(node2.children, depth + 1);
+      serializeTreeNode(node2, lines, depth, context);
     }
   };
-  walkChildren(root.children, 0);
+  walkChildren(root.children, 0, "root");
   const md = lines.join("\n").trim();
   return md ? md + "\n" : "";
+}
+function serializeTreeNode(node2, lines, depth, context) {
+  const title = normalizeOutlineLine(node2.title);
+  const sourceType = inferSourceType(node2, context);
+  if (sourceType === "heading") {
+    if (lines.length > 0 && lines[lines.length - 1] !== "")
+      lines.push("");
+    const marker = parseHeadingMarker(title);
+    const level = clampHeadingLevel(node2.headingLevel ?? marker.level ?? Math.max(1, depth + 1));
+    lines.push(`${"#".repeat(level)} ${marker.label}`);
+    if (node2.content && node2.content.trim()) {
+      lines.push("", node2.content.trim());
+    }
+    if (node2.children.length > 0) {
+      lines.push("");
+      for (const child of node2.children)
+        serializeTreeNode(child, lines, depth + 1, "heading");
+    }
+    return;
+  }
+  if (sourceType === "listItem") {
+    const indent = "  ".repeat(Math.max(0, depth));
+    lines.push(`${indent}- ${title}`);
+    for (const child of node2.children)
+      serializeTreeNode(child, lines, depth + 1, "list");
+    return;
+  }
+  if (sourceType === "code" || sourceType === "blockquote" || sourceType === "thematicBreak") {
+    if (lines.length > 0 && lines[lines.length - 1] !== "")
+      lines.push("");
+    lines.push(title);
+    if (node2.children.length > 0) {
+      lines.push("");
+      for (const child of node2.children)
+        serializeTreeNode(child, lines, depth, "heading");
+    }
+    return;
+  }
+  if (lines.length > 0 && lines[lines.length - 1] !== "")
+    lines.push("");
+  lines.push(title);
+  if (node2.children.length > 0) {
+    lines.push("");
+    for (const child of node2.children)
+      serializeTreeNode(child, lines, depth, "heading");
+  }
+}
+function inferSourceType(node2, context) {
+  if (node2.sourceType)
+    return node2.sourceType;
+  if (node2.headingLevel)
+    return "heading";
+  if (/^#{1,6}\s+/.test(node2.title))
+    return "heading";
+  if (context === "list")
+    return "listItem";
+  return "paragraph";
+}
+function parseHeadingMarker(text3) {
+  const match = text3.match(/^(#{1,6})\s+(.+)$/);
+  if (!match)
+    return { level: null, label: text3 };
+  return { level: match[1].length, label: match[2] };
+}
+function clampHeadingLevel(level) {
+  return Math.min(6, Math.max(1, level));
 }
 function normalizeOutlineLine(text3) {
   const oneLine = (text3 || "").replace(/\s*\n\s*/g, " ").trim();
@@ -29655,6 +29714,8 @@ function placeSubtree(layoutNode, x, top, nodes, edgeRefs) {
     childCount: data.children?.length || 0,
     collapsed: data.collapsed,
     kind: data.kind,
+    sourceType: data.sourceType,
+    headingLevel: data.headingLevel,
     nodeH: layoutNode.nodeH,
     x,
     y: nodeY
@@ -29702,7 +29763,9 @@ function estimateTextUnits(text3) {
   }
   return units;
 }
-function parseHeadingMarker(text3) {
+function parseHeadingMarker2(text3, headingLevel) {
+  if (headingLevel)
+    return { level: headingLevel, label: text3 };
   const match = text3.match(/^(#{1,6})\s+(.+)$/);
   if (!match)
     return { level: null, label: text3 };
@@ -29932,6 +29995,27 @@ function MindmapReactView({
       return next;
     });
   }, [onSaveContent]);
+  const createSiblingForNode = (node2) => {
+    const sibling = createNode("");
+    sibling.sourceType = node2.sourceType || (node2.headingLevel ? "heading" : void 0);
+    sibling.headingLevel = node2.headingLevel;
+    return sibling;
+  };
+  const createChildForNode = (node2) => {
+    const child = createNode("");
+    child.sourceType = node2.sourceType === "listItem" ? "listItem" : "paragraph";
+    return child;
+  };
+  const applyEditedText = (node2, text3) => {
+    const marker = parseHeadingMarker2(text3);
+    if (marker.level) {
+      node2.title = marker.label;
+      node2.sourceType = "heading";
+      node2.headingLevel = marker.level;
+      return;
+    }
+    node2.title = text3;
+  };
   const isAncestor = (0, import_react2.useCallback)((root, ancestorId, nodeId) => {
     if (root.id === ancestorId) {
       const findNode = (n) => {
@@ -30004,7 +30088,7 @@ function MindmapReactView({
         return;
       if (newText === node2.title)
         return;
-      node2.title = newText;
+      applyEditedText(node2, newText);
     });
     setEditingNodeId(null);
     setEditValue("");
@@ -30013,7 +30097,10 @@ function MindmapReactView({
     const currentTree = treeRef.current;
     if (!currentTree || !findParent(currentTree, nodeId))
       return null;
-    const sibling = createNode("");
+    const currentNode = findById(currentTree, nodeId);
+    if (!currentNode)
+      return null;
+    const sibling = createSiblingForNode(currentNode);
     saveTree((newTree) => {
       const parent = findParent(newTree, nodeId);
       const refNode = findById(newTree, nodeId);
@@ -30034,7 +30121,7 @@ function MindmapReactView({
     const parentNode = currentTree ? findById(currentTree, nodeId) : null;
     if (!parentNode)
       return null;
-    const child = createNode("");
+    const child = createChildForNode(parentNode);
     saveTree((newTree) => {
       const parent = findById(newTree, nodeId);
       if (!parent)
@@ -30054,12 +30141,15 @@ function MindmapReactView({
     if (!currentTree || !findParent(currentTree, nodeId))
       return null;
     const currentText = editValueRef.current.trim();
-    const sibling = createNode("");
+    const currentNode = findById(currentTree, nodeId);
+    if (!currentNode)
+      return null;
+    const sibling = createSiblingForNode(currentNode);
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
       if (!node2)
         return;
-      node2.title = currentText;
+      applyEditedText(node2, currentText);
       const parent = findParent(newTree, nodeId);
       if (!parent)
         return;
@@ -30079,12 +30169,12 @@ function MindmapReactView({
     if (!currentNode)
       return null;
     const currentText = editValueRef.current.trim();
-    const child = createNode("");
+    const child = createChildForNode(currentNode);
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
       if (!node2)
         return;
-      node2.title = currentText;
+      applyEditedText(node2, currentText);
       child.depth = node2.depth + 1;
       node2.children.push(child);
       node2.collapsed = false;
@@ -30105,7 +30195,8 @@ function MindmapReactView({
       setContextMenu(null);
       return;
     }
-    const child = createNode("\u65B0\u8282\u70B9");
+    const child = createChildForNode(parent);
+    child.title = "\u65B0\u8282\u70B9";
     saveTree((newTree) => {
       const newParent = findById(newTree, nodeId);
       if (!newParent)
@@ -30123,14 +30214,20 @@ function MindmapReactView({
       setContextMenu(null);
       return;
     }
-    const sibling = createNode("\u65B0\u8282\u70B9");
+    const refNode = tree ? findById(tree, nodeId) : null;
+    if (!refNode) {
+      setContextMenu(null);
+      return;
+    }
+    const sibling = createSiblingForNode(refNode);
+    sibling.title = "\u65B0\u8282\u70B9";
     saveTree((newTree) => {
       const newParent = findParent(newTree, nodeId);
       if (!newParent)
         return;
-      const refNode = findById(newTree, nodeId);
-      sibling.depth = refNode.depth;
-      const idx = newParent.children.indexOf(refNode);
+      const refNode2 = findById(newTree, nodeId);
+      sibling.depth = refNode2.depth;
+      const idx = newParent.children.indexOf(refNode2);
       newParent.children.splice(idx + 1, 0, sibling);
     });
     setSelectedNodeId(sibling.id);
@@ -30378,9 +30475,7 @@ function MindmapReactView({
           const rect = nodeEl.getBoundingClientRect();
           const localY = ev.clientY - rect.top;
           const band = rect.height * 0.28;
-          let position2 = localY < band ? "before" : localY > rect.height - band ? "after" : "inside";
-          if (position2 === "inside" && nodeEl.dataset.nodeKind === "content")
-            position2 = "after";
+          const position2 = localY < band ? "before" : localY > rect.height - band ? "after" : "inside";
           foundTarget = { nodeId: nodeEl.dataset.nodeId, position: position2 };
           break;
         }
@@ -30551,7 +30646,7 @@ function MindmapReactView({
                   const isEditing = editingNodeId === node2.id;
                   const isDragging = draggingNodeId === node2.id;
                   const dropPosition = dropTarget?.nodeId === node2.id && draggingNodeId !== null && draggingNodeId !== node2.id ? dropTarget.position : null;
-                  const headingMarker = parseHeadingMarker(node2.label);
+                  const headingMarker = parseHeadingMarker2(node2.label, node2.headingLevel);
                   return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                     "div",
                     {

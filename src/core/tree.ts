@@ -1,7 +1,15 @@
 import { nanoid } from 'nanoid'
 import type { TreeNode } from '../types'
 
-export function createNode(title: string, content: string = '', parentId: string | null = null, depth: number = 0, kind?: 'heading' | 'content'): TreeNode {
+export function createNode(
+  title: string,
+  content: string = '',
+  parentId: string | null = null,
+  depth: number = 0,
+  kind?: 'heading' | 'content',
+  sourceType?: TreeNode['sourceType'],
+  headingLevel?: TreeNode['headingLevel'],
+): TreeNode {
   return {
     id: nanoid(10),
     title,
@@ -11,6 +19,8 @@ export function createNode(title: string, content: string = '', parentId: string
     collapsed: false,
     depth,
     kind,
+    sourceType,
+    headingLevel,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }

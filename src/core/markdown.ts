@@ -7,10 +7,9 @@ import type { TreeNode } from '../types'
  * Markdown → Document Tree
  *
  * 核心规则：
- *   - 内部统一使用幕布式大纲节点，所有节点都可以有子节点。
- *   - Markdown 标题会转为带 "# " 前缀的节点文本，用于显示 H1/H2 样式。
- *   - Markdown 列表会保留为大纲层级。
- *   - 普通段落和复杂块会作为当前节点下的普通大纲项。
+ *   - 内部统一展示为可编辑节点。
+ *   - 保存时保留 Markdown 原生语义：heading / paragraph / list item。
+ *   - Markdown 标题仍保存为 # / ##，不会强制改成列表。
  *
  * 算法：栈式解析，O(n)
  */
@@ -24,8 +23,8 @@ export function parseMarkdown(md: string): TreeNode {
   for (const node of ast.children) {
     if (node.type === 'heading') {
       const level = (node as Heading).depth
-      const title = `${'#'.repeat(level)} ${extractText(node as Heading)}`.trim()
-      const newNode = createNode(title)
+      const title = extractText(node as Heading)
+      const newNode = createNode(title, '', null, 0, undefined, 'heading', level as TreeNode['headingLevel'])
 
       while (headingStack.length > 1 && headingStack[headingStack.length - 1].level >= level) {
         headingStack.pop()
@@ -39,11 +38,11 @@ export function parseMarkdown(md: string): TreeNode {
       appendList(currentParent, node as List)
     } else if (node.type === 'paragraph') {
       for (const line of paragraphToOutlineLines(node as Paragraph)) {
-        addChild(currentParent, createNode(line))
+        addChild(currentParent, createNode(line, '', null, 0, undefined, 'paragraph'))
       }
     } else {
       const text = serializeNode(node as Content)
-      if (text) addChild(currentParent, createNode(text))
+      if (text) addChild(currentParent, createNode(text, '', null, 0, undefined, node.type as TreeNode['sourceType']))
     }
   }
 
@@ -70,7 +69,7 @@ function listItemToNode(item: ListItem): TreeNode | null {
       if (!title) {
         title = text
       } else if (text) {
-        extraNodes.push(createNode(text))
+        extraNodes.push(createNode(text, '', null, 0, undefined, 'paragraph'))
       }
     } else if (child.type === 'list') {
       nestedLists.push(child as List)
@@ -80,21 +79,21 @@ function listItemToNode(item: ListItem): TreeNode | null {
       if (!title) {
         title = text
       } else {
-        extraNodes.push(createNode(text))
+        extraNodes.push(createNode(text, '', null, 0, undefined, 'heading', h.depth as TreeNode['headingLevel']))
       }
     } else {
       const text = serializeNode(child as Content)
       if (!title) {
         title = text
       } else if (text) {
-        extraNodes.push(createNode(text))
+        extraNodes.push(createNode(text, '', null, 0, undefined, child.type as TreeNode['sourceType']))
       }
     }
   }
 
   if (!title && nestedLists.length === 0 && extraNodes.length === 0) return null
 
-  const node = createNode(title || '(empty)')
+  const node = createNode(title || '(empty)', '', null, 0, undefined, 'listItem')
   for (const extra of extraNodes) addChild(node, extra)
   for (const nested of nestedLists) appendList(node, nested)
   return node
@@ -178,30 +177,89 @@ function inlineChildrenText(children: any[]): string {
  * Document Tree → Markdown
  *
  * 规则：
- *   内部统一按幕布式大纲节点保存。
- *   如果想显示 Markdown 标题样式，直接把 "# " / "## " 写进节点标题。
+ *   保留 Markdown 原生语义。
+ *   heading 写回 # / ##，paragraph 写回正文，listItem 写回列表。
  */
 export function serializeMarkdown(root: TreeNode): string {
   const lines: string[] = []
 
-  const walkChildren = (children: TreeNode[], depth: number): void => {
-    const indent = '  '.repeat(depth)
+  const walkChildren = (children: TreeNode[], depth: number, context: 'root' | 'heading' | 'list'): void => {
     for (const node of children) {
-      const title = normalizeOutlineLine(node.title)
-      lines.push(`${indent}- ${title}`)
-      if (node.content && node.content.trim()) {
-        for (const line of node.content.split('\n').map(s => s.trim()).filter(Boolean)) {
-          lines.push(`${indent}  - ${line}`)
-        }
-      }
-      if (node.children.length > 0) walkChildren(node.children, depth + 1)
+      serializeTreeNode(node, lines, depth, context)
     }
   }
 
-  walkChildren(root.children, 0)
+  walkChildren(root.children, 0, 'root')
 
   const md = lines.join('\n').trim()
   return md ? md + '\n' : ''
+}
+
+function serializeTreeNode(
+  node: TreeNode,
+  lines: string[],
+  depth: number,
+  context: 'root' | 'heading' | 'list',
+): void {
+  const title = normalizeOutlineLine(node.title)
+  const sourceType = inferSourceType(node, context)
+
+  if (sourceType === 'heading') {
+    if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('')
+    const marker = parseHeadingMarker(title)
+    const level = clampHeadingLevel(node.headingLevel ?? marker.level ?? Math.max(1, depth + 1))
+    lines.push(`${'#'.repeat(level)} ${marker.label}`)
+    if (node.content && node.content.trim()) {
+      lines.push('', node.content.trim())
+    }
+    if (node.children.length > 0) {
+      lines.push('')
+      for (const child of node.children) serializeTreeNode(child, lines, depth + 1, 'heading')
+    }
+    return
+  }
+
+  if (sourceType === 'listItem') {
+    const indent = '  '.repeat(Math.max(0, depth))
+    lines.push(`${indent}- ${title}`)
+    for (const child of node.children) serializeTreeNode(child, lines, depth + 1, 'list')
+    return
+  }
+
+  if (sourceType === 'code' || sourceType === 'blockquote' || sourceType === 'thematicBreak') {
+    if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('')
+    lines.push(title)
+    if (node.children.length > 0) {
+      lines.push('')
+      for (const child of node.children) serializeTreeNode(child, lines, depth, 'heading')
+    }
+    return
+  }
+
+  if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('')
+  lines.push(title)
+  if (node.children.length > 0) {
+    lines.push('')
+    for (const child of node.children) serializeTreeNode(child, lines, depth, 'heading')
+  }
+}
+
+function inferSourceType(node: TreeNode, context: 'root' | 'heading' | 'list'): NonNullable<TreeNode['sourceType']> {
+  if (node.sourceType) return node.sourceType
+  if (node.headingLevel) return 'heading'
+  if (/^#{1,6}\s+/.test(node.title)) return 'heading'
+  if (context === 'list') return 'listItem'
+  return 'paragraph'
+}
+
+function parseHeadingMarker(text: string): { level: number | null; label: string } {
+  const match = text.match(/^(#{1,6})\s+(.+)$/)
+  if (!match) return { level: null, label: text }
+  return { level: match[1].length, label: match[2] }
+}
+
+function clampHeadingLevel(level: number): 1 | 2 | 3 | 4 | 5 | 6 {
+  return Math.min(6, Math.max(1, level)) as 1 | 2 | 3 | 4 | 5 | 6
 }
 
 function normalizeOutlineLine(text: string): string {

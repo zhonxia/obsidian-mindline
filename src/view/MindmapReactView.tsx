@@ -123,6 +123,30 @@ export default function MindmapReactView({
     })
   }, [onSaveContent])
 
+  const createSiblingForNode = (node: TreeNode): TreeNode => {
+    const sibling = createNode('')
+    sibling.sourceType = node.sourceType || (node.headingLevel ? 'heading' : undefined)
+    sibling.headingLevel = node.headingLevel
+    return sibling
+  }
+
+  const createChildForNode = (node: TreeNode): TreeNode => {
+    const child = createNode('')
+    child.sourceType = node.sourceType === 'listItem' ? 'listItem' : 'paragraph'
+    return child
+  }
+
+  const applyEditedText = (node: TreeNode, text: string): void => {
+    const marker = parseHeadingMarker(text)
+    if (marker.level) {
+      node.title = marker.label
+      node.sourceType = 'heading'
+      node.headingLevel = marker.level as TreeNode['headingLevel']
+      return
+    }
+    node.title = text
+  }
+
   const isAncestor = useCallback((root: TreeNode, ancestorId: string, nodeId: string): boolean => {
     if (root.id === ancestorId) {
       const findNode = (n: TreeNode): boolean => {
@@ -191,7 +215,7 @@ export default function MindmapReactView({
       const node = findById(newTree, editingNodeId!)
       if (!node) return
       if (newText === node.title) return
-      node.title = newText
+      applyEditedText(node, newText)
     })
     setEditingNodeId(null)
     setEditValue('')
@@ -201,7 +225,9 @@ export default function MindmapReactView({
     const currentTree = treeRef.current
     if (!currentTree || !findParent(currentTree, nodeId)) return null
 
-    const sibling = createNode('')
+    const currentNode = findById(currentTree, nodeId)
+    if (!currentNode) return null
+    const sibling = createSiblingForNode(currentNode)
     saveTree((newTree) => {
       const parent = findParent(newTree, nodeId)
       const refNode = findById(newTree, nodeId)
@@ -222,7 +248,7 @@ export default function MindmapReactView({
     const parentNode = currentTree ? findById(currentTree, nodeId) : null
     if (!parentNode) return null
 
-    const child = createNode('')
+    const child = createChildForNode(parentNode)
     saveTree((newTree) => {
       const parent = findById(newTree, nodeId)
       if (!parent) return
@@ -242,13 +268,15 @@ export default function MindmapReactView({
     if (!currentTree || !findParent(currentTree, nodeId)) return null
 
     const currentText = editValueRef.current.trim()
-    const sibling = createNode('')
+    const currentNode = findById(currentTree, nodeId)
+    if (!currentNode) return null
+    const sibling = createSiblingForNode(currentNode)
 
     saveTree((newTree) => {
       const node = findById(newTree, nodeId)
       if (!node) return
 
-      node.title = currentText
+      applyEditedText(node, currentText)
 
       const parent = findParent(newTree, nodeId)
       if (!parent) return
@@ -270,13 +298,13 @@ export default function MindmapReactView({
     if (!currentNode) return null
 
     const currentText = editValueRef.current.trim()
-    const child = createNode('')
+    const child = createChildForNode(currentNode)
 
     saveTree((newTree) => {
       const node = findById(newTree, nodeId)
       if (!node) return
 
-      node.title = currentText
+      applyEditedText(node, currentText)
 
       child.depth = node.depth + 1
       node.children.push(child)
@@ -303,7 +331,8 @@ export default function MindmapReactView({
       return
     }
 
-    const child = createNode('新节点')
+    const child = createChildForNode(parent)
+    child.title = '新节点'
     saveTree((newTree) => {
       const newParent = findById(newTree, nodeId)
       if (!newParent) return
@@ -322,7 +351,13 @@ export default function MindmapReactView({
       return
     }
 
-    const sibling = createNode('新节点')
+    const refNode = tree ? findById(tree, nodeId) : null
+    if (!refNode) {
+      setContextMenu(null)
+      return
+    }
+    const sibling = createSiblingForNode(refNode)
+    sibling.title = '新节点'
     saveTree((newTree) => {
       const newParent = findParent(newTree, nodeId)
       if (!newParent) return
@@ -588,8 +623,7 @@ export default function MindmapReactView({
           const rect = nodeEl.getBoundingClientRect()
           const localY = ev.clientY - rect.top
           const band = rect.height * 0.28
-          let position: DropPosition = localY < band ? 'before' : localY > rect.height - band ? 'after' : 'inside'
-          if (position === 'inside' && nodeEl.dataset.nodeKind === 'content') position = 'after'
+          const position: DropPosition = localY < band ? 'before' : localY > rect.height - band ? 'after' : 'inside'
           foundTarget = { nodeId: nodeEl.dataset.nodeId, position }
           break
         }
@@ -759,7 +793,7 @@ export default function MindmapReactView({
             const dropPosition = dropTarget?.nodeId === node.id && draggingNodeId !== null && draggingNodeId !== node.id
               ? dropTarget.position
               : null
-            const headingMarker = parseHeadingMarker(node.label)
+            const headingMarker = parseHeadingMarker(node.label, node.headingLevel)
 
             return (
               <div
