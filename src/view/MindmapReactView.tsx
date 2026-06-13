@@ -6,10 +6,10 @@ import { parseMarkdown, serializeMarkdown } from '../core/markdown'
 import { createNode, findById, findParent } from '../core/tree'
 import type { TreeNode } from '../types'
 
-const LEVEL_X = 240
+const LEVEL_X = 280
 const ROW_Y = 58
 const TREE_GAP = 36
-const NODE_W = 168
+const NODE_W = 220
 const NODE_H = 34
 const PADDING = 32
 
@@ -50,8 +50,11 @@ function buildGraphFromTree(rootTree: TreeNode): {
       nodes.push({
         id: data.id,
         label: data.title || '(empty)',
+        content: data.content || '',
         depth: d.depth,
         childCount: data.children?.length || 0,
+        kind: data.kind,
+        nodeH: estimateNodeHeight(data),
         x: PADDING + (d.y ?? 0),
         y: PADDING + yOffset + (d.x ?? 0) - minTreeY,
       })
@@ -76,7 +79,7 @@ function buildGraphFromTree(rootTree: TreeNode): {
   })
 
   const maxX = Math.max(...nodes.map(n => n.x + NODE_W), NODE_W)
-  const maxY = Math.max(...nodes.map(n => n.y + NODE_H), NODE_H)
+  const maxY = Math.max(...nodes.map(n => n.y + (n.nodeH ?? NODE_H)), NODE_H)
 
   return { nodes, edges, width: maxX + PADDING, height: maxY + PADDING }
 }
@@ -84,8 +87,11 @@ function buildGraphFromTree(rootTree: TreeNode): {
 interface MindmapRenderNode {
   id: string
   label: string
+  content: string
   depth: number
   childCount: number
+  kind?: 'heading' | 'content'
+  nodeH?: number
   x: number
   y: number
 }
@@ -107,13 +113,68 @@ function MindmapMessage({ title, detail }: { title: string; detail?: string }) {
   )
 }
 
-function edgePath(edge: MindmapRenderEdge): string {
-  const sx = edge.source.x + NODE_W
-  const sy = edge.source.y + NODE_H / 2
-  const tx = edge.target.x
-  const ty = edge.target.y + NODE_H / 2
-  const mid = Math.max(48, (tx - sx) / 2)
-  return `M ${sx} ${sy} C ${sx + mid} ${sy}, ${tx - mid} ${ty}, ${tx} ${ty}`
+/** 将 edges 按 source 分组，生成总线式连线 */
+function busEdgeGroups(edges: MindmapRenderEdge[]): BusGroup[] {
+  const map = new Map<string, BusGroup>()
+  for (const e of edges) {
+    let g = map.get(e.source.id)
+    if (!g) {
+      const sh = e.source.nodeH ?? NODE_H
+      const sx = e.source.x + NODE_W
+      const sy = e.source.y + sh / 2
+      const gap = e.target.x - sx
+      const run = Math.max(gap * 0.5, 24)
+      g = { source: e.source, children: [], turnX: sx + run, sourceY: sy, minY: Infinity, maxY: -Infinity }
+      map.set(e.source.id, g)
+    }
+    const th = e.target.nodeH ?? NODE_H
+    const ty = e.target.y + th / 2
+    g.children.push({ edge: e, child: e.target, childY: ty })
+    if (ty < g.minY) g.minY = ty
+    if (ty > g.maxY) g.maxY = ty
+  }
+  return [...map.values()]
+}
+
+interface BusGroup {
+  source: MindmapRenderNode
+  children: Array<{ edge: MindmapRenderEdge; child: MindmapRenderNode; childY: number }>
+  turnX: number
+  sourceY: number
+  minY: number
+  maxY: number
+}
+
+/** 圆角半径 */
+const EDGE_R = 5
+
+/** 生成总线连接线的 SVG path */
+function busEdgePath(children: number[], turnX: number, childX: number): string {
+  if (children.length === 0) return ''
+  if (children.length === 1) {
+    const ty = children[0]
+    return `M ${turnX} ${ty} L ${childX} ${ty}`
+  }
+  // 垂直总线：第一个子节点 → 最后一个子节点
+  const minTy = Math.min(...children)
+  const maxTy = Math.max(...children)
+  // 分支：turnX → 到每个子节点的左边缘
+  const branches = children.map(ty => {
+    const dx = childX - turnX
+    return `M ${turnX} ${ty} L ${childX - Math.min(dx * 0.3, 8)} ${ty}`
+  }).join(' ')
+  return `M ${turnX} ${minTy} L ${turnX} ${maxTy} ${branches}`
+}
+
+/** 估算节点实际渲染高度 */
+function estimateNodeHeight(node: TreeNode): number {
+  if (node.kind === 'content') return 24
+  let h = 34
+  if (node.content && node.content.trim()) {
+    const lines = Math.min(node.content.split('\n').length, 4)
+    h += lines * 15
+  }
+  return h
 }
 
 /** 错误边界 */
@@ -525,9 +586,29 @@ export default function MindmapReactView({
           onClick={e => e.stopPropagation()}
         >
           <svg className="mindmap-edges" width={graph.width} height={graph.height}>
-            {graph.edges.map(edge => (
-              <path key={edge.id} d={edgePath(edge)} />
-            ))}
+            {busEdgeGroups(graph.edges).map((g, gi) => {
+              const { source, children, turnX, sourceY } = g
+              const childYs = children.map(c => c.childY)
+              const childX = children.length > 0 ? children[0].child.x : turnX
+
+              return (
+                <g key={`bus-${gi}`}>
+                  {/* 水平线：父节点右边缘 → 转折点 */}
+                  <path
+                    d={`M ${source.x + NODE_W} ${sourceY} L ${turnX} ${sourceY}`}
+                  />
+                  {/* 如果只有1个子节点且水平对齐，画直线 */}
+                  {children.length === 1 && Math.abs(children[0].childY - sourceY) < 2 ? (
+                    <path d={`M ${turnX} ${sourceY} L ${childX} ${sourceY}`} />
+                  ) : (
+                    <>
+                      {/* 总线：垂直主干 + 分支线 */}
+                      <path d={busEdgePath(childYs, turnX, childX)} />
+                    </>
+                  )}
+                </g>
+              )
+            })}
           </svg>
 
           {graph.nodes.map(node => {
@@ -539,14 +620,14 @@ export default function MindmapReactView({
               <div
                 key={node.id}
                 data-node-id={node.id}
-                className={`mm-node depth-${Math.min(node.depth, 4)}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
+                className={`mm-node depth-${Math.min(node.depth, 4)}${node.kind === 'content' ? ' kind-content' : ''}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
                 style={{
                   left: `${node.x}px`,
                   top: `${node.y}px`,
                   width: `${NODE_W}px`,
-                  minHeight: `${NODE_H}px`,
+                  minHeight: `${node.nodeH ?? NODE_H}px`,
                 }}
-                title={node.label}
+                title={node.content ? `${node.label}\n\n${node.content}` : node.label}
                 onDoubleClick={() => handleDoubleClick(node.id, node.label)}
                 onContextMenu={e => handleContextMenu(e, node.id)}
                 onPointerDown={e => handleNodePointerDown(e, node.id)}
@@ -567,7 +648,10 @@ export default function MindmapReactView({
                   />
                 ) : (
                   <>
-                    <span className="mm-title">{node.label}</span>
+                    <div className="mm-body">
+                      <span className="mm-title">{node.label}</span>
+                      {node.content && <div className="mm-content">{node.content}</div>}
+                    </div>
                     {node.childCount > 0 && <span className="mm-badge">{node.childCount}</span>}
                     {/* 拖拽手柄：按住此区域拖拽节点 */}
                     <span

@@ -29705,7 +29705,7 @@ var nanoid = (size = 21) => {
 };
 
 // src/core/tree.ts
-function createNode(title, content3 = "", parentId = null, depth = 0) {
+function createNode(title, content3 = "", parentId = null, depth = 0, kind) {
   return {
     id: nanoid(10),
     title,
@@ -29714,6 +29714,7 @@ function createNode(title, content3 = "", parentId = null, depth = 0) {
     parentId,
     collapsed: false,
     depth,
+    kind,
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -29748,26 +29749,37 @@ function parseMarkdown(md) {
   const ast = fromMarkdown(md);
   const root = createNode("__root__");
   const stack = [{ node: root, level: 0 }];
-  let currentNode = null;
   let bodyNodes = [];
+  let pendingTarget = null;
   const flushBody = () => {
-    if (currentNode && bodyNodes.length > 0) {
-      currentNode.content = serializeBody(bodyNodes);
+    if (!pendingTarget || bodyNodes.length === 0) {
       bodyNodes = [];
+      pendingTarget = null;
+      return;
     }
+    const decision = analyzeBody(bodyNodes);
+    if (decision.type === "inline") {
+      pendingTarget.content = decision.value;
+    } else {
+      for (const childNode of decision.children) {
+        addChild(pendingTarget, childNode);
+      }
+    }
+    bodyNodes = [];
+    pendingTarget = null;
   };
   for (const node2 of ast.children) {
     if (node2.type === "heading") {
       flushBody();
       const level = node2.depth;
       const title = extractText(node2);
-      const newNode = createNode(title);
+      const newNode = createNode(title, "", null, 0, "heading");
       while (stack.length > 1 && stack[stack.length - 1].level >= level) {
         stack.pop();
       }
       const parent = stack[stack.length - 1].node;
       addChild(parent, newNode);
-      currentNode = newNode;
+      pendingTarget = newNode;
       stack.push({ node: newNode, level });
     } else {
       bodyNodes.push(node2);
@@ -29776,21 +29788,157 @@ function parseMarkdown(md) {
   flushBody();
   return root;
 }
+function analyzeBody(nodes) {
+  if (nodes.length === 0)
+    return { type: "inline", value: "" };
+  const hasComplex = nodes.some(
+    (n) => n.type === "code" || n.type === "blockquote" || n.type === "thematicBreak" || n.type === "table"
+  );
+  if (hasComplex) {
+    return { type: "inline", value: serializeBody(nodes) };
+  }
+  if (nodes.length === 1 && nodes[0].type === "list") {
+    const list2 = nodes[0];
+    const children = [];
+    for (const item of list2.children || []) {
+      const text3 = extractListItemText(item);
+      if (text3) {
+        children.push(createNode(text3, "", null, 0, "content"));
+      }
+    }
+    if (children.length > 0)
+      return { type: "children", children };
+    return { type: "inline", value: "" };
+  }
+  if (nodes.length > 1) {
+    const children = [];
+    for (const n of nodes) {
+      if (n.type === "paragraph") {
+        const text3 = extractParagraphText(n);
+        if (text3)
+          children.push(createNode(text3, "", null, 0, "content"));
+      }
+    }
+    if (children.length > 0)
+      return { type: "children", children };
+    return { type: "inline", value: serializeBody(nodes) };
+  }
+  if (nodes.length === 1 && nodes[0].type === "paragraph") {
+    const para = nodes[0];
+    let lines = splitBySoftBreaks(para);
+    if (lines.length <= 1) {
+      const rawText = extractParagraphText(para);
+      const newlineLines = rawText.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
+      if (newlineLines.length > 1) {
+        lines = newlineLines;
+      }
+    }
+    if (lines.length > 1) {
+      const children = lines.map((line) => createNode(line, "", null, 0, "content"));
+      return { type: "children", children };
+    }
+    const text3 = extractParagraphText(para);
+    return { type: "inline", value: text3 };
+  }
+  return { type: "inline", value: serializeBody(nodes) };
+}
+function extractParagraphText(para) {
+  return para.children.filter((c) => c.type !== "break").map((c) => {
+    if (c.type === "inlineCode")
+      return `\`${c.value}\``;
+    if (c.type === "strong")
+      return `**${inlineChildrenText(c.children)}**`;
+    if (c.type === "emphasis")
+      return `*${inlineChildrenText(c.children)}*`;
+    if (c.type === "link")
+      return `[${inlineChildrenText(c.children)}](${c.url})`;
+    if (c.type === "image")
+      return `![${c.alt}](${c.url})`;
+    if (c.type === "delete")
+      return `~~${inlineChildrenText(c.children)}~~`;
+    if ("value" in c)
+      return c.value;
+    return "";
+  }).join("").trim();
+}
+function splitBySoftBreaks(para) {
+  const lines = [];
+  let currentLine = "";
+  for (const child of para.children) {
+    if (child.type === "break") {
+      if (currentLine.trim()) {
+        lines.push(currentLine.trim());
+      }
+      currentLine = "";
+    } else if (child.type === "inlineCode") {
+      currentLine += `\`${child.value}\``;
+    } else if (child.type === "strong") {
+      currentLine += `**${inlineChildrenText(child.children)}**`;
+    } else if (child.type === "emphasis") {
+      currentLine += `*${inlineChildrenText(child.children)}*`;
+    } else if (child.type === "link") {
+      currentLine += `[${inlineChildrenText(child.children)}](${child.url})`;
+    } else if (child.type === "image") {
+      currentLine += `![${child.alt}](${child.url})`;
+    } else if (child.type === "delete") {
+      currentLine += `~~${inlineChildrenText(child.children)}~~`;
+    } else if ("value" in child) {
+      currentLine += child.value;
+    }
+  }
+  if (currentLine.trim()) {
+    lines.push(currentLine.trim());
+  }
+  return lines;
+}
+function inlineChildrenText(children) {
+  return children.map((c) => {
+    if ("value" in c)
+      return c.value;
+    if (c.type === "inlineCode")
+      return `\`${c.value}\``;
+    return "";
+  }).join("");
+}
+function extractListItemText(item) {
+  const firstChild = item.children?.[0];
+  if (!firstChild)
+    return "";
+  if (firstChild.type === "paragraph") {
+    return extractParagraphText(firstChild);
+  }
+  return "";
+}
 function serializeMarkdown(root) {
   const lines = [];
-  const walk = (node2, depth) => {
-    if (depth === 0) {
-    } else {
-      const prefix = "#".repeat(depth);
-      lines.push(`${prefix} ${node2.title}`);
-      if (node2.content && node2.content.trim()) {
-        lines.push("", node2.content);
+  const walkChildren = (children, depth) => {
+    let prevWasContent = false;
+    for (const node2 of children) {
+      if (node2.kind === "content") {
+        lines.push(node2.title);
+        prevWasContent = true;
+      } else {
+        if (prevWasContent) {
+          lines.push("");
+        }
+        const prefix = "#".repeat(depth);
+        lines.push(`${prefix} ${node2.title}`);
+        if (node2.content && node2.content.trim()) {
+          lines.push("", node2.content);
+        }
+        lines.push("");
+        prevWasContent = false;
       }
-      lines.push("");
+      if (node2.children.length > 0 && node2.kind !== "content") {
+        const childEndsWithContent = walkChildren(node2.children, depth + 1);
+        if (childEndsWithContent) {
+          prevWasContent = true;
+        }
+      }
     }
-    node2.children.forEach((c) => walk(c, depth + 1));
+    return prevWasContent;
   };
-  root.children.forEach((c) => walk(c, 1));
+  walkChildren(root.children, 1);
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
 }
 function extractText(heading) {
@@ -29809,18 +29957,22 @@ function serializeNode(node2) {
   switch (node2.type) {
     case "paragraph":
       return node2.children.map((c) => {
-        if ("value" in c)
-          return c.value;
-        if (c.type === "strong")
-          return `**${serializeInline(c.children)}**`;
-        if (c.type === "emphasis")
-          return `*${serializeInline(c.children)}*`;
         if (c.type === "inlineCode")
           return `\`${c.value}\``;
+        if (c.type === "break")
+          return "\n";
+        if (c.type === "strong")
+          return `**${inlineChildrenText(c.children)}**`;
+        if (c.type === "emphasis")
+          return `*${inlineChildrenText(c.children)}*`;
         if (c.type === "link")
-          return `[${serializeInline(c.children)}](${c.url})`;
+          return `[${inlineChildrenText(c.children)}](${c.url})`;
         if (c.type === "image")
           return `![${c.alt}](${c.url})`;
+        if (c.type === "delete")
+          return `~~${inlineChildrenText(c.children)}~~`;
+        if ("value" in c)
+          return c.value;
         return "";
       }).join("");
     case "code": {
@@ -29850,26 +30002,19 @@ function serializeNode(node2) {
       const h = node2;
       return "#".repeat(h.depth) + " " + extractText(h);
     }
+    case "table":
+      return serializeBody(node2.children || []);
     default:
       return "";
   }
 }
-function serializeInline(children) {
-  return children.map((c) => {
-    if ("value" in c)
-      return c.value;
-    if (c.type === "inlineCode")
-      return `\`${c.value}\``;
-    return "";
-  }).join("");
-}
 
 // src/view/MindmapReactView.tsx
 var import_jsx_runtime = __toESM(require_jsx_runtime());
-var LEVEL_X = 240;
+var LEVEL_X = 280;
 var ROW_Y = 58;
 var TREE_GAP = 36;
-var NODE_W = 168;
+var NODE_W = 220;
 var NODE_H = 34;
 var PADDING = 32;
 function buildGraphFromTree(rootTree) {
@@ -29888,8 +30033,11 @@ function buildGraphFromTree(rootTree) {
       nodes.push({
         id: data.id,
         label: data.title || "(empty)",
+        content: data.content || "",
         depth: d.depth,
         childCount: data.children?.length || 0,
+        kind: data.kind,
+        nodeH: estimateNodeHeight(data),
         x: PADDING + (d.y ?? 0),
         y: PADDING + yOffset + (d.x ?? 0) - minTreeY
       });
@@ -29910,7 +30058,7 @@ function buildGraphFromTree(rootTree) {
     return s && t ? [{ id: er.id, source: s, target: t }] : [];
   });
   const maxX = Math.max(...nodes.map((n) => n.x + NODE_W), NODE_W);
-  const maxY = Math.max(...nodes.map((n) => n.y + NODE_H), NODE_H);
+  const maxY = Math.max(...nodes.map((n) => n.y + (n.nodeH ?? NODE_H)), NODE_H);
   return { nodes, edges, width: maxX + PADDING, height: maxY + PADDING };
 }
 function MindmapMessage({ title, detail }) {
@@ -29919,13 +30067,53 @@ function MindmapMessage({ title, detail }) {
     detail && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message-detail", children: detail })
   ] }) });
 }
-function edgePath(edge) {
-  const sx = edge.source.x + NODE_W;
-  const sy = edge.source.y + NODE_H / 2;
-  const tx = edge.target.x;
-  const ty = edge.target.y + NODE_H / 2;
-  const mid = Math.max(48, (tx - sx) / 2);
-  return `M ${sx} ${sy} C ${sx + mid} ${sy}, ${tx - mid} ${ty}, ${tx} ${ty}`;
+function busEdgeGroups(edges) {
+  const map = /* @__PURE__ */ new Map();
+  for (const e of edges) {
+    let g = map.get(e.source.id);
+    if (!g) {
+      const sh = e.source.nodeH ?? NODE_H;
+      const sx = e.source.x + NODE_W;
+      const sy = e.source.y + sh / 2;
+      const gap = e.target.x - sx;
+      const run = Math.max(gap * 0.5, 24);
+      g = { source: e.source, children: [], turnX: sx + run, sourceY: sy, minY: Infinity, maxY: -Infinity };
+      map.set(e.source.id, g);
+    }
+    const th = e.target.nodeH ?? NODE_H;
+    const ty = e.target.y + th / 2;
+    g.children.push({ edge: e, child: e.target, childY: ty });
+    if (ty < g.minY)
+      g.minY = ty;
+    if (ty > g.maxY)
+      g.maxY = ty;
+  }
+  return [...map.values()];
+}
+function busEdgePath(children, turnX, childX) {
+  if (children.length === 0)
+    return "";
+  if (children.length === 1) {
+    const ty = children[0];
+    return `M ${turnX} ${ty} L ${childX} ${ty}`;
+  }
+  const minTy = Math.min(...children);
+  const maxTy = Math.max(...children);
+  const branches = children.map((ty) => {
+    const dx = childX - turnX;
+    return `M ${turnX} ${ty} L ${childX - Math.min(dx * 0.3, 8)} ${ty}`;
+  }).join(" ");
+  return `M ${turnX} ${minTy} L ${turnX} ${maxTy} ${branches}`;
+}
+function estimateNodeHeight(node2) {
+  if (node2.kind === "content")
+    return 24;
+  let h = 34;
+  if (node2.content && node2.content.trim()) {
+    const lines = Math.min(node2.content.split("\n").length, 4);
+    h += lines * 15;
+  }
+  return h;
 }
 var MindmapErrorBoundary = class extends import_react.default.Component {
   constructor(props) {
@@ -30290,7 +30478,20 @@ function MindmapReactView({
               },
               onClick: (e) => e.stopPropagation(),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { className: "mindmap-edges", width: graph.width, height: graph.height, children: graph.edges.map((edge) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: edgePath(edge) }, edge.id)) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { className: "mindmap-edges", width: graph.width, height: graph.height, children: busEdgeGroups(graph.edges).map((g, gi) => {
+                  const { source, children, turnX, sourceY } = g;
+                  const childYs = children.map((c) => c.childY);
+                  const childX = children.length > 0 ? children[0].child.x : turnX;
+                  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "path",
+                      {
+                        d: `M ${source.x + NODE_W} ${sourceY} L ${turnX} ${sourceY}`
+                      }
+                    ),
+                    children.length === 1 && Math.abs(children[0].childY - sourceY) < 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: `M ${turnX} ${sourceY} L ${childX} ${sourceY}` }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: busEdgePath(childYs, turnX, childX) }) })
+                  ] }, `bus-${gi}`);
+                }) }),
                 graph.nodes.map((node2) => {
                   const isEditing = editingNodeId === node2.id;
                   const isDragging = draggingNodeId === node2.id;
@@ -30299,14 +30500,16 @@ function MindmapReactView({
                     "div",
                     {
                       "data-node-id": node2.id,
-                      className: `mm-node depth-${Math.min(node2.depth, 4)}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`,
+                      className: `mm-node depth-${Math.min(node2.depth, 4)}${node2.kind === "content" ? " kind-content" : ""}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`,
                       style: {
                         left: `${node2.x}px`,
                         top: `${node2.y}px`,
                         width: `${NODE_W}px`,
-                        minHeight: `${NODE_H}px`
+                        minHeight: `${node2.nodeH ?? NODE_H}px`
                       },
-                      title: node2.label,
+                      title: node2.content ? `${node2.label}
+
+${node2.content}` : node2.label,
                       onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
                       onPointerDown: (e) => handleNodePointerDown(e, node2.id),
@@ -30328,7 +30531,10 @@ function MindmapReactView({
                           onPointerDown: (e) => e.stopPropagation()
                         }
                       ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", children: node2.label }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mm-body", children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", children: node2.label }),
+                          node2.content && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-content", children: node2.content })
+                        ] }),
                         node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-badge", children: node2.childCount }),
                         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "span",

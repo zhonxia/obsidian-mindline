@@ -6,6 +6,8 @@ export interface TreeNode {
   parentId: string | null
   collapsed: boolean
   depth: number
+  /** 节点来源：heading = 标题创建的节点；content = 从标题内容拆出的文本节点 */
+  kind?: 'heading' | 'content'
   createdAt: number
   updatedAt: number
 }
