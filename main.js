@@ -758,31 +758,31 @@ var require_react_development = __commonJS({
           }
           return subtreeCount;
         }
-        function mapChildren2(children, func, context) {
+        function mapChildren(children, func, context) {
           if (children == null) {
             return children;
           }
           var result = [];
-          var count2 = 0;
+          var count = 0;
           mapIntoArray(children, result, "", "", function(child) {
-            return func.call(context, child, count2++);
+            return func.call(context, child, count++);
           });
           return result;
         }
         function countChildren(children) {
           var n = 0;
-          mapChildren2(children, function() {
+          mapChildren(children, function() {
             n++;
           });
           return n;
         }
         function forEachChildren(children, forEachFunc, forEachContext) {
-          mapChildren2(children, function() {
+          mapChildren(children, function() {
             forEachFunc.apply(this, arguments);
           }, forEachContext);
         }
         function toArray(children) {
-          return mapChildren2(children, function(child) {
+          return mapChildren(children, function(child) {
             return child;
           }) || [];
         }
@@ -1857,7 +1857,7 @@ var require_react_development = __commonJS({
         var cloneElement$1 = cloneElementWithValidation;
         var createFactory = createFactoryWithValidation;
         var Children = {
-          map: mapChildren2,
+          map: mapChildren,
           forEach: forEachChildren,
           count: countChildren,
           toArray,
@@ -24481,386 +24481,6 @@ var import_react2 = __toESM(require_react());
 // src/view/MindmapReactView.tsx
 var import_react = __toESM(require_react());
 
-// node_modules/d3-hierarchy/src/hierarchy/count.js
-function count(node2) {
-  var sum = 0, children = node2.children, i = children && children.length;
-  if (!i)
-    sum = 1;
-  else
-    while (--i >= 0)
-      sum += children[i].value;
-  node2.value = sum;
-}
-function count_default() {
-  return this.eachAfter(count);
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/each.js
-function each_default(callback, that) {
-  let index2 = -1;
-  for (const node2 of this) {
-    callback.call(that, node2, ++index2, this);
-  }
-  return this;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/eachBefore.js
-function eachBefore_default(callback, that) {
-  var node2 = this, nodes = [node2], children, i, index2 = -1;
-  while (node2 = nodes.pop()) {
-    callback.call(that, node2, ++index2, this);
-    if (children = node2.children) {
-      for (i = children.length - 1; i >= 0; --i) {
-        nodes.push(children[i]);
-      }
-    }
-  }
-  return this;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/eachAfter.js
-function eachAfter_default(callback, that) {
-  var node2 = this, nodes = [node2], next = [], children, i, n, index2 = -1;
-  while (node2 = nodes.pop()) {
-    next.push(node2);
-    if (children = node2.children) {
-      for (i = 0, n = children.length; i < n; ++i) {
-        nodes.push(children[i]);
-      }
-    }
-  }
-  while (node2 = next.pop()) {
-    callback.call(that, node2, ++index2, this);
-  }
-  return this;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/find.js
-function find_default(callback, that) {
-  let index2 = -1;
-  for (const node2 of this) {
-    if (callback.call(that, node2, ++index2, this)) {
-      return node2;
-    }
-  }
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/sum.js
-function sum_default(value) {
-  return this.eachAfter(function(node2) {
-    var sum = +value(node2.data) || 0, children = node2.children, i = children && children.length;
-    while (--i >= 0)
-      sum += children[i].value;
-    node2.value = sum;
-  });
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/sort.js
-function sort_default(compare) {
-  return this.eachBefore(function(node2) {
-    if (node2.children) {
-      node2.children.sort(compare);
-    }
-  });
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/path.js
-function path_default(end) {
-  var start = this, ancestor = leastCommonAncestor(start, end), nodes = [start];
-  while (start !== ancestor) {
-    start = start.parent;
-    nodes.push(start);
-  }
-  var k = nodes.length;
-  while (end !== ancestor) {
-    nodes.splice(k, 0, end);
-    end = end.parent;
-  }
-  return nodes;
-}
-function leastCommonAncestor(a, b) {
-  if (a === b)
-    return a;
-  var aNodes = a.ancestors(), bNodes = b.ancestors(), c = null;
-  a = aNodes.pop();
-  b = bNodes.pop();
-  while (a === b) {
-    c = a;
-    a = aNodes.pop();
-    b = bNodes.pop();
-  }
-  return c;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/ancestors.js
-function ancestors_default() {
-  var node2 = this, nodes = [node2];
-  while (node2 = node2.parent) {
-    nodes.push(node2);
-  }
-  return nodes;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/descendants.js
-function descendants_default() {
-  return Array.from(this);
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/leaves.js
-function leaves_default() {
-  var leaves = [];
-  this.eachBefore(function(node2) {
-    if (!node2.children) {
-      leaves.push(node2);
-    }
-  });
-  return leaves;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/links.js
-function links_default() {
-  var root = this, links = [];
-  root.each(function(node2) {
-    if (node2 !== root) {
-      links.push({ source: node2.parent, target: node2 });
-    }
-  });
-  return links;
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/iterator.js
-function* iterator_default() {
-  var node2 = this, current, next = [node2], children, i, n;
-  do {
-    current = next.reverse(), next = [];
-    while (node2 = current.pop()) {
-      yield node2;
-      if (children = node2.children) {
-        for (i = 0, n = children.length; i < n; ++i) {
-          next.push(children[i]);
-        }
-      }
-    }
-  } while (next.length);
-}
-
-// node_modules/d3-hierarchy/src/hierarchy/index.js
-function hierarchy(data, children) {
-  if (data instanceof Map) {
-    data = [void 0, data];
-    if (children === void 0)
-      children = mapChildren;
-  } else if (children === void 0) {
-    children = objectChildren;
-  }
-  var root = new Node(data), node2, nodes = [root], child, childs, i, n;
-  while (node2 = nodes.pop()) {
-    if ((childs = children(node2.data)) && (n = (childs = Array.from(childs)).length)) {
-      node2.children = childs;
-      for (i = n - 1; i >= 0; --i) {
-        nodes.push(child = childs[i] = new Node(childs[i]));
-        child.parent = node2;
-        child.depth = node2.depth + 1;
-      }
-    }
-  }
-  return root.eachBefore(computeHeight);
-}
-function node_copy() {
-  return hierarchy(this).eachBefore(copyData);
-}
-function objectChildren(d) {
-  return d.children;
-}
-function mapChildren(d) {
-  return Array.isArray(d) ? d[1] : null;
-}
-function copyData(node2) {
-  if (node2.data.value !== void 0)
-    node2.value = node2.data.value;
-  node2.data = node2.data.data;
-}
-function computeHeight(node2) {
-  var height = 0;
-  do
-    node2.height = height;
-  while ((node2 = node2.parent) && node2.height < ++height);
-}
-function Node(data) {
-  this.data = data;
-  this.depth = this.height = 0;
-  this.parent = null;
-}
-Node.prototype = hierarchy.prototype = {
-  constructor: Node,
-  count: count_default,
-  each: each_default,
-  eachAfter: eachAfter_default,
-  eachBefore: eachBefore_default,
-  find: find_default,
-  sum: sum_default,
-  sort: sort_default,
-  path: path_default,
-  ancestors: ancestors_default,
-  descendants: descendants_default,
-  leaves: leaves_default,
-  links: links_default,
-  copy: node_copy,
-  [Symbol.iterator]: iterator_default
-};
-
-// node_modules/d3-hierarchy/src/tree.js
-function defaultSeparation(a, b) {
-  return a.parent === b.parent ? 1 : 2;
-}
-function nextLeft(v) {
-  var children = v.children;
-  return children ? children[0] : v.t;
-}
-function nextRight(v) {
-  var children = v.children;
-  return children ? children[children.length - 1] : v.t;
-}
-function moveSubtree(wm, wp, shift) {
-  var change = shift / (wp.i - wm.i);
-  wp.c -= change;
-  wp.s += shift;
-  wm.c += change;
-  wp.z += shift;
-  wp.m += shift;
-}
-function executeShifts(v) {
-  var shift = 0, change = 0, children = v.children, i = children.length, w;
-  while (--i >= 0) {
-    w = children[i];
-    w.z += shift;
-    w.m += shift;
-    shift += w.s + (change += w.c);
-  }
-}
-function nextAncestor(vim, v, ancestor) {
-  return vim.a.parent === v.parent ? vim.a : ancestor;
-}
-function TreeNode(node2, i) {
-  this._ = node2;
-  this.parent = null;
-  this.children = null;
-  this.A = null;
-  this.a = this;
-  this.z = 0;
-  this.m = 0;
-  this.c = 0;
-  this.s = 0;
-  this.t = null;
-  this.i = i;
-}
-TreeNode.prototype = Object.create(Node.prototype);
-function treeRoot(root) {
-  var tree = new TreeNode(root, 0), node2, nodes = [tree], child, children, i, n;
-  while (node2 = nodes.pop()) {
-    if (children = node2._.children) {
-      node2.children = new Array(n = children.length);
-      for (i = n - 1; i >= 0; --i) {
-        nodes.push(child = node2.children[i] = new TreeNode(children[i], i));
-        child.parent = node2;
-      }
-    }
-  }
-  (tree.parent = new TreeNode(null, 0)).children = [tree];
-  return tree;
-}
-function tree_default() {
-  var separation = defaultSeparation, dx = 1, dy = 1, nodeSize = null;
-  function tree(root) {
-    var t = treeRoot(root);
-    t.eachAfter(firstWalk), t.parent.m = -t.z;
-    t.eachBefore(secondWalk);
-    if (nodeSize)
-      root.eachBefore(sizeNode);
-    else {
-      var left = root, right = root, bottom = root;
-      root.eachBefore(function(node2) {
-        if (node2.x < left.x)
-          left = node2;
-        if (node2.x > right.x)
-          right = node2;
-        if (node2.depth > bottom.depth)
-          bottom = node2;
-      });
-      var s = left === right ? 1 : separation(left, right) / 2, tx = s - left.x, kx = dx / (right.x + s + tx), ky = dy / (bottom.depth || 1);
-      root.eachBefore(function(node2) {
-        node2.x = (node2.x + tx) * kx;
-        node2.y = node2.depth * ky;
-      });
-    }
-    return root;
-  }
-  function firstWalk(v) {
-    var children = v.children, siblings = v.parent.children, w = v.i ? siblings[v.i - 1] : null;
-    if (children) {
-      executeShifts(v);
-      var midpoint = (children[0].z + children[children.length - 1].z) / 2;
-      if (w) {
-        v.z = w.z + separation(v._, w._);
-        v.m = v.z - midpoint;
-      } else {
-        v.z = midpoint;
-      }
-    } else if (w) {
-      v.z = w.z + separation(v._, w._);
-    }
-    v.parent.A = apportion(v, w, v.parent.A || siblings[0]);
-  }
-  function secondWalk(v) {
-    v._.x = v.z + v.parent.m;
-    v.m += v.parent.m;
-  }
-  function apportion(v, w, ancestor) {
-    if (w) {
-      var vip = v, vop = v, vim = w, vom = vip.parent.children[0], sip = vip.m, sop = vop.m, sim = vim.m, som = vom.m, shift;
-      while (vim = nextRight(vim), vip = nextLeft(vip), vim && vip) {
-        vom = nextLeft(vom);
-        vop = nextRight(vop);
-        vop.a = v;
-        shift = vim.z + sim - vip.z - sip + separation(vim._, vip._);
-        if (shift > 0) {
-          moveSubtree(nextAncestor(vim, v, ancestor), v, shift);
-          sip += shift;
-          sop += shift;
-        }
-        sim += vim.m;
-        sip += vip.m;
-        som += vom.m;
-        sop += vop.m;
-      }
-      if (vim && !nextRight(vop)) {
-        vop.t = vim;
-        vop.m += sim - sop;
-      }
-      if (vip && !nextLeft(vom)) {
-        vom.t = vip;
-        vom.m += sip - som;
-        ancestor = v;
-      }
-    }
-    return ancestor;
-  }
-  function sizeNode(node2) {
-    node2.x *= dx;
-    node2.y = node2.depth * dy;
-  }
-  tree.separation = function(x) {
-    return arguments.length ? (separation = x, tree) : separation;
-  };
-  tree.size = function(x) {
-    return arguments.length ? (nodeSize = false, dx = +x[0], dy = +x[1], tree) : nodeSize ? null : [dx, dy];
-  };
-  tree.nodeSize = function(x) {
-    return arguments.length ? (nodeSize = true, dx = +x[0], dy = +x[1], tree) : nodeSize ? [dx, dy] : null;
-  };
-  return tree;
-}
-
 // node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
 function toString(value, options) {
@@ -26170,9 +25790,9 @@ var SpliceBuffer = class {
    *   Any removed items.
    */
   splice(start, deleteCount, items) {
-    const count2 = deleteCount || 0;
+    const count = deleteCount || 0;
     this.setCursor(Math.trunc(start));
-    const removed = this.right.splice(this.right.length - count2, Number.POSITIVE_INFINITY);
+    const removed = this.right.splice(this.right.length - count, Number.POSITIVE_INFINITY);
     if (items)
       chunkedPush(this.left, items);
     return removed.reverse();
@@ -30011,45 +29631,21 @@ function serializeNode(node2) {
 
 // src/view/MindmapReactView.tsx
 var import_jsx_runtime = __toESM(require_jsx_runtime());
-var LEVEL_X = 280;
-var ROW_Y = 58;
-var TREE_GAP = 36;
-var NODE_W = 220;
+var LEVEL_X = 320;
+var SIBLING_GAP = 24;
+var TREE_GAP = 56;
+var NODE_W = 260;
 var NODE_H = 34;
-var PADDING = 32;
+var CONTENT_NODE_H = 24;
+var PADDING = 48;
 function buildGraphFromTree(rootTree) {
   const nodes = [];
   const edgeRefs = [];
-  let yOffset = 0;
+  let cursorY = PADDING;
   for (const child of rootTree.children) {
-    const hierarchyRoot = hierarchy(child, (d) => d.children);
-    const tree = tree_default().nodeSize([ROW_Y, LEVEL_X]).separation((a, b) => a.parent === b.parent ? 1 : 1.25);
-    tree(hierarchyRoot);
-    const descendants = hierarchyRoot.descendants();
-    const minTreeY = Math.min(...descendants.map((d) => d.x ?? 0));
-    const maxTreeY = Math.max(...descendants.map((d) => d.x ?? 0));
-    for (const d of descendants) {
-      const data = d.data;
-      nodes.push({
-        id: data.id,
-        label: data.title || "(empty)",
-        content: data.content || "",
-        depth: d.depth,
-        childCount: data.children?.length || 0,
-        kind: data.kind,
-        nodeH: estimateNodeHeight(data),
-        x: PADDING + (d.y ?? 0),
-        y: PADDING + yOffset + (d.x ?? 0) - minTreeY
-      });
-    }
-    for (const link of hierarchyRoot.links()) {
-      edgeRefs.push({
-        id: `e_${link.source.data.id}_${link.target.data.id}`,
-        sourceId: link.source.data.id,
-        targetId: link.target.data.id
-      });
-    }
-    yOffset += Math.max(ROW_Y, maxTreeY - minTreeY + ROW_Y) + TREE_GAP;
+    const layoutRoot = measureSubtree(child, 0);
+    placeSubtree(layoutRoot, PADDING, cursorY, nodes, edgeRefs);
+    cursorY += layoutRoot.subtreeH + TREE_GAP;
   }
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const edges = edgeRefs.flatMap((er) => {
@@ -30060,6 +29656,43 @@ function buildGraphFromTree(rootTree) {
   const maxX = Math.max(...nodes.map((n) => n.x + NODE_W), NODE_W);
   const maxY = Math.max(...nodes.map((n) => n.y + (n.nodeH ?? NODE_H)), NODE_H);
   return { nodes, edges, width: maxX + PADDING, height: maxY + PADDING };
+}
+function measureSubtree(node2, depth) {
+  const children = node2.collapsed ? [] : node2.children.map((child) => measureSubtree(child, depth + 1));
+  const nodeH = estimateNodeHeight(node2);
+  const childrenH = children.reduce((sum, child) => sum + child.subtreeH, 0) + Math.max(0, children.length - 1) * SIBLING_GAP;
+  return {
+    data: node2,
+    depth,
+    nodeH,
+    subtreeH: Math.max(nodeH, childrenH),
+    children
+  };
+}
+function placeSubtree(layoutNode, x, top, nodes, edgeRefs) {
+  const nodeY = top + (layoutNode.subtreeH - layoutNode.nodeH) / 2;
+  const data = layoutNode.data;
+  nodes.push({
+    id: data.id,
+    label: data.title || "(empty)",
+    content: data.content || "",
+    depth: layoutNode.depth,
+    childCount: data.children?.length || 0,
+    kind: data.kind,
+    nodeH: layoutNode.nodeH,
+    x,
+    y: nodeY
+  });
+  let childTop = top;
+  for (const child of layoutNode.children) {
+    edgeRefs.push({
+      id: `e_${data.id}_${child.data.id}`,
+      sourceId: data.id,
+      targetId: child.data.id
+    });
+    placeSubtree(child, x + LEVEL_X, childTop, nodes, edgeRefs);
+    childTop += child.subtreeH + SIBLING_GAP;
+  }
 }
 function MindmapMessage({ title, detail }) {
   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-message", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-message-card", children: [
@@ -30106,21 +29739,39 @@ function busEdgePath(children, turnX, childX) {
   return `M ${turnX} ${minTy} L ${turnX} ${maxTy} ${branches}`;
 }
 function estimateNodeHeight(node2) {
-  if (node2.kind === "content")
-    return 24;
-  let h = 34;
-  const titleChars = node2.title ? node2.title.length : 0;
-  if (titleChars > 17) {
-    const titleLines = Math.ceil(titleChars / 17);
-    h += (titleLines - 1) * 18;
+  const titleUnitsPerLine = node2.kind === "content" ? 20 : 18;
+  const titleLines = countWrappedLines(node2.title || "(empty)", titleUnitsPerLine);
+  if (node2.kind === "content") {
+    return Math.max(CONTENT_NODE_H, 12 + titleLines * 15);
   }
+  let h = 12 + titleLines * 17;
   if (node2.content && node2.content.trim()) {
     const contentLines = node2.content.split("\n").reduce((total, line) => {
-      return total + Math.max(1, Math.ceil(line.length / 25));
+      return total + countWrappedLines(line, 22);
     }, 0);
-    h += contentLines * 15;
+    h += 4 + contentLines * 16;
   }
-  return h;
+  return Math.max(NODE_H, Math.ceil(h));
+}
+function countWrappedLines(text3, unitsPerLine) {
+  const lines = text3.split("\n");
+  return lines.reduce((total, line) => {
+    const visualUnits = Math.max(1, estimateTextUnits(line.trim()));
+    return total + Math.max(1, Math.ceil(visualUnits / unitsPerLine));
+  }, 0);
+}
+function estimateTextUnits(text3) {
+  let units = 0;
+  for (const char of text3) {
+    if (/[\u3000-\u9fff\uff00-\uffef]/.test(char)) {
+      units += 1;
+    } else if (/\s/.test(char)) {
+      units += 0.35;
+    } else {
+      units += 0.58;
+    }
+  }
+  return units;
 }
 var MindmapErrorBoundary = class extends import_react.default.Component {
   constructor(props) {

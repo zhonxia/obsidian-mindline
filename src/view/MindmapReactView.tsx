@@ -1,17 +1,17 @@
 import React, { useMemo, useRef, useCallback, useState, useEffect, ReactNode } from 'react'
-import * as d3Hierarchy from 'd3-hierarchy'
 import { nanoid } from 'nanoid'
 
 import { parseMarkdown, serializeMarkdown } from '../core/markdown'
 import { createNode, findById, findParent } from '../core/tree'
 import type { TreeNode } from '../types'
 
-const LEVEL_X = 280
-const ROW_Y = 58
-const TREE_GAP = 36
-const NODE_W = 220
+const LEVEL_X = 320
+const SIBLING_GAP = 24
+const TREE_GAP = 56
+const NODE_W = 260
 const NODE_H = 34
-const PADDING = 32
+const CONTENT_NODE_H = 24
+const PADDING = 48
 
 interface Props {
   filePath: string
@@ -31,44 +31,12 @@ function buildGraphFromTree(rootTree: TreeNode): {
 } {
   const nodes: MindmapRenderNode[] = []
   const edgeRefs: { id: string; sourceId: string; targetId: string }[] = []
-  let yOffset = 0
+  let cursorY = PADDING
 
   for (const child of rootTree.children) {
-    const hierarchyRoot = d3Hierarchy.hierarchy<any>(child, d => d.children)
-    const tree = d3Hierarchy.tree<any>()
-      .nodeSize([ROW_Y, LEVEL_X])
-      .separation((a, b) => (a.parent === b.parent ? 1 : 1.25))
-
-    tree(hierarchyRoot)
-
-    const descendants = hierarchyRoot.descendants()
-    const minTreeY = Math.min(...descendants.map(d => d.x ?? 0))
-    const maxTreeY = Math.max(...descendants.map(d => d.x ?? 0))
-
-    for (const d of descendants) {
-      const data = d.data
-      nodes.push({
-        id: data.id,
-        label: data.title || '(empty)',
-        content: data.content || '',
-        depth: d.depth,
-        childCount: data.children?.length || 0,
-        kind: data.kind,
-        nodeH: estimateNodeHeight(data),
-        x: PADDING + (d.y ?? 0),
-        y: PADDING + yOffset + (d.x ?? 0) - minTreeY,
-      })
-    }
-
-    for (const link of hierarchyRoot.links()) {
-      edgeRefs.push({
-        id: `e_${link.source.data.id}_${link.target.data.id}`,
-        sourceId: link.source.data.id,
-        targetId: link.target.data.id,
-      })
-    }
-
-    yOffset += Math.max(ROW_Y, maxTreeY - minTreeY + ROW_Y) + TREE_GAP
+    const layoutRoot = measureSubtree(child, 0)
+    placeSubtree(layoutRoot, PADDING, cursorY, nodes, edgeRefs)
+    cursorY += layoutRoot.subtreeH + TREE_GAP
   }
 
   const byId = new Map(nodes.map(n => [n.id, n]))
@@ -82,6 +50,62 @@ function buildGraphFromTree(rootTree: TreeNode): {
   const maxY = Math.max(...nodes.map(n => n.y + (n.nodeH ?? NODE_H)), NODE_H)
 
   return { nodes, edges, width: maxX + PADDING, height: maxY + PADDING }
+}
+
+interface LayoutNode {
+  data: TreeNode
+  depth: number
+  nodeH: number
+  subtreeH: number
+  children: LayoutNode[]
+}
+
+function measureSubtree(node: TreeNode, depth: number): LayoutNode {
+  const children = node.collapsed ? [] : node.children.map(child => measureSubtree(child, depth + 1))
+  const nodeH = estimateNodeHeight(node)
+  const childrenH = children.reduce((sum, child) => sum + child.subtreeH, 0) +
+    Math.max(0, children.length - 1) * SIBLING_GAP
+  return {
+    data: node,
+    depth,
+    nodeH,
+    subtreeH: Math.max(nodeH, childrenH),
+    children,
+  }
+}
+
+function placeSubtree(
+  layoutNode: LayoutNode,
+  x: number,
+  top: number,
+  nodes: MindmapRenderNode[],
+  edgeRefs: { id: string; sourceId: string; targetId: string }[],
+): void {
+  const nodeY = top + (layoutNode.subtreeH - layoutNode.nodeH) / 2
+  const data = layoutNode.data
+
+  nodes.push({
+    id: data.id,
+    label: data.title || '(empty)',
+    content: data.content || '',
+    depth: layoutNode.depth,
+    childCount: data.children?.length || 0,
+    kind: data.kind,
+    nodeH: layoutNode.nodeH,
+    x,
+    y: nodeY,
+  })
+
+  let childTop = top
+  for (const child of layoutNode.children) {
+    edgeRefs.push({
+      id: `e_${data.id}_${child.data.id}`,
+      sourceId: data.id,
+      targetId: child.data.id,
+    })
+    placeSubtree(child, x + LEVEL_X, childTop, nodes, edgeRefs)
+    childTop += child.subtreeH + SIBLING_GAP
+  }
 }
 
 interface MindmapRenderNode {
@@ -168,23 +192,43 @@ function busEdgePath(children: number[], turnX: number, childX: number): string 
 
 /** 估算节点实际渲染高度（含标题换行和内容行） */
 function estimateNodeHeight(node: TreeNode): number {
-  if (node.kind === 'content') return 24
-  // 基础高度：padding + 1行标题
-  let h = 34
-  // 标题换行（NODE_W ≈ 220px，padding 20px → 200px 可用宽度，~17个中文字/行）
-  const titleChars = node.title ? node.title.length : 0
-  if (titleChars > 17) {
-    const titleLines = Math.ceil(titleChars / 17)
-    h += (titleLines - 1) * 18
+  const titleUnitsPerLine = node.kind === 'content' ? 20 : 18
+  const titleLines = countWrappedLines(node.title || '(empty)', titleUnitsPerLine)
+
+  if (node.kind === 'content') {
+    return Math.max(CONTENT_NODE_H, 12 + titleLines * 15)
   }
+
+  let h = 12 + titleLines * 17
   if (node.content && node.content.trim()) {
-    // 计算每行文字需要多少行（~25个混合字符/行，11px字号）
     const contentLines = node.content.split('\n').reduce((total, line) => {
-      return total + Math.max(1, Math.ceil(line.length / 25))
+      return total + countWrappedLines(line, 22)
     }, 0)
-    h += contentLines * 15
+    h += 4 + contentLines * 16
   }
-  return h
+  return Math.max(NODE_H, Math.ceil(h))
+}
+
+function countWrappedLines(text: string, unitsPerLine: number): number {
+  const lines = text.split('\n')
+  return lines.reduce((total, line) => {
+    const visualUnits = Math.max(1, estimateTextUnits(line.trim()))
+    return total + Math.max(1, Math.ceil(visualUnits / unitsPerLine))
+  }, 0)
+}
+
+function estimateTextUnits(text: string): number {
+  let units = 0
+  for (const char of text) {
+    if (/[\u3000-\u9fff\uff00-\uffef]/.test(char)) {
+      units += 1
+    } else if (/\s/.test(char)) {
+      units += 0.35
+    } else {
+      units += 0.58
+    }
+  }
+  return units
 }
 
 /** 错误边界 */
