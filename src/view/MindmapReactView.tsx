@@ -6,8 +6,8 @@ import { createNode, findById, findParent } from '../core/tree'
 import type { TreeNode } from '../types'
 
 const LEVEL_X = 320
-const SIBLING_GAP = 24
-const TREE_GAP = 56
+const SIBLING_GAP = 36
+const TREE_GAP = 64
 const NODE_W = 260
 const NODE_H = 34
 const CONTENT_NODE_H = 24
@@ -90,6 +90,7 @@ function placeSubtree(
     content: data.content || '',
     depth: layoutNode.depth,
     childCount: data.children?.length || 0,
+    collapsed: data.collapsed,
     kind: data.kind,
     nodeH: layoutNode.nodeH,
     x,
@@ -114,6 +115,7 @@ interface MindmapRenderNode {
   content: string
   depth: number
   childCount: number
+  collapsed: boolean
   kind?: 'heading' | 'content'
   nodeH?: number
   x: number
@@ -497,6 +499,15 @@ export default function MindmapReactView({
     })
   }, [saveTree])
 
+  // ── 节点折叠 ───────────────────────────────
+  const handleToggleCollapse = useCallback((nodeId: string) => {
+    saveTree((newTree) => {
+      const node = findById(newTree, nodeId)
+      if (!node || node.children.length === 0) return
+      node.collapsed = !node.collapsed
+    })
+  }, [saveTree])
+
   // ── 选中节点导航 ───────────────────────────
   const getSiblingIds = useCallback((nodeId: string): { prev: string | null; next: string | null } => {
     if (!tree) return { prev: null, next: null }
@@ -593,7 +604,7 @@ export default function MindmapReactView({
         const oldPan = panRef.current
 
         const factor = e.deltaY > 0 ? -1 : 1
-        const newZoom = Math.min(3, Math.max(0.1, +(oldZoom + factor * 0.1).toFixed(2)))
+        const newZoom = Math.min(3, Math.max(0.1, +(oldZoom + factor * 0.06).toFixed(3)))
         const scale = newZoom / oldZoom
 
         setZoom(newZoom)
@@ -888,7 +899,19 @@ export default function MindmapReactView({
                       <span className="mm-title" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(node.label) }} />
                       {node.content && <div className="mm-content">{node.content}</div>}
                     </div>
-                    {node.childCount > 0 && <span className="mm-badge">{node.childCount}</span>}
+                    {node.childCount > 0 && (
+                      <span
+                        className={`mm-collapse-btn${node.collapsed ? ' collapsed' : ''}`}
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleToggleCollapse(node.id)
+                        }}
+                        title={node.collapsed ? `展开 (${node.childCount}个子节点)` : `收起 (${node.childCount}个子节点)`}
+                      >
+                        <span className="mm-collapse-icon">{node.collapsed ? '▶' : '▼'}</span>
+                        <span className="mm-collapse-count">{node.childCount}</span>
+                      </span>
+                    )}
                     {/* 拖拽手柄：按住此区域拖拽节点 */}
                     <span
                       className="mm-drag-handle"
@@ -921,7 +944,40 @@ export default function MindmapReactView({
           })}
         </div>
 
-        <div className="mindmap-zoom-info">{Math.round(zoom * 100)}%</div>
+        <div className="mindmap-toolbar">
+          <button className="mindmap-toolbar-btn" onClick={() => {
+            const newZoom = Math.min(3, +(zoom + 0.1).toFixed(2))
+            const container = containerRef.current
+            if (container) {
+              const rect = container.getBoundingClientRect()
+              const cx = rect.width / 2
+              const cy = rect.height / 2
+              const scale = newZoom / zoom
+              setZoom(newZoom)
+              setPan(prev => ({
+                x: cx - (cx - prev.x) * scale,
+                y: cy - (cy - prev.y) * scale,
+              }))
+            }
+          }} title="放大">+</button>
+          <span className="mindmap-toolbar-label">{Math.round(zoom * 100)}%</span>
+          <button className="mindmap-toolbar-btn" onClick={() => {
+            const newZoom = Math.max(0.1, +(zoom - 0.1).toFixed(2))
+            const container = containerRef.current
+            if (container) {
+              const rect = container.getBoundingClientRect()
+              const cx = rect.width / 2
+              const cy = rect.height / 2
+              const scale = newZoom / zoom
+              setZoom(newZoom)
+              setPan(prev => ({
+                x: cx - (cx - prev.x) * scale,
+                y: cy - (cy - prev.y) * scale,
+              }))
+            }
+          }} title="缩小">−</button>
+          <button className="mindmap-toolbar-btn" onClick={fitToView} title="适应画布">⊡</button>
+        </div>
 
         {/* 拖拽提示 */}
         {draggingNodeId && (

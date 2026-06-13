@@ -29632,8 +29632,8 @@ function serializeNode(node2) {
 // src/view/MindmapReactView.tsx
 var import_jsx_runtime = __toESM(require_jsx_runtime());
 var LEVEL_X = 320;
-var SIBLING_GAP = 24;
-var TREE_GAP = 56;
+var SIBLING_GAP = 36;
+var TREE_GAP = 64;
 var NODE_W = 260;
 var NODE_H = 34;
 var CONTENT_NODE_H = 24;
@@ -29678,6 +29678,7 @@ function placeSubtree(layoutNode, x, top, nodes, edgeRefs) {
     content: data.content || "",
     depth: layoutNode.depth,
     childCount: data.children?.length || 0,
+    collapsed: data.collapsed,
     kind: data.kind,
     nodeH: layoutNode.nodeH,
     x,
@@ -30009,6 +30010,14 @@ function MindmapReactView({
       grandParent.children.splice(parentIdx + 1, 0, node2);
     });
   }, [saveTree]);
+  const handleToggleCollapse = (0, import_react.useCallback)((nodeId) => {
+    saveTree((newTree) => {
+      const node2 = findById(newTree, nodeId);
+      if (!node2 || node2.children.length === 0)
+        return;
+      node2.collapsed = !node2.collapsed;
+    });
+  }, [saveTree]);
   const getSiblingIds = (0, import_react.useCallback)((nodeId) => {
     if (!tree)
       return { prev: null, next: null };
@@ -30098,7 +30107,7 @@ function MindmapReactView({
         const oldZoom = zoomRef.current;
         const oldPan = panRef.current;
         const factor = e.deltaY > 0 ? -1 : 1;
-        const newZoom = Math.min(3, Math.max(0.1, +(oldZoom + factor * 0.1).toFixed(2)));
+        const newZoom = Math.min(3, Math.max(0.1, +(oldZoom + factor * 0.06).toFixed(3)));
         const scale = newZoom / oldZoom;
         setZoom(newZoom);
         setPan({
@@ -30370,7 +30379,21 @@ ${node2.content}` : node2.label,
                           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-title", dangerouslySetInnerHTML: { __html: renderInlineMarkdown(node2.label) } }),
                           node2.content && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mm-content", children: node2.content })
                         ] }),
-                        node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-badge", children: node2.childCount }),
+                        node2.childCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                          "span",
+                          {
+                            className: `mm-collapse-btn${node2.collapsed ? " collapsed" : ""}`,
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              handleToggleCollapse(node2.id);
+                            },
+                            title: node2.collapsed ? `\u5C55\u5F00 (${node2.childCount}\u4E2A\u5B50\u8282\u70B9)` : `\u6536\u8D77 (${node2.childCount}\u4E2A\u5B50\u8282\u70B9)`,
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-collapse-icon", children: node2.collapsed ? "\u25B6" : "\u25BC" }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mm-collapse-count", children: node2.childCount })
+                            ]
+                          }
+                        ),
                         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "span",
                           {
@@ -30407,9 +30430,42 @@ ${node2.content}` : node2.label,
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-zoom-info", children: [
-            Math.round(zoom * 100),
-            "%"
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "mindmap-toolbar", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: () => {
+              const newZoom = Math.min(3, +(zoom + 0.1).toFixed(2));
+              const container = containerRef.current;
+              if (container) {
+                const rect = container.getBoundingClientRect();
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                const scale = newZoom / zoom;
+                setZoom(newZoom);
+                setPan((prev) => ({
+                  x: cx - (cx - prev.x) * scale,
+                  y: cy - (cy - prev.y) * scale
+                }));
+              }
+            }, title: "\u653E\u5927", children: "+" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "mindmap-toolbar-label", children: [
+              Math.round(zoom * 100),
+              "%"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: () => {
+              const newZoom = Math.max(0.1, +(zoom - 0.1).toFixed(2));
+              const container = containerRef.current;
+              if (container) {
+                const rect = container.getBoundingClientRect();
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                const scale = newZoom / zoom;
+                setZoom(newZoom);
+                setPan((prev) => ({
+                  x: cx - (cx - prev.x) * scale,
+                  y: cy - (cy - prev.y) * scale
+                }));
+              }
+            }, title: "\u7F29\u5C0F", children: "\u2212" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "mindmap-toolbar-btn", onClick: fitToView, title: "\u9002\u5E94\u753B\u5E03", children: "\u22A1" })
           ] }),
           draggingNodeId && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "mindmap-drag-hint", children: "\u62D6\u62FD\u5230\u76EE\u6807\u8282\u70B9\u4E0A\u91CA\u653E\u4EE5\u6539\u53D8\u5C42\u7EA7\u5173\u7CFB" })
         ]

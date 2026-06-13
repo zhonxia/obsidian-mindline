@@ -190,19 +190,90 @@
   word-break: break-word;
 }
 
-.mindmap-zoom-info {
+/* ── 折叠按钮 ─────────────────── */
+.mm-collapse-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.2s;
+  user-select: none;
+  line-height: 1;
+}
+.mm-collapse-btn:hover {
+  background: #cbd5e1;
+  color: #334155;
+}
+.mm-collapse-btn.collapsed {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+.mm-collapse-btn.collapsed:hover {
+  background: #bfdbfe;
+}
+.mm-collapse-icon {
+  font-size: 8px;
+  transition: transform 0.2s;
+}
+.mm-collapse-count {
+  font-size: 10px;
+}
+
+/* ── 缩放工具栏 ─────────────────── */
+.mindmap-toolbar {
   position: absolute;
   bottom: 12px;
-  right: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.85);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+  z-index: 10;
+  user-select: none;
+}
+.mindmap-toolbar-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
   color: #64748b;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.mindmap-toolbar-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.mindmap-toolbar-btn:active {
+  background: #e2e8f0;
+}
+.mindmap-toolbar-label {
+  min-width: 36px;
+  text-align: center;
   font-size: 12px;
   font-weight: 600;
+  color: #64748b;
   pointer-events: none;
-  user-select: none;
-  z-index: 10;
 }
 
 /* ── 右键菜单 ─────────────────────── */
@@ -283,6 +354,12 @@
 .mm-node.selected {
   box-shadow: 0 0 0 2px #f59e0b, 0 2px 8px rgba(245, 158, 11, 0.25);
   z-index: 5;
+}
+
+/* 已折叠节点提示 */
+.mm-node:has(.mm-collapse-btn.collapsed) {
+  border-style: dashed;
+  opacity: 0.85;
 }
 
 /* ── Markdown 内联渲染 ──────── */
