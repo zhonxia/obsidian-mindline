@@ -75,6 +75,7 @@ export default function MindmapReactView({
   const hasLoadedTreeForFileRef = useRef(false)
   const skipNextViewportPersistRef = useRef(false)
   const hasAppliedInitialViewportRef = useRef(false)
+  const ignoreNextBlurSaveRef = useRef(false)
 
   // 节点拖拽状态（Pointer Events 驱动）
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
@@ -83,6 +84,7 @@ export default function MindmapReactView({
   const dropTargetRef = useRef<DropTarget | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const editingElRef = useRef<HTMLSpanElement | null>(null)
   /** 保存计数器：每次 saveTree 递增，fileContent 变化时递减 */
   const saveCounterRef = useRef(0)
   const MAX_UNDO = 50
@@ -100,7 +102,6 @@ export default function MindmapReactView({
   useEffect(() => { zoomRef.current = zoom }, [zoom])
   useEffect(() => { panRef.current = pan }, [pan])
   useEffect(() => { editingNodeIdRef.current = editingNodeId }, [editingNodeId])
-  useEffect(() => { editValueRef.current = editValue }, [editValue])
   useEffect(() => {
     initialFitDone.current = false
     hasRestoredViewportRef.current = false
@@ -141,6 +142,22 @@ export default function MindmapReactView({
 
   useEffect(() => { graphRef.current = graph }, [graph])
   useEffect(() => { treeRef.current = tree }, [tree])
+
+  useEffect(() => {
+    if (!editingNodeId) return
+    const timer = requestAnimationFrame(() => {
+      const el = editingElRef.current
+      if (!el) return
+      el.focus()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+    })
+    return () => cancelAnimationFrame(timer)
+  }, [editingNodeId])
 
   useEffect(() => {
     if (!tree || !onViewStateChange) return
@@ -267,14 +284,39 @@ export default function MindmapReactView({
   }, [saveTree, isAncestor])
 
   // ── 节点编辑 ─────────────────────────────────
-  const handleDoubleClick = useCallback((nodeId: string, text: string) => {
+  const startEditingNode = useCallback((nodeId: string, initialText?: string, placeCursorAtEnd: boolean = true) => {
+    const currentTree = treeRef.current
+    const node = currentTree ? findById(currentTree, nodeId) : null
+    if (!node) return
+    const nextValue = initialText ?? node.title
+    setSelectedNodeId(nodeId)
     setEditingNodeId(nodeId)
-    setEditValue(text)
+    setEditValue(nextValue)
+    editValueRef.current = nextValue
     setContextMenu(null)
+    requestAnimationFrame(() => {
+      const el = editingElRef.current
+      if (!el) return
+      el.focus()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(placeCursorAtEnd)
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+    })
   }, [])
 
+  const handleDoubleClick = useCallback((nodeId: string, text: string) => {
+    startEditingNode(nodeId, text)
+  }, [startEditingNode])
+
   const handleEditSave = useCallback(() => {
-    const newText = editValue.trim()
+    if (ignoreNextBlurSaveRef.current) {
+      ignoreNextBlurSaveRef.current = false
+      return
+    }
+    const newText = editValueRef.current.trim()
     if (!editingNodeId) return
     saveTree((newTree) => {
       const node = findById(newTree, editingNodeId!)
@@ -284,7 +326,8 @@ export default function MindmapReactView({
     })
     setEditingNodeId(null)
     setEditValue('')
-  }, [editingNodeId, editValue, saveTree])
+    editValueRef.current = ''
+  }, [editingNodeId, saveTree])
 
   const insertSiblingAfter = useCallback((nodeId: string): string | null => {
     const currentTree = treeRef.current
@@ -384,8 +427,10 @@ export default function MindmapReactView({
   }, [saveTree])
 
   const handleEditCancel = useCallback(() => {
+    ignoreNextBlurSaveRef.current = true
     setEditingNodeId(null)
     setEditValue('')
+    editValueRef.current = ''
   }, [])
 
   // ── 右键菜单操作 ─────────────────────────────
@@ -783,7 +828,15 @@ export default function MindmapReactView({
       const sid = selectedNodeId
       if (!sid) return
 
-      if (e.key === 'Tab' || e.code === 'Tab') {
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        startEditingNode(sid, e.key)
+      } else if (e.key === 'F2') {
+        e.preventDefault()
+        e.stopPropagation()
+        startEditingNode(sid)
+      } else if (e.key === 'Tab' || e.code === 'Tab') {
         e.preventDefault()
         e.stopPropagation()
         e.stopImmediatePropagation()
@@ -818,7 +871,8 @@ export default function MindmapReactView({
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [editingNodeId, selectedNodeId, contextMenu,
       handleOutdent, handleDeleteNode, navigateSelection,
-      handleEditCancel, insertChildFor, insertSiblingAfter, onSaveContent])
+      handleEditCancel, insertChildFor, insertSiblingAfter, onSaveContent,
+      startEditingNode])
 
   // 组件卸载时清理拖拽监听
   useEffect(() => {
@@ -893,7 +947,7 @@ export default function MindmapReactView({
               <div
                 key={node.id}
                 data-node-id={node.id}
-                className={`mm-node depth-${Math.min(node.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ''}${isDragging ? ' dragging' : ''}${dropPosition ? ` drop-target drop-${dropPosition}` : ''}${node.id === selectedNodeId ? ' selected' : ''}`}
+                className={`mm-node depth-${Math.min(node.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ''}${isEditing ? ' editing' : ''}${isDragging ? ' dragging' : ''}${dropPosition ? ` drop-target drop-${dropPosition}` : ''}${node.id === selectedNodeId ? ' selected' : ''}`}
                 style={{
                   left: `${node.x}px`,
                   top: `${node.y}px`,
@@ -905,90 +959,90 @@ export default function MindmapReactView({
                 onContextMenu={e => handleContextMenu(e, node.id)}
                 onPointerDown={e => {
                   setSelectedNodeId(node.id)
+                  if (isEditing) return
                   handleNodePointerDown(e, node.id)
                 }}
               >
-                {isEditing ? (
-                  <div className="mm-edit-wrap">
-                    <textarea
-                      className="mm-edit-input"
-                      value={editValue}
-                      onChange={e => {
-                        editValueRef.current = e.target.value
-                        setEditValue(e.target.value)
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          commitEditingAndInsertSibling(node.id)
-                        }
-                        if (e.key === 'Tab' && !e.shiftKey) {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          commitEditingAndInsertChild(node.id)
-                        }
-                        if (e.key === 'Escape') {
-                          e.stopPropagation()
-                          handleEditCancel()
-                        }
-                      }}
-                      onBlur={handleEditSave}
-                      autoFocus
-                      rows={3}
-                      onClick={e => e.stopPropagation()}
-                      onPointerDown={e => e.stopPropagation()}
-                    />
-                    <div className="mm-edit-hint">Enter 新建同级 · Tab 新建子级 · Shift+Enter 换行 · Esc 取消</div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="mm-body">
-                      <span className="mm-title">
-                        {headingMarker.level && <span className="mm-heading-badge">H{headingMarker.level}</span>}
-                        <span dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(headingMarker.label) }} />
-                      </span>
-                      {node.content && <div className="mm-content">{node.content}</div>}
-                    </div>
-                    {node.childCount > 0 && (
+                <div className="mm-body">
+                  <span className="mm-title">
+                    {headingMarker.level && <span className="mm-heading-badge">H{headingMarker.level}</span>}
+                    {isEditing ? (
                       <span
-                        className={`mm-collapse-btn${node.collapsed ? ' collapsed' : ''}`}
-                        onClick={e => {
-                          e.stopPropagation()
-                          handleToggleCollapse(node.id)
+                        ref={editingElRef}
+                        className="mm-title-editor"
+                        contentEditable
+                        suppressContentEditableWarning
+                        spellCheck={false}
+                        onInput={e => {
+                          const value = e.currentTarget.textContent || ''
+                          editValueRef.current = value
                         }}
-                        title={node.collapsed ? `展开 (${node.childCount}个子节点)` : `收起 (${node.childCount}个子节点)`}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            ignoreNextBlurSaveRef.current = true
+                            commitEditingAndInsertSibling(node.id)
+                          } else if (e.key === 'Tab' && !e.shiftKey) {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            ignoreNextBlurSaveRef.current = true
+                            commitEditingAndInsertChild(node.id)
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleEditCancel()
+                          }
+                        }}
+                        onBlur={handleEditSave}
+                        onClick={e => e.stopPropagation()}
+                        onPointerDown={e => e.stopPropagation()}
                       >
-                        <span className="mm-collapse-icon">{node.collapsed ? '▶' : '▼'}</span>
-                        <span className="mm-collapse-count">{node.childCount}</span>
+                        {editValue}
                       </span>
+                    ) : (
+                      <span dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(headingMarker.label) }} />
                     )}
-                    <span
-                      className="mm-drag-handle"
-                      title="拖拽到其它节点上以改变层级"
-                      style={{
-                        position: 'absolute',
-                        left: -8,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: 16,
-                        height: 24,
-                        cursor: 'grab',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#94a3b8',
-                        fontSize: 10,
-                        borderRadius: 4,
-                        userSelect: 'none',
-                      }}
-                      onPointerDown={e => {
-                        e.stopPropagation()
-                        handleNodePointerDown(e, node.id)
-                      }}
-                    >⋮</span>
-                  </>
+                  </span>
+                  {node.content && <div className="mm-content">{node.content}</div>}
+                </div>
+                {node.childCount > 0 && (
+                  <span
+                    className={`mm-collapse-btn${node.collapsed ? ' collapsed' : ''}`}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleToggleCollapse(node.id)
+                    }}
+                    title={node.collapsed ? `展开 (${node.childCount}个子节点)` : `收起 (${node.childCount}个子节点)`}
+                  >
+                    <span className="mm-collapse-icon">{node.collapsed ? '▶' : '▼'}</span>
+                    <span className="mm-collapse-count">{node.childCount}</span>
+                  </span>
                 )}
+                <span
+                  className="mm-drag-handle"
+                  title="拖拽到其它节点上以改变层级"
+                  style={{
+                    position: 'absolute',
+                    left: -8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 16,
+                    height: 24,
+                    cursor: 'grab',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#94a3b8',
+                    fontSize: 10,
+                    borderRadius: 4,
+                    userSelect: 'none',
+                  }}
+                  onPointerDown={e => {
+                    e.stopPropagation()
+                    handleNodePointerDown(e, node.id)
+                  }}
+                >⋮</span>
               </div>
             )
           })}
