@@ -1,12 +1,20 @@
 import { Plugin, Notice, WorkspaceLeaf } from 'obsidian'
 import { MindmapView, VIEW_TYPE_MINDMAP } from './view/MindmapView'
+import type { MindmapFileViewState, MindmapPluginData, MindmapViewStateStore } from './types'
 
-export default class MindMapPlugin extends Plugin {
+const DEFAULT_DATA: MindmapPluginData = {
+  fileStates: {},
+}
+
+export default class MindMapPlugin extends Plugin implements MindmapViewStateStore {
   // 始终记住最后打开的文件路径（通过事件监听，不依赖 getActiveFile）
   private lastFilePath: string | null = null
+  private data: MindmapPluginData = DEFAULT_DATA
+  private saveDataTimer: number = 0
 
   async onload() {
     console.log('[MindMap] Plugin loading...')
+    this.data = this.normalizeData(await this.loadData())
 
     // ── 核心事件：追踪当前文件 ──
     // 这是唯一可靠的方式获取"用户正在看哪个文件"
@@ -24,7 +32,7 @@ export default class MindMapPlugin extends Plugin {
     }))
 
     // Register view type
-    this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf))
+    this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf, this))
 
     // Ribbon Icon
     for (const icon of ['brain', 'brain-circuit', 'git-branch', 'file-text']) {
@@ -52,7 +60,44 @@ export default class MindMapPlugin extends Plugin {
   }
 
   async onunload() {
+    if (this.saveDataTimer) {
+      window.clearTimeout(this.saveDataTimer)
+      this.saveDataTimer = 0
+      await this.saveData(this.data)
+    }
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_MINDMAP)
+  }
+
+  getFileViewState(filePath: string): MindmapFileViewState {
+    return this.data.fileStates[filePath] || {}
+  }
+
+  updateFileViewState(filePath: string, patch: Partial<MindmapFileViewState>): void {
+    if (!filePath) return
+    const prev = this.data.fileStates[filePath] || {}
+    this.data.fileStates[filePath] = {
+      ...prev,
+      ...patch,
+    }
+    this.scheduleSaveData()
+  }
+
+  private normalizeData(raw: unknown): MindmapPluginData {
+    if (!raw || typeof raw !== 'object') return { fileStates: {} }
+    const maybeData = raw as Partial<MindmapPluginData>
+    return {
+      fileStates: maybeData.fileStates && typeof maybeData.fileStates === 'object'
+        ? maybeData.fileStates
+        : {},
+    }
+  }
+
+  private scheduleSaveData(): void {
+    if (this.saveDataTimer) window.clearTimeout(this.saveDataTimer)
+    this.saveDataTimer = window.setTimeout(() => {
+      this.saveDataTimer = 0
+      this.saveData(this.data)
+    }, 400)
   }
 
   /**

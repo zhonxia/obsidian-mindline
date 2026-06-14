@@ -46,7 +46,7 @@ export function parseMarkdown(md: string): TreeNode {
     }
   }
 
-  updateDepths(root, -1)
+  refreshTreeMetadata(root)
 
   return root
 }
@@ -107,9 +107,20 @@ function paragraphToOutlineLines(para: Paragraph): string[] {
   return text.split('\n').map(line => line.trim()).filter(Boolean)
 }
 
-function updateDepths(node: TreeNode, depth: number): void {
+export function refreshTreeMetadata(root: TreeNode): void {
+  updateDepthsAndViewKeys(root, -1, 'root')
+}
+
+function updateDepthsAndViewKeys(node: TreeNode, depth: number, path: string): void {
   node.depth = depth
-  for (const child of node.children) updateDepths(child, depth + 1)
+  node.viewKey = path
+  const siblingCounts = new Map<string, number>()
+  node.children.forEach((child) => {
+    const baseKey = stableNodeBaseKey(child)
+    const sameKeyIndex = siblingCounts.get(baseKey) || 0
+    siblingCounts.set(baseKey, sameKeyIndex + 1)
+    updateDepthsAndViewKeys(child, depth + 1, `${path}/${sameKeyIndex}:${baseKey}`)
+  })
 }
 
 /** 提取段落纯文本 */
@@ -265,6 +276,13 @@ function clampHeadingLevel(level: number): 1 | 2 | 3 | 4 | 5 | 6 {
 function normalizeOutlineLine(text: string): string {
   const oneLine = (text || '').replace(/\s*\n\s*/g, ' ').trim()
   return oneLine || '(empty)'
+}
+
+function stableNodeBaseKey(node: TreeNode): string {
+  const type = node.sourceType || (node.headingLevel ? 'heading' : 'unknown')
+  const level = node.headingLevel || ''
+  const title = normalizeOutlineLine(node.title).toLowerCase()
+  return encodeURIComponent(`${type}:${level}:${title}`)
 }
 
 /* ── 内部工具 ──────────────────────────────────── */

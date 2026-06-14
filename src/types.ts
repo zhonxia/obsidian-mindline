@@ -1,5 +1,6 @@
 export interface TreeNode {
   id: string
+  viewKey?: string
   title: string
   content: string
   children: TreeNode[]
@@ -19,4 +20,25 @@ export interface Document {
   path: string
   root: TreeNode
   modified: boolean
+}
+
+export interface MindmapViewportState {
+  x: number
+  y: number
+}
+
+export interface MindmapFileViewState {
+  pan?: MindmapViewportState
+  zoom?: number
+  collapsedKeys?: string[]
+  selectedNodeKey?: string | null
+}
+
+export interface MindmapPluginData {
+  fileStates: Record<string, MindmapFileViewState>
+}
+
+export interface MindmapViewStateStore {
+  getFileViewState(filePath: string): MindmapFileViewState
+  updateFileViewState(filePath: string, patch: Partial<MindmapFileViewState>): void
 }

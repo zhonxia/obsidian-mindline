@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react'
 
-import { parseMarkdown, serializeMarkdown } from '../core/markdown'
+import { parseMarkdown, refreshTreeMetadata, serializeMarkdown } from '../core/markdown'
 import { createNode, findById, findParent } from '../core/tree'
-import type { TreeNode } from '../types'
+import type { MindmapFileViewState, TreeNode } from '../types'
 import {
   buildGraphFromTree,
   parseHeadingMarker,
@@ -22,6 +22,23 @@ import MindmapToolbar from './MindmapToolbar'
 import MindmapErrorBoundary from './MindmapErrorBoundary'
 import MindmapMessage from './MindmapMessage'
 
+function applyCollapsedKeys(root: TreeNode, collapsedKeys: Set<string>): void {
+  const walk = (node: TreeNode) => {
+    node.collapsed = !!node.viewKey && collapsedKeys.has(node.viewKey) && node.children.length > 0
+    node.children.forEach(walk)
+  }
+  root.children.forEach(walk)
+}
+
+function findByViewKey(root: TreeNode, viewKey: string): TreeNode | null {
+  if (root.viewKey === viewKey) return root
+  for (const child of root.children) {
+    const found = findByViewKey(child, viewKey)
+    if (found) return found
+  }
+  return null
+}
+
 interface Props {
   filePath: string
   fileContent: string
@@ -29,10 +46,13 @@ interface Props {
   fileLoaded: boolean
   fileError: string
   onSaveContent: (newContent: string) => void
+  initialViewState?: MindmapFileViewState
+  onViewStateChange?: (patch: Partial<MindmapFileViewState>) => void
 }
 
 export default function MindmapReactView({
   filePath, fileContent, fileName, fileLoaded, fileError, onSaveContent,
+  initialViewState, onViewStateChange,
 }: Props) {
   const [tree, setTree] = useState<TreeNode | null>(null)
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -51,6 +71,10 @@ export default function MindmapReactView({
   const editingNodeIdRef = useRef<string | null>(null)
   const editValueRef = useRef('')
   const initialFitDone = useRef(false)
+  const hasRestoredViewportRef = useRef(false)
+  const hasLoadedTreeForFileRef = useRef(false)
+  const skipNextViewportPersistRef = useRef(false)
+  const hasAppliedInitialViewportRef = useRef(false)
 
   // 节点拖拽状态（Pointer Events 驱动）
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
@@ -77,7 +101,13 @@ export default function MindmapReactView({
   useEffect(() => { panRef.current = pan }, [pan])
   useEffect(() => { editingNodeIdRef.current = editingNodeId }, [editingNodeId])
   useEffect(() => { editValueRef.current = editValue }, [editValue])
-  useEffect(() => { initialFitDone.current = false }, [filePath])
+  useEffect(() => {
+    initialFitDone.current = false
+    hasRestoredViewportRef.current = false
+    hasLoadedTreeForFileRef.current = false
+    skipNextViewportPersistRef.current = false
+    hasAppliedInitialViewportRef.current = false
+  }, [filePath])
 
   // ── 文件内容同步 ─────────────────────────────
   useEffect(() => {
@@ -87,10 +117,16 @@ export default function MindmapReactView({
     }
     if (fileLoaded && fileContent) {
       const t = parseMarkdown(fileContent)
+      applyCollapsedKeys(t, new Set(initialViewState?.collapsedKeys || []))
       setTree(t)
       setEditingNodeId(null)
+      const selectedNode = initialViewState?.selectedNodeKey
+        ? findByViewKey(t, initialViewState.selectedNodeKey)
+        : null
+      setSelectedNodeId(selectedNode?.id || null)
+      hasLoadedTreeForFileRef.current = true
     }
-  }, [fileContent, fileLoaded])
+  }, [fileContent, fileLoaded, initialViewState?.collapsedKeys, initialViewState?.selectedNodeKey])
 
   // ── 布局计算 ─────────────────────────────────
   const graph = useMemo(() => {
@@ -106,8 +142,35 @@ export default function MindmapReactView({
   useEffect(() => { graphRef.current = graph }, [graph])
   useEffect(() => { treeRef.current = tree }, [tree])
 
+  useEffect(() => {
+    if (!tree || !onViewStateChange) return
+    const selectedNode = selectedNodeId ? findById(tree, selectedNodeId) : null
+    onViewStateChange({ selectedNodeKey: selectedNode?.viewKey || null })
+  }, [onViewStateChange, selectedNodeId, tree])
+
   // ── 树操作工具 ───────────────────────────────
   const cloneTree = (t: TreeNode): TreeNode => JSON.parse(JSON.stringify(t))
+
+  const getCollapsedKeys = useCallback((root: TreeNode): string[] => {
+    const keys: string[] = []
+    const walk = (node: TreeNode) => {
+      if (node.viewKey && node.collapsed && node.children.length > 0) keys.push(node.viewKey)
+      node.children.forEach(walk)
+    }
+    root.children.forEach(walk)
+    return keys
+  }, [])
+
+  const setTreeOnly = useCallback((modify: (t: TreeNode) => void) => {
+    setTree(prev => {
+      if (!prev) return prev
+      const next = cloneTree(prev)
+      modify(next)
+      refreshTreeMetadata(next)
+      onViewStateChange?.({ collapsedKeys: getCollapsedKeys(next) })
+      return next
+    })
+  }, [getCollapsedKeys, onViewStateChange])
 
   const saveTree = useCallback((modify: (t: TreeNode) => void) => {
     setTree(prev => {
@@ -116,12 +179,14 @@ export default function MindmapReactView({
       if (undoStackRef.current.length > MAX_UNDO) undoStackRef.current.shift()
       const next = cloneTree(prev)
       modify(next)
+      refreshTreeMetadata(next)
       const md = serializeMarkdown(next)
       saveCounterRef.current += 1
       onSaveContent(md)
+      onViewStateChange?.({ collapsedKeys: getCollapsedKeys(next) })
       return next
     })
-  }, [onSaveContent])
+  }, [getCollapsedKeys, onSaveContent, onViewStateChange])
 
   const createSiblingForNode = (node: TreeNode): TreeNode => {
     const sibling = createNode('')
@@ -421,12 +486,12 @@ export default function MindmapReactView({
 
   // ── 节点折叠 ───────────────────────────────
   const handleToggleCollapse = useCallback((nodeId: string) => {
-    saveTree((newTree) => {
+    setTreeOnly((newTree) => {
       const node = findById(newTree, nodeId)
       if (!node || node.children.length === 0) return
       node.collapsed = !node.collapsed
     })
-  }, [saveTree])
+  }, [setTreeOnly])
 
   // ── 选中节点导航 ───────────────────────────
   const getSiblingIds = useCallback((nodeId: string): { prev: string | null; next: string | null } => {
@@ -482,10 +547,38 @@ export default function MindmapReactView({
     if (initialFitDone.current) return
     const container = containerRef.current
     if (!container) return
-    const timer = requestAnimationFrame(() => fitToView())
+
+    if (!hasRestoredViewportRef.current && initialViewState?.pan && typeof initialViewState.zoom === 'number') {
+      skipNextViewportPersistRef.current = true
+      setPan(initialViewState.pan)
+      setZoom(Math.min(3, Math.max(0.1, initialViewState.zoom)))
+      initialFitDone.current = true
+      hasRestoredViewportRef.current = true
+      hasAppliedInitialViewportRef.current = true
+      return
+    }
+
+    const timer = requestAnimationFrame(() => {
+      fitToView()
+      hasAppliedInitialViewportRef.current = true
+    })
     initialFitDone.current = true
     return () => cancelAnimationFrame(timer)
-  }, [graph, fitToView])
+  }, [graph, fitToView, initialViewState?.pan, initialViewState?.zoom])
+
+  useEffect(() => {
+    if (!filePath || !hasLoadedTreeForFileRef.current || !onViewStateChange) return
+    if (!initialFitDone.current) return
+    if (!hasAppliedInitialViewportRef.current) return
+    if (skipNextViewportPersistRef.current) {
+      skipNextViewportPersistRef.current = false
+      return
+    }
+    const timer = window.setTimeout(() => {
+      onViewStateChange({ pan, zoom })
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [filePath, onViewStateChange, pan, zoom])
 
   // ── 窗口大小变化自适应 ──
   useEffect(() => {
@@ -498,6 +591,7 @@ export default function MindmapReactView({
         return
       }
       if (editingNodeIdRef.current) return
+      if (hasRestoredViewportRef.current) return
       fitToView()
     })
     ro.observe(container)

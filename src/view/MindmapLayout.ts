@@ -17,6 +17,7 @@ export interface LayoutNode {
 
 export interface MindmapRenderNode {
   id: string
+  viewKey?: string
   label: string
   content: string
   depth: number
@@ -99,6 +100,7 @@ export function placeSubtree(
 
   nodes.push({
     id: data.id,
+    viewKey: data.viewKey,
     label: data.title || '(empty)',
     content: data.content || '',
     depth: layoutNode.depth,

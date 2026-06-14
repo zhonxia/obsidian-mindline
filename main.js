@@ -29396,7 +29396,7 @@ function parseMarkdown(md) {
         addChild(currentParent, createNode(text3, "", null, 0, void 0, node2.type));
     }
   }
-  updateDepths(root, -1);
+  refreshTreeMetadata(root);
   return root;
 }
 function appendList(parent, list2) {
@@ -29453,10 +29453,19 @@ function paragraphToOutlineLines(para) {
   const text3 = extractParagraphText(para);
   return text3.split("\n").map((line) => line.trim()).filter(Boolean);
 }
-function updateDepths(node2, depth) {
+function refreshTreeMetadata(root) {
+  updateDepthsAndViewKeys(root, -1, "root");
+}
+function updateDepthsAndViewKeys(node2, depth, path) {
   node2.depth = depth;
-  for (const child of node2.children)
-    updateDepths(child, depth + 1);
+  node2.viewKey = path;
+  const siblingCounts = /* @__PURE__ */ new Map();
+  node2.children.forEach((child) => {
+    const baseKey = stableNodeBaseKey(child);
+    const sameKeyIndex = siblingCounts.get(baseKey) || 0;
+    siblingCounts.set(baseKey, sameKeyIndex + 1);
+    updateDepthsAndViewKeys(child, depth + 1, `${path}/${sameKeyIndex}:${baseKey}`);
+  });
 }
 function extractParagraphText(para) {
   return para.children.filter((c) => c.type !== "break").map((c) => {
@@ -29597,6 +29606,12 @@ function normalizeOutlineLine(text3) {
   const oneLine = (text3 || "").replace(/\s*\n\s*/g, " ").trim();
   return oneLine || "(empty)";
 }
+function stableNodeBaseKey(node2) {
+  const type = node2.sourceType || (node2.headingLevel ? "heading" : "unknown");
+  const level = node2.headingLevel || "";
+  const title = normalizeOutlineLine(node2.title).toLowerCase();
+  return encodeURIComponent(`${type}:${level}:${title}`);
+}
 function extractText(heading) {
   return heading.children.map((c) => {
     if ("value" in c)
@@ -29708,6 +29723,7 @@ function placeSubtree(layoutNode, x, top, nodes, edgeRefs) {
   const data = layoutNode.data;
   nodes.push({
     id: data.id,
+    viewKey: data.viewKey,
     label: data.title || "(empty)",
     content: data.content || "",
     depth: layoutNode.depth,
@@ -29905,13 +29921,32 @@ function MindmapMessage({ title, detail }) {
 
 // src/view/MindmapReactView.tsx
 var import_jsx_runtime6 = __toESM(require_jsx_runtime());
+function applyCollapsedKeys(root, collapsedKeys) {
+  const walk = (node2) => {
+    node2.collapsed = !!node2.viewKey && collapsedKeys.has(node2.viewKey) && node2.children.length > 0;
+    node2.children.forEach(walk);
+  };
+  root.children.forEach(walk);
+}
+function findByViewKey(root, viewKey) {
+  if (root.viewKey === viewKey)
+    return root;
+  for (const child of root.children) {
+    const found = findByViewKey(child, viewKey);
+    if (found)
+      return found;
+  }
+  return null;
+}
 function MindmapReactView({
   filePath,
   fileContent,
   fileName,
   fileLoaded,
   fileError,
-  onSaveContent
+  onSaveContent,
+  initialViewState,
+  onViewStateChange
 }) {
   const [tree, setTree] = (0, import_react2.useState)(null);
   const [editingNodeId, setEditingNodeId] = (0, import_react2.useState)(null);
@@ -29927,6 +29962,10 @@ function MindmapReactView({
   const editingNodeIdRef = (0, import_react2.useRef)(null);
   const editValueRef = (0, import_react2.useRef)("");
   const initialFitDone = (0, import_react2.useRef)(false);
+  const hasRestoredViewportRef = (0, import_react2.useRef)(false);
+  const hasLoadedTreeForFileRef = (0, import_react2.useRef)(false);
+  const skipNextViewportPersistRef = (0, import_react2.useRef)(false);
+  const hasAppliedInitialViewportRef = (0, import_react2.useRef)(false);
   const [draggingNodeId, setDraggingNodeId] = (0, import_react2.useState)(null);
   const [dropTarget, setDropTarget] = (0, import_react2.useState)(null);
   const draggingNodeIdRef = (0, import_react2.useRef)(null);
@@ -29951,6 +29990,10 @@ function MindmapReactView({
   }, [editValue]);
   (0, import_react2.useEffect)(() => {
     initialFitDone.current = false;
+    hasRestoredViewportRef.current = false;
+    hasLoadedTreeForFileRef.current = false;
+    skipNextViewportPersistRef.current = false;
+    hasAppliedInitialViewportRef.current = false;
   }, [filePath]);
   (0, import_react2.useEffect)(() => {
     if (saveCounterRef.current > 0) {
@@ -29959,10 +30002,14 @@ function MindmapReactView({
     }
     if (fileLoaded && fileContent) {
       const t = parseMarkdown(fileContent);
+      applyCollapsedKeys(t, new Set(initialViewState?.collapsedKeys || []));
       setTree(t);
       setEditingNodeId(null);
+      const selectedNode = initialViewState?.selectedNodeKey ? findByViewKey(t, initialViewState.selectedNodeKey) : null;
+      setSelectedNodeId(selectedNode?.id || null);
+      hasLoadedTreeForFileRef.current = true;
     }
-  }, [fileContent, fileLoaded]);
+  }, [fileContent, fileLoaded, initialViewState?.collapsedKeys, initialViewState?.selectedNodeKey]);
   const graph = (0, import_react2.useMemo)(() => {
     if (!tree)
       return null;
@@ -29979,7 +30026,34 @@ function MindmapReactView({
   (0, import_react2.useEffect)(() => {
     treeRef.current = tree;
   }, [tree]);
+  (0, import_react2.useEffect)(() => {
+    if (!tree || !onViewStateChange)
+      return;
+    const selectedNode = selectedNodeId ? findById(tree, selectedNodeId) : null;
+    onViewStateChange({ selectedNodeKey: selectedNode?.viewKey || null });
+  }, [onViewStateChange, selectedNodeId, tree]);
   const cloneTree = (t) => JSON.parse(JSON.stringify(t));
+  const getCollapsedKeys = (0, import_react2.useCallback)((root) => {
+    const keys = [];
+    const walk = (node2) => {
+      if (node2.viewKey && node2.collapsed && node2.children.length > 0)
+        keys.push(node2.viewKey);
+      node2.children.forEach(walk);
+    };
+    root.children.forEach(walk);
+    return keys;
+  }, []);
+  const setTreeOnly = (0, import_react2.useCallback)((modify) => {
+    setTree((prev) => {
+      if (!prev)
+        return prev;
+      const next = cloneTree(prev);
+      modify(next);
+      refreshTreeMetadata(next);
+      onViewStateChange?.({ collapsedKeys: getCollapsedKeys(next) });
+      return next;
+    });
+  }, [getCollapsedKeys, onViewStateChange]);
   const saveTree = (0, import_react2.useCallback)((modify) => {
     setTree((prev) => {
       if (!prev)
@@ -29989,12 +30063,14 @@ function MindmapReactView({
         undoStackRef.current.shift();
       const next = cloneTree(prev);
       modify(next);
+      refreshTreeMetadata(next);
       const md = serializeMarkdown(next);
       saveCounterRef.current += 1;
       onSaveContent(md);
+      onViewStateChange?.({ collapsedKeys: getCollapsedKeys(next) });
       return next;
     });
-  }, [onSaveContent]);
+  }, [getCollapsedKeys, onSaveContent, onViewStateChange]);
   const createSiblingForNode = (node2) => {
     const sibling = createNode("");
     sibling.sourceType = node2.sourceType || (node2.headingLevel ? "heading" : void 0);
@@ -30285,13 +30361,13 @@ function MindmapReactView({
     });
   }, [saveTree]);
   const handleToggleCollapse = (0, import_react2.useCallback)((nodeId) => {
-    saveTree((newTree) => {
+    setTreeOnly((newTree) => {
       const node2 = findById(newTree, nodeId);
       if (!node2 || node2.children.length === 0)
         return;
       node2.collapsed = !node2.collapsed;
     });
-  }, [saveTree]);
+  }, [setTreeOnly]);
   const getSiblingIds = (0, import_react2.useCallback)((nodeId) => {
     if (!tree)
       return { prev: null, next: null };
@@ -30346,10 +30422,38 @@ function MindmapReactView({
     const container = containerRef.current;
     if (!container)
       return;
-    const timer = requestAnimationFrame(() => fitToView());
+    if (!hasRestoredViewportRef.current && initialViewState?.pan && typeof initialViewState.zoom === "number") {
+      skipNextViewportPersistRef.current = true;
+      setPan(initialViewState.pan);
+      setZoom(Math.min(3, Math.max(0.1, initialViewState.zoom)));
+      initialFitDone.current = true;
+      hasRestoredViewportRef.current = true;
+      hasAppliedInitialViewportRef.current = true;
+      return;
+    }
+    const timer = requestAnimationFrame(() => {
+      fitToView();
+      hasAppliedInitialViewportRef.current = true;
+    });
     initialFitDone.current = true;
     return () => cancelAnimationFrame(timer);
-  }, [graph, fitToView]);
+  }, [graph, fitToView, initialViewState?.pan, initialViewState?.zoom]);
+  (0, import_react2.useEffect)(() => {
+    if (!filePath || !hasLoadedTreeForFileRef.current || !onViewStateChange)
+      return;
+    if (!initialFitDone.current)
+      return;
+    if (!hasAppliedInitialViewportRef.current)
+      return;
+    if (skipNextViewportPersistRef.current) {
+      skipNextViewportPersistRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      onViewStateChange({ pan, zoom });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [filePath, onViewStateChange, pan, zoom]);
   (0, import_react2.useEffect)(() => {
     const container = containerRef.current;
     if (!container)
@@ -30361,6 +30465,8 @@ function MindmapReactView({
         return;
       }
       if (editingNodeIdRef.current)
+        return;
+      if (hasRestoredViewportRef.current)
         return;
       fitToView();
     });
@@ -30775,7 +30881,7 @@ ${node2.content}` : node2.label,
 var import_jsx_runtime7 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_MINDMAP = "mindmap-view";
 var MindmapView = class extends import_obsidian.ItemView {
-  constructor(leaf) {
+  constructor(leaf, viewStateStore) {
     super(leaf);
     this.root = null;
     this.reactContainer = null;
@@ -30785,6 +30891,7 @@ var MindmapView = class extends import_obsidian.ItemView {
     this.fileLoaded = false;
     this.fileError = "";
     this.refreshTimer = 0;
+    this.viewStateStore = viewStateStore;
   }
   getViewType() {
     return VIEW_TYPE_MINDMAP;
@@ -30937,6 +31044,10 @@ var MindmapView = class extends import_obsidian.ItemView {
     const saveContent = (newContent) => {
       this.handleSaveContent(newContent);
     };
+    const initialViewState = this.filePath ? this.viewStateStore.getFileViewState(this.filePath) : {};
+    const saveViewState = (patch) => {
+      this.viewStateStore.updateFileViewState(this.filePath, patch);
+    };
     console.log("[MindMap-View] doRender:", {
       filePath: this.filePath,
       fileLoaded: this.fileLoaded,
@@ -30952,7 +31063,9 @@ var MindmapView = class extends import_obsidian.ItemView {
           fileName: this.fileName,
           fileLoaded: this.fileLoaded,
           fileError: this.fileError,
-          onSaveContent: saveContent
+          onSaveContent: saveContent,
+          initialViewState,
+          onViewStateChange: saveViewState
         }
       ) })
     );
@@ -30960,14 +31073,20 @@ var MindmapView = class extends import_obsidian.ItemView {
 };
 
 // src/main.ts
+var DEFAULT_DATA = {
+  fileStates: {}
+};
 var MindMapPlugin = class extends import_obsidian2.Plugin {
   constructor() {
     super(...arguments);
     // 始终记住最后打开的文件路径（通过事件监听，不依赖 getActiveFile）
     this.lastFilePath = null;
+    this.data = DEFAULT_DATA;
+    this.saveDataTimer = 0;
   }
   async onload() {
     console.log("[MindMap] Plugin loading...");
+    this.data = this.normalizeData(await this.loadData());
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
       const af = this.app.workspace.getActiveFile();
       if (af) {
@@ -30979,7 +31098,7 @@ var MindMapPlugin = class extends import_obsidian2.Plugin {
       if (file)
         this.lastFilePath = file.path;
     }));
-    this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf));
+    this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindmapView(leaf, this));
     for (const icon of ["brain", "brain-circuit", "git-branch", "file-text"]) {
       try {
         this.addRibbonIcon(icon, "Toggle Mindline", () => this.toggleMindMapView());
@@ -31000,7 +31119,41 @@ var MindMapPlugin = class extends import_obsidian2.Plugin {
     console.log("[MindMap] Plugin loaded!");
   }
   async onunload() {
+    if (this.saveDataTimer) {
+      window.clearTimeout(this.saveDataTimer);
+      this.saveDataTimer = 0;
+      await this.saveData(this.data);
+    }
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_MINDMAP);
+  }
+  getFileViewState(filePath) {
+    return this.data.fileStates[filePath] || {};
+  }
+  updateFileViewState(filePath, patch) {
+    if (!filePath)
+      return;
+    const prev = this.data.fileStates[filePath] || {};
+    this.data.fileStates[filePath] = {
+      ...prev,
+      ...patch
+    };
+    this.scheduleSaveData();
+  }
+  normalizeData(raw) {
+    if (!raw || typeof raw !== "object")
+      return { fileStates: {} };
+    const maybeData = raw;
+    return {
+      fileStates: maybeData.fileStates && typeof maybeData.fileStates === "object" ? maybeData.fileStates : {}
+    };
+  }
+  scheduleSaveData() {
+    if (this.saveDataTimer)
+      window.clearTimeout(this.saveDataTimer);
+    this.saveDataTimer = window.setTimeout(() => {
+      this.saveDataTimer = 0;
+      this.saveData(this.data);
+    }, 400);
   }
   /**
    * 切换脑图/Markdown 视图

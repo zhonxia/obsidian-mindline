@@ -2,6 +2,7 @@ import { ItemView, TFile, WorkspaceLeaf } from 'obsidian'
 import { createRoot, Root } from 'react-dom/client'
 import { StrictMode } from 'react'
 import MindmapReactView from './MindmapReactView'
+import type { MindmapFileViewState, MindmapViewStateStore } from '../types'
 
 export const VIEW_TYPE_MINDMAP = 'mindmap-view'
 
@@ -14,9 +15,11 @@ export class MindmapView extends ItemView {
   private fileLoaded: boolean = false
   private fileError: string = ''
   private refreshTimer: number = 0
+  private viewStateStore: MindmapViewStateStore
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, viewStateStore: MindmapViewStateStore) {
     super(leaf)
+    this.viewStateStore = viewStateStore
   }
 
   getViewType(): string { return VIEW_TYPE_MINDMAP }
@@ -189,6 +192,14 @@ export class MindmapView extends ItemView {
       this.handleSaveContent(newContent)
     }
 
+    const initialViewState: MindmapFileViewState = this.filePath
+      ? this.viewStateStore.getFileViewState(this.filePath)
+      : {}
+
+    const saveViewState = (patch: Partial<MindmapFileViewState>) => {
+      this.viewStateStore.updateFileViewState(this.filePath, patch)
+    }
+
     console.log('[MindMap-View] doRender:', {
       filePath: this.filePath,
       fileLoaded: this.fileLoaded,
@@ -205,6 +216,8 @@ export class MindmapView extends ItemView {
           fileLoaded={this.fileLoaded}
           fileError={this.fileError}
           onSaveContent={saveContent}
+          initialViewState={initialViewState}
+          onViewStateChange={saveViewState}
         />
       </StrictMode>
     )
