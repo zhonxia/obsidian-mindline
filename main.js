@@ -29855,7 +29855,17 @@ function MindmapEdges({ edges, width, height }) {
 
 // src/view/MindmapContextMenu.tsx
 var import_jsx_runtime2 = __toESM(require_jsx_runtime());
-function MindmapContextMenu({ x, y, nodeId, canDelete, onAddChild, onAddSibling, onDelete }) {
+function MindmapContextMenu({
+  x,
+  y,
+  nodeId,
+  canDelete,
+  canMerge,
+  onAddChild,
+  onAddSibling,
+  onDelete,
+  onMergeSelected
+}) {
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
     "div",
     {
@@ -29865,6 +29875,7 @@ function MindmapContextMenu({ x, y, nodeId, canDelete, onAddChild, onAddSibling,
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item", onClick: () => onAddChild(nodeId), children: "\u2795 \u6DFB\u52A0\u5B50\u8282\u70B9" }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item", onClick: () => onAddSibling(nodeId), children: "\u2B06 \u6DFB\u52A0\u540C\u7EA7\u8282\u70B9" }),
+        canMerge && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item", onClick: onMergeSelected, children: "\u5408\u5E76\u9009\u4E2D\u8282\u70B9" }),
         canDelete && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "mindmap-context-item danger", onClick: () => onDelete(nodeId), children: "\u{1F5D1} \u5220\u9664\u8282\u70B9" })
       ]
     }
@@ -29953,6 +29964,7 @@ function MindmapReactView({
   const [editValue, setEditValue] = (0, import_react2.useState)("");
   const [contextMenu, setContextMenu] = (0, import_react2.useState)(null);
   const [selectedNodeId, setSelectedNodeId] = (0, import_react2.useState)(null);
+  const [selectedNodeIds, setSelectedNodeIds] = (0, import_react2.useState)(() => /* @__PURE__ */ new Set());
   const [pan, setPan] = (0, import_react2.useState)({ x: 0, y: 0 });
   const [zoom, setZoom] = (0, import_react2.useState)(1);
   const zoomRef = (0, import_react2.useRef)(1);
@@ -29971,6 +29983,7 @@ function MindmapReactView({
   const [dropTarget, setDropTarget] = (0, import_react2.useState)(null);
   const draggingNodeIdRef = (0, import_react2.useRef)(null);
   const dropTargetRef = (0, import_react2.useRef)(null);
+  const selectedNodeIdsRef = (0, import_react2.useRef)(/* @__PURE__ */ new Set());
   const containerRef = (0, import_react2.useRef)(null);
   const editingElRef = (0, import_react2.useRef)(null);
   const saveCounterRef = (0, import_react2.useRef)(0);
@@ -30005,7 +30018,9 @@ function MindmapReactView({
       setTree(t);
       setEditingNodeId(null);
       const selectedNode = initialViewState?.selectedNodeKey ? findByViewKey(t, initialViewState.selectedNodeKey) : null;
-      setSelectedNodeId(selectedNode?.id || null);
+      const nextSelectedId = selectedNode?.id || null;
+      setSelectedNodeId(nextSelectedId);
+      setSelectedNodeIds(nextSelectedId ? /* @__PURE__ */ new Set([nextSelectedId]) : /* @__PURE__ */ new Set());
       hasLoadedTreeForFileRef.current = true;
     }
   }, [fileContent, fileLoaded, initialViewState?.collapsedKeys, initialViewState?.selectedNodeKey]);
@@ -30025,6 +30040,9 @@ function MindmapReactView({
   (0, import_react2.useEffect)(() => {
     treeRef.current = tree;
   }, [tree]);
+  (0, import_react2.useEffect)(() => {
+    selectedNodeIdsRef.current = selectedNodeIds;
+  }, [selectedNodeIds]);
   (0, import_react2.useEffect)(() => {
     if (!editingNodeId)
       return;
@@ -30087,6 +30105,45 @@ function MindmapReactView({
       return next;
     });
   }, [getCollapsedKeys, onSaveContent, onViewStateChange]);
+  const selectSingleNode = (0, import_react2.useCallback)((nodeId) => {
+    setSelectedNodeId(nodeId);
+    setSelectedNodeIds(nodeId ? /* @__PURE__ */ new Set([nodeId]) : /* @__PURE__ */ new Set());
+  }, []);
+  const selectNodeFromPointer = (0, import_react2.useCallback)((nodeId, e) => {
+    if (e.metaKey || e.ctrlKey) {
+      setSelectedNodeIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(nodeId)) {
+          next.delete(nodeId);
+        } else {
+          next.add(nodeId);
+        }
+        if (next.size === 0) {
+          setSelectedNodeId(null);
+        } else {
+          setSelectedNodeId(nodeId);
+        }
+        return next;
+      });
+      return;
+    }
+    if (e.shiftKey && selectedNodeId && treeRef.current) {
+      const parent = findParent(treeRef.current, nodeId);
+      const anchorParent = findParent(treeRef.current, selectedNodeId);
+      if (parent && anchorParent && parent.id === anchorParent.id) {
+        const start = parent.children.findIndex((c) => c.id === selectedNodeId);
+        const end = parent.children.findIndex((c) => c.id === nodeId);
+        if (start >= 0 && end >= 0) {
+          const [from, to] = start < end ? [start, end] : [end, start];
+          const ids = parent.children.slice(from, to + 1).map((c) => c.id);
+          setSelectedNodeIds(new Set(ids));
+          setSelectedNodeId(nodeId);
+          return;
+        }
+      }
+    }
+    selectSingleNode(nodeId);
+  }, [selectSingleNode, selectedNodeId]);
   const createSiblingForNode = (node2) => {
     const sibling = createNode("");
     sibling.sourceType = node2.sourceType || (node2.headingLevel ? "heading" : void 0);
@@ -30163,15 +30220,15 @@ function MindmapReactView({
       targetParent.children.splice(insertIdx, 0, draggedNode);
       updateDepth(draggedNode, targetNode.depth);
     });
-    setSelectedNodeId(draggedNodeId);
-  }, [saveTree, isAncestor]);
+    selectSingleNode(draggedNodeId);
+  }, [saveTree, isAncestor, selectSingleNode]);
   const startEditingNode = (0, import_react2.useCallback)((nodeId, initialText, placeCursorAtEnd = true) => {
     const currentTree = treeRef.current;
     const node2 = currentTree ? findById(currentTree, nodeId) : null;
     if (!node2)
       return;
     const nextValue = initialText ?? node2.title;
-    setSelectedNodeId(nodeId);
+    selectSingleNode(nodeId);
     setEditingNodeId(nodeId);
     setEditValue(nextValue);
     editValueRef.current = nextValue;
@@ -30188,7 +30245,7 @@ function MindmapReactView({
       sel?.removeAllRanges();
       sel?.addRange(range);
     });
-  }, []);
+  }, [selectSingleNode]);
   const handleDoubleClick = (0, import_react2.useCallback)((nodeId, text3) => {
     startEditingNode(nodeId, text3);
   }, [startEditingNode]);
@@ -30229,12 +30286,12 @@ function MindmapReactView({
       const idx = parent.children.indexOf(refNode);
       parent.children.splice(idx + 1, 0, sibling);
     });
-    setSelectedNodeId(sibling.id);
+    selectSingleNode(sibling.id);
     setEditingNodeId(sibling.id);
     setEditValue("");
     editValueRef.current = "";
     return sibling.id;
-  }, [saveTree]);
+  }, [saveTree, selectSingleNode]);
   const insertChildFor = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     const parentNode = currentTree ? findById(currentTree, nodeId) : null;
@@ -30249,12 +30306,12 @@ function MindmapReactView({
       parent.children.push(child);
       parent.collapsed = false;
     });
-    setSelectedNodeId(child.id);
+    selectSingleNode(child.id);
     setEditingNodeId(child.id);
     setEditValue("");
     editValueRef.current = "";
     return child.id;
-  }, [saveTree]);
+  }, [saveTree, selectSingleNode]);
   const commitEditingAndInsertSibling = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     if (!currentTree || !findParent(currentTree, nodeId))
@@ -30276,12 +30333,12 @@ function MindmapReactView({
       const idx = parent.children.indexOf(node2);
       parent.children.splice(idx + 1, 0, sibling);
     });
-    setSelectedNodeId(sibling.id);
+    selectSingleNode(sibling.id);
     setEditingNodeId(sibling.id);
     setEditValue("");
     editValueRef.current = "";
     return sibling.id;
-  }, [saveTree]);
+  }, [saveTree, selectSingleNode]);
   const commitEditingAndInsertChild = (0, import_react2.useCallback)((nodeId) => {
     const currentTree = treeRef.current;
     const currentNode = currentTree ? findById(currentTree, nodeId) : null;
@@ -30298,12 +30355,12 @@ function MindmapReactView({
       node2.children.push(child);
       node2.collapsed = false;
     });
-    setSelectedNodeId(child.id);
+    selectSingleNode(child.id);
     setEditingNodeId(child.id);
     setEditValue("");
     editValueRef.current = "";
     return child.id;
-  }, [saveTree]);
+  }, [saveTree, selectSingleNode]);
   const handleEditCancel = (0, import_react2.useCallback)(() => {
     ignoreNextBlurSaveRef.current = true;
     setEditingNodeId(null);
@@ -30326,9 +30383,9 @@ function MindmapReactView({
       newParent.children.push(child);
       newParent.collapsed = false;
     });
-    setSelectedNodeId(child.id);
+    selectSingleNode(child.id);
     setContextMenu(null);
-  }, [tree, saveTree]);
+  }, [tree, saveTree, selectSingleNode]);
   const handleAddSibling = (0, import_react2.useCallback)((nodeId) => {
     const parent = tree ? findParent(tree, nodeId) : null;
     if (!parent) {
@@ -30351,9 +30408,9 @@ function MindmapReactView({
       const idx = newParent.children.indexOf(refNode2);
       newParent.children.splice(idx + 1, 0, sibling);
     });
-    setSelectedNodeId(sibling.id);
+    selectSingleNode(sibling.id);
     setContextMenu(null);
-  }, [tree, saveTree]);
+  }, [tree, saveTree, selectSingleNode]);
   const handleDeleteNode = (0, import_react2.useCallback)((nodeId) => {
     let nextSelection = null;
     if (tree) {
@@ -30373,8 +30430,49 @@ function MindmapReactView({
     });
     setContextMenu(null);
     if (selectedNodeId === nodeId)
-      setSelectedNodeId(nextSelection === tree?.id ? null : nextSelection);
-  }, [tree, saveTree, selectedNodeId]);
+      selectSingleNode(nextSelection === tree?.id ? null : nextSelection);
+  }, [tree, saveTree, selectedNodeId, selectSingleNode]);
+  const getMergeableSelectedIds = (0, import_react2.useCallback)((root, ids) => {
+    if (ids.length < 2)
+      return [];
+    const parents = ids.map((id) => findParent(root, id));
+    const firstParent = parents[0];
+    if (!firstParent || parents.some((parent) => !parent || parent.id !== firstParent.id))
+      return [];
+    const selectedSet = new Set(ids);
+    return firstParent.children.filter((child) => selectedSet.has(child.id)).map((child) => child.id);
+  }, []);
+  const handleMergeSelected = (0, import_react2.useCallback)(() => {
+    const currentTree = treeRef.current;
+    if (!currentTree)
+      return;
+    const ids = getMergeableSelectedIds(currentTree, Array.from(selectedNodeIdsRef.current));
+    if (ids.length < 2)
+      return;
+    const keepId = ids[0];
+    saveTree((newTree) => {
+      const parent = findParent(newTree, keepId);
+      if (!parent)
+        return;
+      const orderedNodes = parent.children.filter((child) => ids.includes(child.id));
+      if (orderedNodes.length < 2)
+        return;
+      const keepNode = orderedNodes[0];
+      const mergedTitles = orderedNodes.map((node2) => node2.title.trim()).filter(Boolean);
+      const mergedContent = orderedNodes.map((node2) => node2.content.trim()).filter(Boolean);
+      keepNode.title = mergedTitles.join("\n");
+      keepNode.content = mergedContent.join("\n\n");
+      keepNode.children = orderedNodes.flatMap((node2) => node2.children);
+      keepNode.children.forEach((child) => {
+        child.parentId = keepNode.id;
+      });
+      keepNode.collapsed = orderedNodes.some((node2) => node2.collapsed);
+      const removeIds = new Set(orderedNodes.slice(1).map((node2) => node2.id));
+      parent.children = parent.children.filter((child) => !removeIds.has(child.id));
+    });
+    selectSingleNode(keepId);
+    setContextMenu(null);
+  }, [getMergeableSelectedIds, saveTree, selectSingleNode]);
   const handleIndent = (0, import_react2.useCallback)((nodeId) => {
     saveTree((newTree) => {
       const node2 = findById(newTree, nodeId);
@@ -30432,19 +30530,21 @@ function MindmapReactView({
     const { prev, next } = getSiblingIds(selectedNodeId);
     const target = direction === "up" ? prev : next;
     if (target)
-      setSelectedNodeId(target);
-  }, [selectedNodeId, getSiblingIds]);
+      selectSingleNode(target);
+  }, [selectedNodeId, getSiblingIds, selectSingleNode]);
   const handleContextMenu = (0, import_react2.useCallback)((e, nodeId) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
-    setSelectedNodeId(nodeId);
+    if (!selectedNodeIdsRef.current.has(nodeId))
+      selectSingleNode(nodeId);
     setEditingNodeId(null);
-  }, []);
+  }, [selectSingleNode]);
   const handleCanvasClick = (0, import_react2.useCallback)(() => {
     setContextMenu(null);
     setEditingNodeId(null);
-  }, []);
+    selectSingleNode(null);
+  }, [selectSingleNode]);
   const fitToView = (0, import_react2.useCallback)(() => {
     const graph2 = graphRef.current;
     const container = containerRef.current;
@@ -30679,8 +30779,11 @@ function MindmapReactView({
           if (selectedNodeId) {
             const restoreSid = selectedNodeId;
             requestAnimationFrame(() => {
-              if (!findById(prev, restoreSid))
-                setSelectedNodeId(null);
+              if (!findById(prev, restoreSid)) {
+                selectSingleNode(null);
+              } else {
+                selectSingleNode(restoreSid);
+              }
             });
           }
         }
@@ -30689,7 +30792,11 @@ function MindmapReactView({
       const sid = selectedNodeId;
       if (!sid)
         return;
-      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleMergeSelected();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         e.stopPropagation();
         startEditingNode(sid, e.key);
@@ -30736,11 +30843,13 @@ function MindmapReactView({
     contextMenu,
     handleOutdent,
     handleDeleteNode,
+    handleMergeSelected,
     navigateSelection,
     handleEditCancel,
     insertChildFor,
     insertSiblingAfter,
     onSaveContent,
+    selectSingleNode,
     startEditingNode
   ]);
   (0, import_react2.useEffect)(() => {
@@ -30772,9 +30881,11 @@ function MindmapReactView({
         y: contextMenu.y,
         nodeId: contextMenu.nodeId,
         canDelete: !!findParent(tree, contextMenu.nodeId),
+        canMerge: getMergeableSelectedIds(tree, Array.from(selectedNodeIds)).length >= 2,
         onAddChild: handleAddChild,
         onAddSibling: handleAddSibling,
-        onDelete: handleDeleteNode
+        onDelete: handleDeleteNode,
+        onMergeSelected: handleMergeSelected
       }
     ),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
@@ -30805,13 +30916,14 @@ function MindmapReactView({
                 graph.nodes.map((node2) => {
                   const isEditing = editingNodeId === node2.id;
                   const isDragging = draggingNodeId === node2.id;
+                  const isSelected = selectedNodeIds.has(node2.id);
                   const dropPosition = dropTarget?.nodeId === node2.id && draggingNodeId !== null && draggingNodeId !== node2.id ? dropTarget.position : null;
                   const headingMarker = parseHeadingMarker2(node2.label, node2.headingLevel);
                   return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
                     "div",
                     {
                       "data-node-id": node2.id,
-                      className: `mm-node depth-${Math.min(node2.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ""}${isEditing ? " editing" : ""}${isDragging ? " dragging" : ""}${dropPosition ? ` drop-target drop-${dropPosition}` : ""}${node2.id === selectedNodeId ? " selected" : ""}`,
+                      className: `mm-node depth-${Math.min(node2.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ""}${isEditing ? " editing" : ""}${isDragging ? " dragging" : ""}${dropPosition ? ` drop-target drop-${dropPosition}` : ""}${isSelected ? " selected" : ""}${isSelected && selectedNodeIds.size > 1 ? " multi-selected" : ""}`,
                       style: {
                         left: `${node2.x}px`,
                         top: `${node2.y}px`,
@@ -30824,8 +30936,10 @@ ${node2.content}` : node2.label,
                       onDoubleClick: () => handleDoubleClick(node2.id, node2.label),
                       onContextMenu: (e) => handleContextMenu(e, node2.id),
                       onPointerDown: (e) => {
-                        setSelectedNodeId(node2.id);
+                        selectNodeFromPointer(node2.id, e);
                         if (isEditing)
+                          return;
+                        if (e.metaKey || e.ctrlKey || e.shiftKey)
                           return;
                         handleNodePointerDown(e, node2.id);
                       },

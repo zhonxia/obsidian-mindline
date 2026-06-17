@@ -61,6 +61,7 @@ export default function MindmapReactView({
     nodeId: string; x: number; y: number
   } | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(() => new Set())
 
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -82,6 +83,7 @@ export default function MindmapReactView({
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
   const draggingNodeIdRef = useRef<string | null>(null)
   const dropTargetRef = useRef<DropTarget | null>(null)
+  const selectedNodeIdsRef = useRef<Set<string>>(new Set())
 
   const containerRef = useRef<HTMLDivElement>(null)
   const editingElRef = useRef<HTMLSpanElement | null>(null)
@@ -124,7 +126,9 @@ export default function MindmapReactView({
       const selectedNode = initialViewState?.selectedNodeKey
         ? findByViewKey(t, initialViewState.selectedNodeKey)
         : null
-      setSelectedNodeId(selectedNode?.id || null)
+      const nextSelectedId = selectedNode?.id || null
+      setSelectedNodeId(nextSelectedId)
+      setSelectedNodeIds(nextSelectedId ? new Set([nextSelectedId]) : new Set())
       hasLoadedTreeForFileRef.current = true
     }
   }, [fileContent, fileLoaded, initialViewState?.collapsedKeys, initialViewState?.selectedNodeKey])
@@ -142,6 +146,7 @@ export default function MindmapReactView({
 
   useEffect(() => { graphRef.current = graph }, [graph])
   useEffect(() => { treeRef.current = tree }, [tree])
+  useEffect(() => { selectedNodeIdsRef.current = selectedNodeIds }, [selectedNodeIds])
 
   useEffect(() => {
     if (!editingNodeId) return
@@ -204,6 +209,49 @@ export default function MindmapReactView({
       return next
     })
   }, [getCollapsedKeys, onSaveContent, onViewStateChange])
+
+  const selectSingleNode = useCallback((nodeId: string | null) => {
+    setSelectedNodeId(nodeId)
+    setSelectedNodeIds(nodeId ? new Set([nodeId]) : new Set())
+  }, [])
+
+  const selectNodeFromPointer = useCallback((nodeId: string, e: React.PointerEvent): void => {
+    if (e.metaKey || e.ctrlKey) {
+      setSelectedNodeIds(prev => {
+        const next = new Set(prev)
+        if (next.has(nodeId)) {
+          next.delete(nodeId)
+        } else {
+          next.add(nodeId)
+        }
+        if (next.size === 0) {
+          setSelectedNodeId(null)
+        } else {
+          setSelectedNodeId(nodeId)
+        }
+        return next
+      })
+      return
+    }
+
+    if (e.shiftKey && selectedNodeId && treeRef.current) {
+      const parent = findParent(treeRef.current, nodeId)
+      const anchorParent = findParent(treeRef.current, selectedNodeId)
+      if (parent && anchorParent && parent.id === anchorParent.id) {
+        const start = parent.children.findIndex(c => c.id === selectedNodeId)
+        const end = parent.children.findIndex(c => c.id === nodeId)
+        if (start >= 0 && end >= 0) {
+          const [from, to] = start < end ? [start, end] : [end, start]
+          const ids = parent.children.slice(from, to + 1).map(c => c.id)
+          setSelectedNodeIds(new Set(ids))
+          setSelectedNodeId(nodeId)
+          return
+        }
+      }
+    }
+
+    selectSingleNode(nodeId)
+  }, [selectSingleNode, selectedNodeId])
 
   const createSiblingForNode = (node: TreeNode): TreeNode => {
     const sibling = createNode('')
@@ -280,8 +328,8 @@ export default function MindmapReactView({
       targetParent.children.splice(insertIdx, 0, draggedNode)
       updateDepth(draggedNode, targetNode.depth)
     })
-    setSelectedNodeId(draggedNodeId)
-  }, [saveTree, isAncestor])
+    selectSingleNode(draggedNodeId)
+  }, [saveTree, isAncestor, selectSingleNode])
 
   // ── 节点编辑 ─────────────────────────────────
   const startEditingNode = useCallback((nodeId: string, initialText?: string, placeCursorAtEnd: boolean = true) => {
@@ -289,7 +337,7 @@ export default function MindmapReactView({
     const node = currentTree ? findById(currentTree, nodeId) : null
     if (!node) return
     const nextValue = initialText ?? node.title
-    setSelectedNodeId(nodeId)
+    selectSingleNode(nodeId)
     setEditingNodeId(nodeId)
     setEditValue(nextValue)
     editValueRef.current = nextValue
@@ -305,7 +353,7 @@ export default function MindmapReactView({
       sel?.removeAllRanges()
       sel?.addRange(range)
     })
-  }, [])
+  }, [selectSingleNode])
 
   const handleDoubleClick = useCallback((nodeId: string, text: string) => {
     startEditingNode(nodeId, text)
@@ -344,12 +392,12 @@ export default function MindmapReactView({
       const idx = parent.children.indexOf(refNode)
       parent.children.splice(idx + 1, 0, sibling)
     })
-    setSelectedNodeId(sibling.id)
+    selectSingleNode(sibling.id)
     setEditingNodeId(sibling.id)
     setEditValue('')
     editValueRef.current = ''
     return sibling.id
-  }, [saveTree])
+  }, [saveTree, selectSingleNode])
 
   const insertChildFor = useCallback((nodeId: string): string | null => {
     const currentTree = treeRef.current
@@ -364,12 +412,12 @@ export default function MindmapReactView({
       parent.children.push(child)
       parent.collapsed = false
     })
-    setSelectedNodeId(child.id)
+    selectSingleNode(child.id)
     setEditingNodeId(child.id)
     setEditValue('')
     editValueRef.current = ''
     return child.id
-  }, [saveTree])
+  }, [saveTree, selectSingleNode])
 
   const commitEditingAndInsertSibling = useCallback((nodeId: string) => {
     const currentTree = treeRef.current
@@ -393,12 +441,12 @@ export default function MindmapReactView({
       parent.children.splice(idx + 1, 0, sibling)
     })
 
-    setSelectedNodeId(sibling.id)
+    selectSingleNode(sibling.id)
     setEditingNodeId(sibling.id)
     setEditValue('')
     editValueRef.current = ''
     return sibling.id
-  }, [saveTree])
+  }, [saveTree, selectSingleNode])
 
   const commitEditingAndInsertChild = useCallback((nodeId: string) => {
     const currentTree = treeRef.current
@@ -419,12 +467,12 @@ export default function MindmapReactView({
       node.collapsed = false
     })
 
-    setSelectedNodeId(child.id)
+    selectSingleNode(child.id)
     setEditingNodeId(child.id)
     setEditValue('')
     editValueRef.current = ''
     return child.id
-  }, [saveTree])
+  }, [saveTree, selectSingleNode])
 
   const handleEditCancel = useCallback(() => {
     ignoreNextBlurSaveRef.current = true
@@ -450,9 +498,9 @@ export default function MindmapReactView({
       newParent.children.push(child)
       newParent.collapsed = false
     })
-    setSelectedNodeId(child.id)
+    selectSingleNode(child.id)
     setContextMenu(null)
-  }, [tree, saveTree])
+  }, [tree, saveTree, selectSingleNode])
 
   const handleAddSibling = useCallback((nodeId: string) => {
     const parent = tree ? findParent(tree, nodeId) : null
@@ -476,9 +524,9 @@ export default function MindmapReactView({
       const idx = newParent.children.indexOf(refNode)
       newParent.children.splice(idx + 1, 0, sibling)
     })
-    setSelectedNodeId(sibling.id)
+    selectSingleNode(sibling.id)
     setContextMenu(null)
-  }, [tree, saveTree])
+  }, [tree, saveTree, selectSingleNode])
 
   const handleDeleteNode = useCallback((nodeId: string) => {
     let nextSelection: string | null = null
@@ -497,8 +545,51 @@ export default function MindmapReactView({
       if (idx >= 0) parent.children.splice(idx, 1)
     })
     setContextMenu(null)
-    if (selectedNodeId === nodeId) setSelectedNodeId(nextSelection === tree?.id ? null : nextSelection)
-  }, [tree, saveTree, selectedNodeId])
+    if (selectedNodeId === nodeId) selectSingleNode(nextSelection === tree?.id ? null : nextSelection)
+  }, [tree, saveTree, selectedNodeId, selectSingleNode])
+
+  const getMergeableSelectedIds = useCallback((root: TreeNode, ids: string[]): string[] => {
+    if (ids.length < 2) return []
+    const parents = ids.map(id => findParent(root, id))
+    const firstParent = parents[0]
+    if (!firstParent || parents.some(parent => !parent || parent.id !== firstParent.id)) return []
+    const selectedSet = new Set(ids)
+    return firstParent.children
+      .filter(child => selectedSet.has(child.id))
+      .map(child => child.id)
+  }, [])
+
+  const handleMergeSelected = useCallback(() => {
+    const currentTree = treeRef.current
+    if (!currentTree) return
+    const ids = getMergeableSelectedIds(currentTree, Array.from(selectedNodeIdsRef.current))
+    if (ids.length < 2) return
+
+    const keepId = ids[0]
+    saveTree((newTree) => {
+      const parent = findParent(newTree, keepId)
+      if (!parent) return
+      const orderedNodes = parent.children.filter(child => ids.includes(child.id))
+      if (orderedNodes.length < 2) return
+
+      const keepNode = orderedNodes[0]
+      const mergedTitles = orderedNodes.map(node => node.title.trim()).filter(Boolean)
+      const mergedContent = orderedNodes.map(node => node.content.trim()).filter(Boolean)
+      keepNode.title = mergedTitles.join('\n')
+      keepNode.content = mergedContent.join('\n\n')
+      keepNode.children = orderedNodes.flatMap(node => node.children)
+      keepNode.children.forEach(child => {
+        child.parentId = keepNode.id
+      })
+      keepNode.collapsed = orderedNodes.some(node => node.collapsed)
+
+      const removeIds = new Set(orderedNodes.slice(1).map(node => node.id))
+      parent.children = parent.children.filter(child => !removeIds.has(child.id))
+    })
+
+    selectSingleNode(keepId)
+    setContextMenu(null)
+  }, [getMergeableSelectedIds, saveTree, selectSingleNode])
 
   // ── 缩进 / 反向缩进 ─────────────────────────
   const handleIndent = useCallback((nodeId: string) => {
@@ -555,21 +646,22 @@ export default function MindmapReactView({
     if (!selectedNodeId) return
     const { prev, next } = getSiblingIds(selectedNodeId)
     const target = direction === 'up' ? prev : next
-    if (target) setSelectedNodeId(target)
-  }, [selectedNodeId, getSiblingIds])
+    if (target) selectSingleNode(target)
+  }, [selectedNodeId, getSiblingIds, selectSingleNode])
 
   const handleContextMenu = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.preventDefault()
     e.stopPropagation()
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY })
-    setSelectedNodeId(nodeId)
+    if (!selectedNodeIdsRef.current.has(nodeId)) selectSingleNode(nodeId)
     setEditingNodeId(null)
-  }, [])
+  }, [selectSingleNode])
 
   const handleCanvasClick = useCallback(() => {
     setContextMenu(null)
     setEditingNodeId(null)
-  }, [])
+    selectSingleNode(null)
+  }, [selectSingleNode])
 
   // ── 自适应 ───────────────────────────────────
   const fitToView = useCallback(() => {
@@ -818,7 +910,11 @@ export default function MindmapReactView({
           if (selectedNodeId) {
             const restoreSid = selectedNodeId
             requestAnimationFrame(() => {
-              if (!findById(prev, restoreSid)) setSelectedNodeId(null)
+              if (!findById(prev, restoreSid)) {
+                selectSingleNode(null)
+              } else {
+                selectSingleNode(restoreSid)
+              }
             })
           }
         }
@@ -828,7 +924,11 @@ export default function MindmapReactView({
       const sid = selectedNodeId
       if (!sid) return
 
-      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+        e.preventDefault()
+        e.stopPropagation()
+        handleMergeSelected()
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault()
         e.stopPropagation()
         startEditingNode(sid, e.key)
@@ -870,9 +970,9 @@ export default function MindmapReactView({
     window.addEventListener('keydown', onKeyDown, { capture: true })
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [editingNodeId, selectedNodeId, contextMenu,
-      handleOutdent, handleDeleteNode, navigateSelection,
+      handleOutdent, handleDeleteNode, handleMergeSelected, navigateSelection,
       handleEditCancel, insertChildFor, insertSiblingAfter, onSaveContent,
-      startEditingNode])
+      selectSingleNode, startEditingNode])
 
   // 组件卸载时清理拖拽监听
   useEffect(() => {
@@ -907,9 +1007,11 @@ export default function MindmapReactView({
           y={contextMenu.y}
           nodeId={contextMenu.nodeId}
           canDelete={!!findParent(tree, contextMenu.nodeId)}
+          canMerge={getMergeableSelectedIds(tree, Array.from(selectedNodeIds)).length >= 2}
           onAddChild={handleAddChild}
           onAddSibling={handleAddSibling}
           onDelete={handleDeleteNode}
+          onMergeSelected={handleMergeSelected}
         />
       )}
 
@@ -938,6 +1040,7 @@ export default function MindmapReactView({
           {graph.nodes.map(node => {
             const isEditing = editingNodeId === node.id
             const isDragging = draggingNodeId === node.id
+            const isSelected = selectedNodeIds.has(node.id)
             const dropPosition = dropTarget?.nodeId === node.id && draggingNodeId !== null && draggingNodeId !== node.id
               ? dropTarget.position
               : null
@@ -947,7 +1050,7 @@ export default function MindmapReactView({
               <div
                 key={node.id}
                 data-node-id={node.id}
-                className={`mm-node depth-${Math.min(node.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ''}${isEditing ? ' editing' : ''}${isDragging ? ' dragging' : ''}${dropPosition ? ` drop-target drop-${dropPosition}` : ''}${node.id === selectedNodeId ? ' selected' : ''}`}
+                className={`mm-node depth-${Math.min(node.depth, 5)}${headingMarker.level ? ` heading-mark heading-mark-${headingMarker.level}` : ''}${isEditing ? ' editing' : ''}${isDragging ? ' dragging' : ''}${dropPosition ? ` drop-target drop-${dropPosition}` : ''}${isSelected ? ' selected' : ''}${isSelected && selectedNodeIds.size > 1 ? ' multi-selected' : ''}`}
                 style={{
                   left: `${node.x}px`,
                   top: `${node.y}px`,
@@ -958,8 +1061,9 @@ export default function MindmapReactView({
                 onDoubleClick={() => handleDoubleClick(node.id, node.label)}
                 onContextMenu={e => handleContextMenu(e, node.id)}
                 onPointerDown={e => {
-                  setSelectedNodeId(node.id)
+                  selectNodeFromPointer(node.id, e)
                   if (isEditing) return
+                  if (e.metaKey || e.ctrlKey || e.shiftKey) return
                   handleNodePointerDown(e, node.id)
                 }}
               >

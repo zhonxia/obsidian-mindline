@@ -5,12 +5,16 @@ interface Props {
   y: number
   nodeId: string
   canDelete: boolean
+  canMerge: boolean
   onAddChild: (nodeId: string) => void
   onAddSibling: (nodeId: string) => void
   onDelete: (nodeId: string) => void
+  onMergeSelected: () => void
 }
 
-export default function MindmapContextMenu({ x, y, nodeId, canDelete, onAddChild, onAddSibling, onDelete }: Props) {
+export default function MindmapContextMenu({
+  x, y, nodeId, canDelete, canMerge, onAddChild, onAddSibling, onDelete, onMergeSelected,
+}: Props) {
   return (
     <div
       className="mindmap-context-menu"
@@ -23,6 +27,11 @@ export default function MindmapContextMenu({ x, y, nodeId, canDelete, onAddChild
       <div className="mindmap-context-item" onClick={() => onAddSibling(nodeId)}>
         ⬆ 添加同级节点
       </div>
+      {canMerge && (
+        <div className="mindmap-context-item" onClick={onMergeSelected}>
+          合并选中节点
+        </div>
+      )}
       {canDelete && (
         <div className="mindmap-context-item danger" onClick={() => onDelete(nodeId)}>
           🗑 删除节点
