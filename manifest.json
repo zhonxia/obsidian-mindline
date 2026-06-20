@@ -1,7 +1,7 @@
 {
   "id": "mindline",
   "name": "Mindline",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minAppVersion": "1.0.0",
   "description": "A Mubu-style Markdown outline mind map plugin for Obsidian.",
   "author": "Qin Bai",
